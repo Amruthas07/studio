@@ -32,7 +32,7 @@ const formSchema = z.object({
   registerNumber: z.string().regex(/^[0-9]{3}[a-z]{2}[0-9]{5}$/, "Invalid register number format (e.g., 324cs21001)."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   email: z.string().email(),
-  contact: z.string().min(10, "Contact number must be at least 10 digits."),
+  contact: z.string().length(10, "Contact number must be exactly 10 digits."),
   fatherName: z.string().min(2, "Father's name is required."),
   motherName: z.string().min(2, "Mother's name is required."),
   photo: z.any().refine(file => file instanceof File, "Photo is required."),
