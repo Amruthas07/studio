@@ -1,0 +1,210 @@
+"use client"
+
+import React from "react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+
+import { Button } from "@/components/ui/button"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import { addStudent } from "@/app/actions"
+
+const formSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters."),
+  registerNumber: z.string().regex(/^[0-9]{3}[a-z]{2}[0-9]{5}$/, "Invalid register number format (e.g., 324cs21001)."),
+  department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
+  email: z.string().email(),
+  contact: z.string().min(10, "Contact number must be at least 10 digits."),
+  fatherName: z.string().min(2, "Father's name is required."),
+  motherName: z.string().min(2, "Mother's name is required."),
+  photo: z.any().refine(file => file instanceof File, "Photo is required."),
+})
+
+export function AddStudentForm() {
+  const { toast } = useToast()
+  const [isPending, startTransition] = React.useTransition()
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      registerNumber: "",
+      email: "",
+      contact: "",
+      fatherName: "",
+      motherName: "",
+    },
+  })
+
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    const formData = new FormData();
+    Object.entries(values).forEach(([key, value]) => {
+        formData.append(key, value);
+    });
+
+    startTransition(async () => {
+      const result = await addStudent(formData);
+      if (result.success) {
+        toast({
+          title: "Student Added Successfully",
+          description: `${values.name} has been enrolled with Face ID: ${result.faceId?.substring(0,10)}...`,
+        })
+        form.reset();
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Failed to Add Student",
+          description: result.error || "An unknown error occurred.",
+        })
+      }
+    })
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Student Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="registerNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Register Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="324cs21001" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="fatherName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Father's Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="motherName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mother's Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Department</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a department" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="cs">Computer Science (CS)</SelectItem>
+                      <SelectItem value="ce">Civil Engineering (CE)</SelectItem>
+                      <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
+                      <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
+                      <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
+                      <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="student@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="contact"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Number</FormLabel>
+                  <FormControl>
+                    <Input type="tel" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+                control={form.control}
+                name="photo"
+                render={({ field: { onChange, value, ...rest } }) => (
+                <FormItem>
+                    <FormLabel>Student Photo</FormLabel>
+                    <FormControl>
+                    <Input type="file" accept="image/*" onChange={(e) => onChange(e.target.files?.[0])} {...rest} />
+                    </FormControl>
+                    <FormDescription>Used for face recognition.</FormDescription>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+        </div>
+        <div className="flex justify-end pt-4">
+            <Button type="submit" disabled={isPending}>
+                {isPending ? 'Enrolling...' : 'Enroll Student'}
+            </Button>
+        </div>
+      </form>
+    </Form>
+  )
+}

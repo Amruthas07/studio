@@ -1,3 +1,16 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-collage",
+      "description": "A collage of technology and faces related to attendance systems.",
+      "imageUrl": "https://picsum.photos/seed/faceattend/1920/1080",
+      "imageHint": "technology collage"
+    },
+    {
+      "id": "avatar-placeholder",
+      "description": "A generic avatar placeholder.",
+      "imageUrl": "https://picsum.photos/seed/avatar/100/100",
+      "imageHint": "person avatar"
+    }
+  ]
 }
