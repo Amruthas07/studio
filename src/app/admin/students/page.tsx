@@ -20,27 +20,31 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle } from "lucide-react";
+import { Loader2, PlusCircle } from "lucide-react";
 import { AddStudentForm } from "@/components/admin/add-student-form";
 import { StudentsTable } from "@/components/admin/students-table";
 import { Student } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function StudentsPage() {
   const { toast } = useToast();
-  const [students, setStudents] = React.useState<Student[]>(() => {
+  const { user, loading: authLoading } = useAuth();
+
+  const [allStudents, setAllStudents] = React.useState<Student[]>(() => {
     if (typeof window !== 'undefined') {
       const savedStudents = localStorage.getItem('students');
       return savedStudents ? JSON.parse(savedStudents) : [];
     }
     return [];
   });
+  
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [studentToDelete, setStudentToDelete] = React.useState<Student | null>(null);
 
   const handleStudentAdded = (newStudent: Student) => {
-    setStudents(prevStudents => {
+    setAllStudents(prevStudents => {
       const updatedStudents = [...prevStudents, newStudent];
       if (typeof window !== 'undefined') {
         localStorage.setItem('students', JSON.stringify(updatedStudents));
@@ -58,10 +62,10 @@ export default function StudentsPage() {
   const handleDeleteStudent = () => {
     if (!studentToDelete) return;
 
-    const updatedStudents = students.filter(
+    const updatedStudents = allStudents.filter(
       (student) => student.registerNumber !== studentToDelete.registerNumber
     );
-    setStudents(updatedStudents);
+    setAllStudents(updatedStudents);
     if (typeof window !== 'undefined') {
       localStorage.setItem('students', JSON.stringify(updatedStudents));
     }
@@ -72,7 +76,19 @@ export default function StudentsPage() {
     setIsDeleteDialogOpen(false);
     setStudentToDelete(null);
   };
+  
+  const departmentStudents = React.useMemo(() => {
+      if (!user?.department) return [];
+      return allStudents.filter(student => student.department === user.department);
+  }, [allStudents, user]);
 
+  if (authLoading) {
+      return (
+          <div className="flex h-full w-full items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+      );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -82,7 +98,7 @@ export default function StudentsPage() {
             Student Management
           </h1>
           <p className="text-muted-foreground">
-            View, add, and manage student records.
+            View, add, and manage student records for the {user?.department.toUpperCase()} department.
           </p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -104,7 +120,7 @@ export default function StudentsPage() {
         </Dialog>
       </div>
 
-      <StudentsTable students={students} onDeleteStudent={openDeleteDialog} />
+      <StudentsTable students={departmentStudents} onDeleteStudent={openDeleteDialog} />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
