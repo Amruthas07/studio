@@ -7,9 +7,9 @@ import Image from 'next/image';
 export default function AdminProfilePage() {
     const collegeDetails = {
         name: "SMART ATTENDANCE SYSTEM University",
-        address: "123 University Drive, Tech City, 571301",
-        contact: "+91 12345 67890",
-        email: "contact@sasu.edu",
+        address: "Mysore-Ooty Road, Nanjangud",
+        contact: "08221 - 22649 / +91 988661823",
+        email: "jsspn324@gmail.com",
         about: "The Department of Computer Science is committed to excellence in teaching, research, and service. We offer a variety of programs to prepare students for successful careers in the ever-evolving field of technology.",
         photoUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop"
     };
