@@ -55,12 +55,11 @@ export function LoginForm() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-primary-foreground/80">Email</FormLabel>
+              <FormLabel>Email</FormLabel>
               <FormControl>
                 <Input
                   placeholder="name@example.com"
                   {...field}
-                  className="bg-background/70 border-border/50 text-foreground"
                 />
               </FormControl>
               <FormMessage />
@@ -72,20 +71,19 @@ export function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-primary-foreground/80">Password</FormLabel>
+              <FormLabel>Password</FormLabel>
               <FormControl>
                 <Input
                   type="password"
                   placeholder="••••••••"
                   {...field}
-                  className="bg-background/70 border-border/50 text-foreground"
                 />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pt-2">
             <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                     <>
@@ -98,7 +96,7 @@ export function LoginForm() {
             </Button>
         </div>
         <div className="text-center text-sm">
-            <Link href="/reset-password" className="text-primary-foreground/70 hover:text-primary-foreground underline">
+            <Link href="/reset-password" className="text-muted-foreground hover:text-primary underline">
                 Forgot password?
             </Link>
         </div>
