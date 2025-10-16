@@ -78,27 +78,11 @@ const faceDataToolFlow = ai.defineFlow(
 
     let mongoInsertionResult: string | undefined = undefined;
     if (input.insertIntoMongo) {
-      // TODO: Implement the HTTP call to the Java backend to insert data into MongoDB
-      // Example:
-      // const response = await fetch('YOUR_JAVA_BACKEND_ENDPOINT', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     registerNumber: input.registerNumber,
-      //     name: input.name,
-      //     fatherName: input.fatherName,
-      //     motherName: input.motherName,
-      //     department: input.department,
-      //     email: input.email,
-      //     contact: input.contact,
-      //     faceId: output?.faceId,
-      //     photoDataUri: input.photoDataUri,
-      //   }),
-      // });
-      // mongoInsertionResult = await response.text();
-      mongoInsertionResult = 'MongoDB insertion requested but not yet implemented';
+      // TODO: Implement the logic to save student data to a database.
+      // This could involve making an HTTP call to a backend service or directly
+      // using a database client if the environment supports it.
+      // For now, this is a placeholder.
+      mongoInsertionResult = 'Database insertion requested but not yet implemented';
     }
 
     return {
