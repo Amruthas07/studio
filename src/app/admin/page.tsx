@@ -1,10 +1,10 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, UserCheck, UserX, FileDown } from "lucide-react";
+import { Users, UserCheck, UserX } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { mockAttendance, mockStudents } from "@/lib/mock-data";
+import { mockAttendance } from "@/lib/mock-data";
 import { Student } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
@@ -14,11 +14,19 @@ export default function AdminDashboard() {
   const [totalStudents, setTotalStudents] = useState(0);
   const [presentToday, setPresentToday] = useState(0);
   const [absentToday, setAbsentToday] = useState(0);
+  const [students, setStudents] = useState<Student[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedStudents = localStorage.getItem('students');
+      const allStudents: Student[] = savedStudents ? JSON.parse(savedStudents) : [];
+      setStudents(allStudents);
+    }
+  }, []);
 
   useEffect(() => {
     if (user?.department) {
-      const allStudents: Student[] = (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('students') || '[]'));
-      const departmentStudents = allStudents.filter(s => s.department === user.department);
+      const departmentStudents = students.filter(s => s.department === user.department);
       
       const today = new Date().toISOString().split('T')[0];
 
@@ -26,13 +34,15 @@ export default function AdminDashboard() {
         record.date === today && 
         departmentStudents.some(s => s.registerNumber === record.studentRegister)
       );
-      const present = todaysAttendance.filter(r => r.status === 'present' || r.status === 'late').length;
+
+      const presentStudents = new Set(todaysAttendance.filter(r => r.status === 'present' || r.status === 'late').map(r => r.studentRegister));
+      const presentCount = presentStudents.size;
       
       setTotalStudents(departmentStudents.length);
-      setPresentToday(present);
-      setAbsentToday(departmentStudents.length > present ? departmentStudents.length - present : 0);
+      setPresentToday(presentCount);
+      setAbsentToday(departmentStudents.length - presentCount);
     }
-  }, [user]);
+  }, [user, students]);
 
   if (loading || !user) {
     return (
@@ -62,7 +72,7 @@ export default function AdminDashboard() {
           </Link>
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -73,7 +83,7 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{totalStudents}</div>
             <p className="text-xs text-muted-foreground">
-              {totalStudents > 0 ? `Currently enrolled in ${user.department.toUpperCase()}` : `No students in ${user.department.toUpperCase()}`}
+              {`Enrolled in ${user.department.toUpperCase()}`}
             </p>
           </CardContent>
         </Card>
@@ -102,20 +112,6 @@ export default function AdminDashboard() {
             <div className="text-2xl font-bold">{absentToday}</div>
              <p className="text-xs text-muted-foreground">
               {totalStudents > 0 ? `${absentToday} out of ${totalStudents} absent` : 'N/A'}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pending Reports
-            </CardTitle>
-            <FileDown className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1</div>
-            <p className="text-xs text-muted-foreground">
-              For your department ({user.department.toUpperCase()})
             </p>
           </CardContent>
         </Card>
