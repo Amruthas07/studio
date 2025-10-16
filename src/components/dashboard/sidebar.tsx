@@ -29,7 +29,7 @@ export function Sidebar() {
                 <div className="flex h-16 items-center border-b px-4 lg:px-6">
                     <Link href="/" className="flex items-center gap-2 font-semibold">
                         <University className="h-6 w-6 text-primary" />
-                        <span className="font-headline">FaceAttend</span>
+                        <span className="font-headline">SMART ATTENDANCE</span>
                     </Link>
                 </div>
                 <div className="flex-1">
@@ -67,7 +67,7 @@ export function MobileSidebarContent() {
               className="flex items-center gap-2 text-lg font-semibold mb-4"
             >
               <University className="h-6 w-6 text-primary" />
-              <span className="sr-only">FaceAttend</span>
+              <span className="sr-only">SMART ATTENDANCE SYSTEM</span>
             </Link>
             {navItems.map((item) => (
                 <Link

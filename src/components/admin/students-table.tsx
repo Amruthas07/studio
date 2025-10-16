@@ -1,4 +1,3 @@
-import { mockStudents } from "@/lib/mock-data";
 import {
   Table,
   TableBody,
@@ -6,13 +5,19 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableCaption,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
+import type { Student } from "@/lib/types";
 
-export function StudentsTable() {
-    const students = mockStudents;
+interface StudentsTableProps {
+    students: Student[];
+}
+
+export function StudentsTable({ students }: StudentsTableProps) {
+    
     const getInitials = (name: string) => {
         const names = name.split(' ');
         if (names.length > 1) {
@@ -29,6 +34,7 @@ export function StudentsTable() {
             </CardHeader>
             <CardContent>
                  <Table>
+                    {students.length === 0 && <TableCaption>No students have been added yet.</TableCaption>}
                     <TableHeader>
                         <TableRow>
                             <TableHead>Student</TableHead>

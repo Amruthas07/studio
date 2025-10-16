@@ -21,7 +21,7 @@ const fontSourceCodePro = Source_Code_Pro({
 });
 
 export const metadata: Metadata = {
-  title: 'FaceAttend',
+  title: 'SMART ATTENDANCE SYSTEM',
   description: 'A Smart Face Recognition Attendance System',
 };
 

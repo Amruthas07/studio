@@ -18,7 +18,7 @@ export function Header({ sidebarContent }: HeaderProps) {
             className="flex items-center gap-2 text-lg font-semibold md:text-base text-foreground"
           >
             <University className="h-6 w-6 text-primary" />
-            <span className="font-headline">FaceAttend</span>
+            <span className="font-headline">SMART ATTENDANCE</span>
           </Link>
         </nav>
         <Sheet>

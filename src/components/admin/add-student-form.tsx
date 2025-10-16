@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { addStudent } from "@/app/actions"
+import type { Student } from "@/lib/types"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -37,7 +38,11 @@ const formSchema = z.object({
   photo: z.any().refine(file => file instanceof File, "Photo is required."),
 })
 
-export function AddStudentForm() {
+type AddStudentFormProps = {
+    onStudentAdded: (student: Student) => void;
+}
+
+export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const { toast } = useToast()
   const [isPending, startTransition] = React.useTransition()
 
@@ -61,11 +66,19 @@ export function AddStudentForm() {
 
     startTransition(async () => {
       const result = await addStudent(formData);
-      if (result.success) {
+      if (result.success && result.faceId) {
         toast({
           title: "Student Added Successfully",
           description: `${values.name} has been enrolled with Face ID: ${result.faceId?.substring(0,10)}...`,
         })
+        
+        const newStudent: Student = {
+            ...values,
+            photoURL: URL.createObjectURL(values.photo),
+            createdAt: new Date(),
+            faceId: result.faceId
+        };
+        onStudentAdded(newStudent);
         form.reset();
       } else {
         toast({
