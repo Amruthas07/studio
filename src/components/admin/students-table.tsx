@@ -11,12 +11,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import type { Student } from "@/lib/types";
+import { Button } from "../ui/button";
+import { Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
+
 
 interface StudentsTableProps {
     students: Student[];
+    onDeleteStudent: (student: Student) => void;
 }
 
-export function StudentsTable({ students }: StudentsTableProps) {
+export function StudentsTable({ students, onDeleteStudent }: StudentsTableProps) {
     
     const getInitials = (name: string) => {
         const names = name.split(' ');
@@ -42,6 +53,7 @@ export function StudentsTable({ students }: StudentsTableProps) {
                             <TableHead>Department</TableHead>
                             <TableHead>Contact</TableHead>
                             <TableHead>Enrolled On</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -66,6 +78,25 @@ export function StudentsTable({ students }: StudentsTableProps) {
                             <TableCell>{student.contact}</TableCell>
                             <TableCell>
                             {new Date(student.createdAt).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                            <span className="sr-only">Open menu</span>
+                                            <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem
+                                            className="text-destructive"
+                                            onClick={() => onDeleteStudent(student)}
+                                        >
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </TableCell>
                         </TableRow>
                         ))}

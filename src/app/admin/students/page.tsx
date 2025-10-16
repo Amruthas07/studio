@@ -10,12 +10,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PlusCircle } from "lucide-react";
 import { AddStudentForm } from "@/components/admin/add-student-form";
 import { StudentsTable } from "@/components/admin/students-table";
 import { Student } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 export default function StudentsPage() {
+  const { toast } = useToast();
   const [students, setStudents] = React.useState<Student[]>(() => {
     if (typeof window !== 'undefined') {
       const savedStudents = localStorage.getItem('students');
@@ -23,7 +35,9 @@ export default function StudentsPage() {
     }
     return [];
   });
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [studentToDelete, setStudentToDelete] = React.useState<Student | null>(null);
 
   const handleStudentAdded = (newStudent: Student) => {
     setStudents(prevStudents => {
@@ -33,8 +47,32 @@ export default function StudentsPage() {
       }
       return updatedStudents;
     });
-    setIsDialogOpen(false); // Close dialog on successful add
+    setIsAddDialogOpen(false); // Close dialog on successful add
   };
+  
+  const openDeleteDialog = (student: Student) => {
+    setStudentToDelete(student);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteStudent = () => {
+    if (!studentToDelete) return;
+
+    const updatedStudents = students.filter(
+      (student) => student.registerNumber !== studentToDelete.registerNumber
+    );
+    setStudents(updatedStudents);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('students', JSON.stringify(updatedStudents));
+    }
+    toast({
+        title: "Student Deleted",
+        description: `${studentToDelete.name} has been removed from the system.`
+    })
+    setIsDeleteDialogOpen(false);
+    setStudentToDelete(null);
+  };
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -47,7 +85,7 @@ export default function StudentsPage() {
             View, add, and manage student records.
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-1">
               <PlusCircle className="h-4 w-4" />
@@ -66,7 +104,24 @@ export default function StudentsPage() {
         </Dialog>
       </div>
 
-      <StudentsTable students={students} />
+      <StudentsTable students={students} onDeleteStudent={openDeleteDialog} />
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the student record for <span className='font-bold'>{studentToDelete?.name}</span>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteStudent}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
