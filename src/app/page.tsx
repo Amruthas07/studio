@@ -1,6 +1,7 @@
 import Image from 'next/image';
-import { LoginForm } from '@/components/auth/login-form';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { LoginFormDynamic } from '@/components/auth/login-form-dynamic';
+
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-collage');
@@ -31,7 +32,7 @@ export default function Home() {
           </div>
 
           <div className="p-8 pt-0">
-            <LoginForm />
+            <LoginFormDynamic />
           </div>
         </div>
       </div>
