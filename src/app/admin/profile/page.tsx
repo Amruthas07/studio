@@ -1,19 +1,59 @@
-
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+'use client';
+import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building, Mail, MapPin, Phone, Info } from 'lucide-react';
+import { Mail, MapPin, Phone, Info, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
+const departmentInfo = {
+    cs: {
+        name: "Computer Science & Engineering",
+        about: "The Department of Computer Science is committed to excellence in teaching, research, and service. We offer a variety of programs to prepare students for successful careers in the ever-evolving field of technology."
+    },
+    ce: {
+        name: "Civil Engineering",
+        about: "The Department of Civil Engineering focuses on designing, constructing, and maintaining the physical and naturally built environment. Our curriculum prepares students for major infrastructure projects."
+    },
+    me: {
+        name: "Mechanical Engineering",
+        about: "The Department of Mechanical Engineering provides a broad scientific and technical background required to solve challenging problems in one of the most diverse fields of engineering."
+    },
+    ee: {
+        name: "Electrical Engineering",
+        about: "The Department of Electrical Engineering is dedicated to innovation in areas ranging from electronics to power systems, preparing students for the high-tech industry."
+    },
+    mce: {
+        name: "Mechatronics",
+        about: "The Mechatronics department integrates mechanical engineering with electronics and intelligent computer control to create smarter systems. Our students learn to design and build automated processes."
+    },
+    ec: {
+        name: "Electronics & Communication",
+        about: "The Department of Electronics & Communication Engineering covers the underlying principles of electronic devices and communication technologies, fostering innovation in a rapidly advancing field."
+    }
+};
+
 export default function AdminProfilePage() {
+    const { user, loading } = useAuth();
+
     const collegeDetails = {
         name: "JSS POLYTECHNIC",
         address: "Mysore-Ooty Road, Nanjangud",
         contact: "08221 - 22649 / +91 988661823",
         email: "jsspn324@gmail.com",
-        about: "The Department of Computer Science is committed to excellence in teaching, research, and service. We offer a variety of programs to prepare students for successful careers in the ever-evolving field of technology.",
         photoUrl: "https://jssonline.org/wp-content/uploads/2023/11/JSS_Polytechnic-Nanjangud.jpg"
     };
 
+  if (loading || !user) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const currentDepartment = departmentInfo[user.department as keyof typeof departmentInfo] || {
+      name: "Department",
+      about: "Information about this department is not yet available."
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -30,12 +70,13 @@ export default function AdminProfilePage() {
                 fill
                 className='object-cover'
                 data-ai-hint="university campus"
+                priority
             />
         </div>
         <CardHeader className="border-b">
             <CardTitle className="font-headline text-3xl">{collegeDetails.name}</CardTitle>
             <CardDescription>
-                Department of Computer Science & Engineering
+                {currentDepartment.name}
             </CardDescription>
         </CardHeader>
         <CardContent className='pt-6'>
@@ -65,7 +106,7 @@ export default function AdminProfilePage() {
                 <Info className="h-5 w-5 mt-1 text-muted-foreground" />
                 <div>
                     <p className="text-sm font-medium text-muted-foreground">About the Department</p>
-                    <p className="font-semibold text-justify">{collegeDetails.about}</p>
+                    <p className="font-semibold text-justify">{currentDepartment.about}</p>
                 </div>
             </div>
           </div>
