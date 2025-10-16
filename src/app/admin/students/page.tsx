@@ -16,11 +16,23 @@ import { StudentsTable } from "@/components/admin/students-table";
 import { Student } from '@/lib/types';
 
 export default function StudentsPage() {
-  const [students, setStudents] = React.useState<Student[]>([]);
+  const [students, setStudents] = React.useState<Student[]>(() => {
+    if (typeof window !== 'undefined') {
+      const savedStudents = localStorage.getItem('students');
+      return savedStudents ? JSON.parse(savedStudents) : [];
+    }
+    return [];
+  });
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
   const handleStudentAdded = (newStudent: Student) => {
-    setStudents(prevStudents => [...prevStudents, newStudent]);
+    setStudents(prevStudents => {
+      const updatedStudents = [...prevStudents, newStudent];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('students', JSON.stringify(updatedStudents));
+      }
+      return updatedStudents;
+    });
     setIsDialogOpen(false); // Close dialog on successful add
   };
 
