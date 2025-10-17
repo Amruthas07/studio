@@ -8,6 +8,7 @@ import type { RecentExport } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function ReportsPage() {
   const { user, loading } = useAuth();
@@ -92,7 +93,11 @@ export default function ReportsPage() {
                         </p>
                       </div>
                     </div>
-                    <a href={exp.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">Download</a>
+                    <Button asChild variant="outline" size="sm">
+                       <a href={exp.url} download={exp.fileName} target="_blank" rel="noopener noreferrer">
+                        Download
+                      </a>
+                    </Button>
                   </div>
                 ))
               ) : (
