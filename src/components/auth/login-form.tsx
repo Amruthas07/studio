@@ -19,11 +19,13 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import type { Student } from '@/lib/types';
+
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(1, { message: 'Password is required.' }),
-  department: z.string().optional(),
+  department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
 });
 
 export function LoginForm() {
@@ -43,12 +45,12 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      // For admin, append department to password before sending to auth context
-      const passwordToSend = isAdmin && values.department 
-        ? `571301${values.department}`
-        : values.password;
-
-      await login(values.email, passwordToSend);
+      if (isAdmin) {
+        await login(values.email, values.password, values.department);
+      } else {
+        // For students, password is their register number, and department is not needed for login call
+        await login(values.email, values.password);
+      }
     } catch (error: any) {
       toast({
         variant: 'destructive',

@@ -7,17 +7,22 @@ import type { Student } from '@/lib/types';
 
 type Role = 'admin' | 'student';
 
+interface AuthUser extends Omit<Student, 'department'> {
+    role: Role;
+    department: Student['department'] | 'all';
+}
+
 interface AuthContextType {
-  user: (Student & { role: Role }) | null;
+  user: AuthUser | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (email: string, pass: string, department?: Student['department']) => Promise<void>;
   logout: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<(Student & { role: Role }) | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -36,27 +41,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, pass: string) => {
+  const login = async (email: string, pass: string, department?: Student['department']) => {
     setLoading(true);
     // Simulate API call
     await new Promise(res => setTimeout(res, 500));
 
     if (email.toLowerCase() === 'jsspn324@gmail.com') {
-      const validSuffixes = ['cs', 'ce', 'me', 'ee', 'mce', 'ec'];
-      const passwordIsValid = validSuffixes.some(suffix => pass === `571301${suffix}`);
-
-      if (passwordIsValid) {
-        const department = pass.replace('571301', '') as Student['department'];
-        const adminUser = {
+      if (pass === '571301' && department) {
+         const adminUser: AuthUser = {
           name: 'Admin',
           email: 'jsspn324@gmail.com',
-          role: 'admin' as Role,
+          role: 'admin',
           department,
-          // Add other student fields with dummy data
           registerNumber: 'ADMIN_001',
           fatherName: 'N/A',
           motherName: 'N/A',
-          photoURL: 'https://picsum.photos/seed/admin/100/100',
+          photoURL: `https://picsum.photos/seed/admin/100/100`,
           contact: 'N/A',
           createdAt: new Date(),
         };
@@ -69,8 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const foundStudent = mockStudents.find(s => s.email === email);
-    if (foundStudent) {
-      const studentUser = { ...foundStudent, role: 'student' as Role };
+    // Note: In a real app, you would hash and compare passwords.
+    if (foundStudent && pass === foundStudent.registerNumber) {
+      const studentUser: AuthUser = { ...foundStudent, role: 'student' };
       setUser(studentUser);
       localStorage.setItem('faceattend_user', JSON.stringify(studentUser));
       router.push('/student');

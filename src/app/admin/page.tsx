@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (user?.department) {
+    if (user?.department && user.department !== 'all') {
       const departmentStudents = students.filter(s => s.department === user.department);
       
       const today = new Date().toISOString().split('T')[0];
@@ -48,7 +48,7 @@ export default function AdminDashboard() {
   }, [user, students]);
 
   const recentActivity = useMemo(() => {
-    if (!user?.department) return [];
+    if (!user?.department || user.department === 'all') return [];
     
     const departmentStudentRegisters = new Set(students.filter(s => s.department === user.department).map(s => s.registerNumber));
     
@@ -74,15 +74,17 @@ export default function AdminDashboard() {
     );
   }
 
+  const departmentDisplay = user.department === 'all' ? 'All Departments' : `${user.department.toUpperCase()} Department`;
+
   return (
     <>
       <div className="flex items-center justify-between space-y-2">
         <div>
            <h1 className="text-3xl font-bold tracking-tight font-headline">
-            {user.department.toUpperCase()} Department Dashboard
+            {departmentDisplay} Dashboard
           </h1>
           <p className="text-muted-foreground">
-            Overview of the {user.department.toUpperCase()} department.
+            Overview of {departmentDisplay}.
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -105,7 +107,7 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{totalStudents}</div>
             <p className="text-xs text-muted-foreground">
-              {`Enrolled in ${user.department.toUpperCase()}`}
+              {user.department !== 'all' ? `Enrolled in ${user.department.toUpperCase()}` : 'Across all departments'}
             </p>
           </CardContent>
         </Card>
@@ -141,7 +143,7 @@ export default function AdminDashboard() {
       <Card>
         <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>An overview of recent attendance markings and system events for the {user.department.toUpperCase()} department.</CardDescription>
+            <CardDescription>An overview of recent attendance markings and system events for the {departmentDisplay}.</CardDescription>
         </CardHeader>
         <CardContent>
             {recentActivity.length > 0 ? (
