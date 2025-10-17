@@ -45,8 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     await new Promise(res => setTimeout(res, 500));
 
-    // Admin Login
-    if (email.toLowerCase() === 'jsspn324@gmail.com') {
+    const isAttemptingAdminLogin = email.toLowerCase() === 'jsspn324@gmail.com';
+
+    if (isAttemptingAdminLogin) {
+      // Handle Admin Login exclusively
       if (pass === '571301' && department) {
         const adminUser: AuthUser = {
           name: 'Admin',
@@ -63,11 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(adminUser);
         localStorage.setItem('faceattend_user', JSON.stringify(adminUser));
         router.push('/admin');
+      } else {
         setLoading(false);
-        return;
+        throw new Error('Invalid admin credentials.');
       }
     } else {
-      // Student Login
+      // Handle Student Login
       const savedStudents: Student[] = JSON.parse(localStorage.getItem('students') || '[]');
       const allStudents = [...mockStudents, ...savedStudents];
       const foundStudent = allStudents.find(s => s.email.toLowerCase() === email.toLowerCase());
@@ -77,13 +80,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(studentUser);
         localStorage.setItem('faceattend_user', JSON.stringify(studentUser));
         router.push('/student');
+      } else {
         setLoading(false);
-        return;
+        throw new Error('Invalid email or password.');
       }
     }
 
     setLoading(false);
-    throw new Error('Invalid email or password');
   };
 
   const logout = () => {
