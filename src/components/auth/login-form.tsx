@@ -34,6 +34,7 @@ export function LoginForm() {
     defaultValues: {
       email: '',
       password: '',
+      department: 'cs',
     },
   });
 
@@ -65,11 +66,12 @@ export function LoginForm() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel className="text-primary-foreground/80">Email</FormLabel>
               <FormControl>
                 <Input
                   placeholder="name@example.com"
                   {...field}
+                  className="bg-background/70 border-border/50 text-foreground"
                 />
               </FormControl>
               <FormMessage />
@@ -81,12 +83,13 @@ export function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel className="text-primary-foreground/80">Password</FormLabel>
               <FormControl>
                 <Input
                   type="password"
                   placeholder="••••••••"
                   {...field}
+                  className="bg-background/70 border-border/50 text-foreground"
                 />
               </FormControl>
               <FormMessage />
@@ -98,13 +101,12 @@ export function LoginForm() {
            <FormField
               control={form.control}
               name="department"
-              defaultValue='cs'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Department</FormLabel>
+                  <FormLabel className="text-primary-foreground/80">Department</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-background/70 border-border/50 text-foreground">
                         <SelectValue placeholder="Select a department to manage" />
                       </SelectTrigger>
                     </FormControl>

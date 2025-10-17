@@ -21,7 +21,7 @@ export default function Home() {
             SMART ATTENDANCE SYSTEM
           </CardTitle>
           <CardDescription className="text-primary-foreground/80">
-            Smart Face Recognition Attendance System
+            Login to manage or view attendance records
           </CardDescription>
         </CardHeader>
         <CardContent>
