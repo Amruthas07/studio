@@ -1,13 +1,16 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, UserCheck, UserX } from "lucide-react";
+import { Users, UserCheck, UserX, History } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { mockAttendance } from "@/lib/mock-data";
 import { Student } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { formatDistanceToNow } from "date-fns";
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
@@ -43,6 +46,25 @@ export default function AdminDashboard() {
       setAbsentToday(departmentStudents.length - presentCount);
     }
   }, [user, students]);
+
+  const recentActivity = useMemo(() => {
+    if (!user?.department) return [];
+    
+    const departmentStudentRegisters = new Set(students.filter(s => s.department === user.department).map(s => s.registerNumber));
+    
+    return mockAttendance
+      .filter(record => departmentStudentRegisters.has(record.studentRegister))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 5); // Get the 5 most recent records
+  }, [user, students]);
+
+  const getInitials = (name: string) => {
+    const names = name.split(' ');
+    if (names.length > 1) {
+      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
 
   if (loading || !user) {
     return (
@@ -122,10 +144,38 @@ export default function AdminDashboard() {
             <CardDescription>An overview of recent attendance markings and system events for the {user.department.toUpperCase()} department.</CardDescription>
         </CardHeader>
         <CardContent>
-            {/* Placeholder for recent activity feed */}
-            <div className="text-center text-muted-foreground py-8">
-                <p>Recent activity feed will be shown here.</p>
-            </div>
+            {recentActivity.length > 0 ? (
+                <div className="space-y-4">
+                    {recentActivity.map((record) => {
+                       const student = students.find(s => s.registerNumber === record.studentRegister);
+                       return (
+                        <div key={record.id} className="flex items-center">
+                            <Avatar className="h-9 w-9">
+                                <AvatarImage src={student?.photoURL} alt={record.studentName} />
+                                <AvatarFallback>{getInitials(record.studentName || 'N A')}</AvatarFallback>
+                            </Avatar>
+                            <div className="ml-4 space-y-1">
+                                <p className="text-sm font-medium leading-none">
+                                    {record.studentName}
+                                    <span className="text-sm text-muted-foreground"> ({record.studentRegister})</span>
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Marked as <Badge variant={record.status === 'absent' ? 'destructive' : 'secondary'} className="capitalize">{record.status}</Badge> via {record.method}.
+                                </p>
+                            </div>
+                            <div className="ml-auto font-medium text-sm text-muted-foreground">
+                                {formatDistanceToNow(new Date(record.timestamp), { addSuffix: true })}
+                            </div>
+                        </div>
+                       )
+                    })}
+                </div>
+            ) : (
+                <div className="text-center text-muted-foreground py-8">
+                    <History className="mx-auto h-8 w-8" />
+                    <p className="mt-2">No recent activity to display.</p>
+                </div>
+            )}
         </CardContent>
       </Card>
     </>
