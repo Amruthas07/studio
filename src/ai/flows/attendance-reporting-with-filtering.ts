@@ -10,6 +10,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { mockAttendance, mockStudents } from '@/lib/mock-data';
+import type { AttendanceRecord, Student } from '@/lib/types';
 
 const AttendanceReportingWithFilteringInputSchema = z.object({
   startDate: z
@@ -32,12 +34,27 @@ export type AttendanceReportingWithFilteringInput = z.infer<
 >;
 
 const AttendanceReportingWithFilteringOutputSchema = z.object({
-  fileUrl: z.string().describe('The URL of the generated CSV/PDF report in Firebase Storage.'),
+  fileUrl: z.string().describe('The data URI of the generated CSV report.'),
 });
 
 export type AttendanceReportingWithFilteringOutput = z.infer<
   typeof AttendanceReportingWithFilteringOutputSchema
 >;
+
+// Helper to convert array of objects to CSV
+function convertToCSV(data: any[]): string {
+  if (data.length === 0) return '';
+  const headers = Object.keys(data[0]);
+  const csvRows = [
+    headers.join(','),
+    ...data.map(row =>
+      headers
+        .map(fieldName => JSON.stringify(row[fieldName] ?? ''))
+        .join(',')
+    ),
+  ];
+  return csvRows.join('\r\n');
+}
 
 export async function attendanceReportingWithFiltering(
   input: AttendanceReportingWithFilteringInput
@@ -52,23 +69,32 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
     outputSchema: AttendanceReportingWithFilteringOutputSchema,
   },
   async input => {
-    // TODO: Implement the logic to fetch attendance records from Firestore,
-    // filter them based on the certaintyThreshold (if provided),
-    // generate the CSV/PDF report, store it in Firebase Storage,
-    // and return the file URL.
+    
+    // 1. Filter students by department
+    const departmentStudents = input.department === 'all'
+      ? mockStudents
+      : mockStudents.filter(s => s.department === input.department);
+    const departmentStudentRegisters = new Set(departmentStudents.map(s => s.registerNumber));
+    
+    // 2. Filter attendance records by date range and department
+    const startDate = new Date(input.startDate);
+    const endDate = new Date(input.endDate);
 
-    // This is a placeholder implementation.
-    console.log(
-      'Generating report for department:',
-      input.department,
-      'from',
-      input.startDate,
-      'to',
-      input.endDate,
-      'with certainty threshold:',
-      input.certaintyThreshold
-    );
-    const fileUrl = 'https://example.com/placeholder-report.csv'; // Replace with actual URL
+    const filteredRecords = mockAttendance.filter(record => {
+        const recordDate = new Date(record.date);
+        const isStudentInDepartment = departmentStudentRegisters.has(record.studentRegister);
+        const isDateInRange = recordDate >= startDate && recordDate <= endDate;
+        // Placeholder for certainty check if it was available in mock data
+        // const hasCertainty = input.certaintyThreshold ? (record.confidenceScore || 1) >= input.certaintyThreshold : true;
+        return isStudentInDepartment && isDateInRange;
+    });
+    
+    // 3. Convert to CSV
+    const csvData = convertToCSV(filteredRecords);
+
+    // 4. Create a data URI
+    const fileUrl = `data:text/csv;charset=utf-8,${encodeURIComponent(csvData)}`;
+
     return {fileUrl};
   }
 );

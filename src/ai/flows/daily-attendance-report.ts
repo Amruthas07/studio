@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { mockAttendance, mockStudents } from '@/lib/mock-data';
 
 const DailyAttendanceReportInputSchema = z.object({
   department: z.string().describe('The department to generate the report for (e.g., cs, ce, me).'),
@@ -20,7 +21,7 @@ export type DailyAttendanceReportInput = z.infer<
 >;
 
 const DailyAttendanceReportOutputSchema = z.object({
-  fileUrl: z.string().describe('The URL of the generated CSV report in Firebase Storage.'),
+  fileUrl: z.string().describe('The data URI of the generated CSV report.'),
 });
 
 export type DailyAttendanceReportOutput = z.infer<
@@ -33,6 +34,22 @@ export async function dailyAttendanceReport(
   return dailyAttendanceReportFlow(input);
 }
 
+// Helper to convert array of objects to CSV
+function convertToCSV(data: any[]): string {
+  if (data.length === 0) return '';
+  const headers = Object.keys(data[0]);
+  const csvRows = [
+    headers.join(','),
+    ...data.map(row =>
+      headers
+        .map(fieldName => JSON.stringify(row[fieldName] ?? ''))
+        .join(',')
+    ),
+  ];
+  return csvRows.join('\r\n');
+}
+
+
 const dailyAttendanceReportFlow = ai.defineFlow(
   {
     name: 'dailyAttendanceReportFlow',
@@ -40,16 +57,26 @@ const dailyAttendanceReportFlow = ai.defineFlow(
     outputSchema: DailyAttendanceReportOutputSchema,
   },
   async input => {
-    // TODO: Implement the logic to fetch today's attendance records from Firestore
-    // for the specified department, generate a CSV report, store it in Firebase Storage,
-    // and return the file URL.
+    // 1. Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
 
-    // This is a placeholder implementation.
-    console.log(
-      'Generating daily report for department:',
-      input.department
+    // 2. Filter students by department
+    const departmentStudents = mockStudents.filter(s => s.department === input.department);
+    const departmentStudentRegisters = new Set(departmentStudents.map(s => s.registerNumber));
+    
+    // 3. Filter attendance records for today and the specified department
+    const todaysDepartmentRecords = mockAttendance.filter(record => 
+        record.date === today && departmentStudentRegisters.has(record.studentRegister)
     );
-    const fileUrl = 'https://example.com/placeholder-daily-report.csv'; // Replace with actual URL
+
+    // 4. Convert to CSV
+    const csvData = convertToCSV(todaysDepartmentRecords.length > 0 ? todaysDepartmentRecords : [
+        { id: "N/A", studentRegister: "N/A", studentName: "No records found", date: today, status: "N/A", markedBy: "N/A", method: "N/A", timestamp: "N/A" }
+    ]);
+    
+    // 5. Create a data URI
+    const fileUrl = `data:text/csv;charset=utf-8,${encodeURIComponent(csvData)}`;
+
     return {fileUrl};
   }
 );
