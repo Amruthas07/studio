@@ -46,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Simulate API call
     await new Promise(res => setTimeout(res, 500));
 
+    // Admin Login
     if (email.toLowerCase() === 'jsspn324@gmail.com') {
       if (pass === '571301' && department) {
          const adminUser: AuthUser = {
@@ -68,8 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const foundStudent = mockStudents.find(s => s.email === email);
-    // Note: In a real app, you would hash and compare passwords.
+    // Student Login
+    const savedStudents: Student[] = JSON.parse(localStorage.getItem('students') || '[]');
+    const allStudents = [...mockStudents, ...savedStudents];
+
+    const foundStudent = allStudents.find(s => s.email.toLowerCase() === email.toLowerCase());
+
     if (foundStudent && pass === foundStudent.registerNumber) {
       const studentUser: AuthUser = { ...foundStudent, role: 'student' };
       setUser(studentUser);
