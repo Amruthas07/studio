@@ -43,13 +43,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, pass: string, department?: Student['department']) => {
     setLoading(true);
-    // Simulate API call
     await new Promise(res => setTimeout(res, 500));
 
     // Admin Login
     if (email.toLowerCase() === 'jsspn324@gmail.com') {
       if (pass === '571301' && department) {
-         const adminUser: AuthUser = {
+        const adminUser: AuthUser = {
           name: 'Admin',
           email: 'jsspn324@gmail.com',
           role: 'admin',
@@ -67,21 +66,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         return;
       }
-    }
+    } else {
+      // Student Login
+      const savedStudents: Student[] = JSON.parse(localStorage.getItem('students') || '[]');
+      const allStudents = [...mockStudents, ...savedStudents];
+      const foundStudent = allStudents.find(s => s.email.toLowerCase() === email.toLowerCase());
 
-    // Student Login
-    const savedStudents: Student[] = JSON.parse(localStorage.getItem('students') || '[]');
-    const allStudents = [...mockStudents, ...savedStudents];
-
-    const foundStudent = allStudents.find(s => s.email.toLowerCase() === email.toLowerCase());
-
-    if (foundStudent && pass === foundStudent.registerNumber) {
-      const studentUser: AuthUser = { ...foundStudent, role: 'student' };
-      setUser(studentUser);
-      localStorage.setItem('faceattend_user', JSON.stringify(studentUser));
-      router.push('/student');
-      setLoading(false);
-      return;
+      if (foundStudent && pass === foundStudent.registerNumber) {
+        const studentUser: AuthUser = { ...foundStudent, role: 'student' };
+        setUser(studentUser);
+        localStorage.setItem('faceattend_user', JSON.stringify(studentUser));
+        router.push('/student');
+        setLoading(false);
+        return;
+      }
     }
 
     setLoading(false);
