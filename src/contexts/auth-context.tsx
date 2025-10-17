@@ -7,15 +7,17 @@ import type { Student } from '@/lib/types';
 
 type Role = 'admin' | 'student';
 
+type Department = 'cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec';
+
 interface AuthUser extends Omit<Student, 'department'> {
     role: Role;
-    department: Student['department'] | 'all';
+    department: Department | 'all';
 }
 
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (email: string, pass: string, department?: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -41,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, pass: string) => {
+  const login = async (email: string, pass: string, department?: string) => {
     setLoading(true);
     await new Promise(res => setTimeout(res, 500));
 
@@ -53,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 name: 'Admin',
                 email: 'jsspn324@gmail.com',
                 role: 'admin',
-                department: 'cs', // Default department
+                department: (department as Department) || 'cs', // Use selected dept or default
                 registerNumber: 'ADMIN_001',
                 fatherName: 'N/A',
                 motherName: 'N/A',
@@ -63,29 +65,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             };
             setUser(adminUser);
             localStorage.setItem('faceattend_user', JSON.stringify(adminUser));
+            setLoading(false);
             router.push('/admin');
+            return; // Important: exit after admin login
         } else {
              setLoading(false);
              throw new Error('Invalid admin credentials.');
         }
-    } else {
-      // Handle Student Login
-      const savedStudents: Student[] = JSON.parse(localStorage.getItem('students') || '[]');
-      const allStudents = [...mockStudents, ...savedStudents];
-      const foundStudent = allStudents.find(s => s.email.toLowerCase() === email.toLowerCase());
+    }
+    
+    // If not admin, proceed with student login check
+    const savedStudents: Student[] = JSON.parse(localStorage.getItem('students') || '[]');
+    const allStudents = [...mockStudents, ...savedStudents];
+    const foundStudent = allStudents.find(s => s.email.toLowerCase() === email.toLowerCase());
 
-      if (foundStudent && pass === foundStudent.registerNumber) {
+    if (foundStudent && pass === foundStudent.registerNumber) {
         const studentUser: AuthUser = { ...foundStudent, role: 'student' };
         setUser(studentUser);
         localStorage.setItem('faceattend_user', JSON.stringify(studentUser));
-        router.push('/student');
-      } else {
         setLoading(false);
-        throw new Error('Invalid email or password.');
-      }
+        router.push('/student');
+        return;
     }
-
+    
     setLoading(false);
+    throw new Error('Invalid email or password.');
   };
 
   const logout = () => {
