@@ -15,7 +15,7 @@ interface AuthUser extends Omit<Student, 'department'> {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, pass: string, department?: Student['department']) => Promise<void>;
+  login: (email: string, pass: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -41,34 +41,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, pass: string, department?: Student['department']) => {
+  const login = async (email: string, pass: string) => {
     setLoading(true);
     await new Promise(res => setTimeout(res, 500));
 
     const isAttemptingAdminLogin = email.toLowerCase() === 'jsspn324@gmail.com';
 
     if (isAttemptingAdminLogin) {
-      // Handle Admin Login exclusively
-      if (pass === '571301' && department) {
-        const adminUser: AuthUser = {
-          name: 'Admin',
-          email: 'jsspn324@gmail.com',
-          role: 'admin',
-          department,
-          registerNumber: 'ADMIN_001',
-          fatherName: 'N/A',
-          motherName: 'N/A',
-          photoURL: `https://picsum.photos/seed/admin/100/100`,
-          contact: 'N/A',
-          createdAt: new Date(),
-        };
-        setUser(adminUser);
-        localStorage.setItem('faceattend_user', JSON.stringify(adminUser));
-        router.push('/admin');
-      } else {
-        setLoading(false);
-        throw new Error('Invalid admin credentials.');
-      }
+        if (pass === '571301') {
+             const adminUser: AuthUser = {
+                name: 'Admin',
+                email: 'jsspn324@gmail.com',
+                role: 'admin',
+                department: 'cs', // Default department
+                registerNumber: 'ADMIN_001',
+                fatherName: 'N/A',
+                motherName: 'N/A',
+                photoURL: `https://picsum.photos/seed/admin/100/100`,
+                contact: 'N/A',
+                createdAt: new Date(),
+            };
+            setUser(adminUser);
+            localStorage.setItem('faceattend_user', JSON.stringify(adminUser));
+            router.push('/admin');
+        } else {
+             setLoading(false);
+             throw new Error('Invalid admin credentials.');
+        }
     } else {
       // Handle Student Login
       const savedStudents: Student[] = JSON.parse(localStorage.getItem('students') || '[]');

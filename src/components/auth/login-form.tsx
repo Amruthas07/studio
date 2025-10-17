@@ -18,14 +18,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import type { Student } from '@/lib/types';
-
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(1, { message: 'Password is required.' }),
-  department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
 });
 
 export function LoginForm() {
@@ -36,7 +32,6 @@ export function LoginForm() {
     defaultValues: {
       email: '',
       password: '',
-      department: 'cs',
     },
   });
 
@@ -45,12 +40,7 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      if (isAdmin) {
-        await login(values.email, values.password, values.department);
-      } else {
-        // For students, password is their register number, and department is not needed for login call
         await login(values.email, values.password);
-      }
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -98,34 +88,6 @@ export function LoginForm() {
             </FormItem>
           )}
         />
-        
-        {isAdmin && (
-           <FormField
-              control={form.control}
-              name="department"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-primary-foreground/80">Department</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="bg-background/70 border-border/50 text-foreground">
-                        <SelectValue placeholder="Select a department to manage" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="cs">Computer Science (CS)</SelectItem>
-                      <SelectItem value="ce">Civil Engineering (CE)</SelectItem>
-                      <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
-                      <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
-                      <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
-                      <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-        )}
         
         <div className="flex items-center justify-between pt-2">
             <Button type="submit" className="w-full" disabled={loading}>
