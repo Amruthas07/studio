@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast"
 import { generateReport } from "@/app/actions"
 import { DatePickerWithRange } from "../ui/date-picker"
 import type { DateRange } from "react-day-picker"
+import type { RecentExport } from "@/lib/types"
 
 const formSchema = z.object({
   dateRange: z.object({
@@ -37,7 +38,11 @@ const formSchema = z.object({
   certainty: z.number().min(0).max(100).optional(),
 })
 
-export function ReportForm() {
+type ReportFormProps = {
+    onReportGenerated: (exportData: RecentExport) => void;
+}
+
+export function ReportForm({ onReportGenerated }: ReportFormProps) {
   const { toast } = useToast()
   const [isPending, startTransition] = React.useTransition()
   const [date, setDate] = React.useState<DateRange | undefined>({
@@ -68,6 +73,17 @@ export function ReportForm() {
     startTransition(async () => {
       const result = await generateReport(values)
       if (result.success && result.fileUrl) {
+        const fileName = `${values.department.toUpperCase()}_Dept_${format(new Date(), "MMM_yyyy")}_Report.csv`;
+        
+        const newExport: RecentExport = {
+            fileName,
+            generatedAt: new Date(),
+            url: result.fileUrl,
+            department: values.department
+        };
+
+        onReportGenerated(newExport);
+
         toast({
           title: "Report Generated Successfully",
           description: "Your report is ready for download.",

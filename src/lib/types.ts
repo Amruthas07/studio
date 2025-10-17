@@ -21,3 +21,10 @@ export interface AttendanceRecord {
   method: 'face-scan' | 'manual';
   timestamp: Date;
 }
+
+export interface RecentExport {
+  fileName: string;
+  generatedAt: Date;
+  url: string;
+  department: string;
+}
