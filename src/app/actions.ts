@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { faceDataTool, type FaceDataToolInput } from "@/ai/flows/face-data-tool";
 import { attendanceReportingWithFiltering, type AttendanceReportingWithFilteringInput } from "@/ai/flows/attendance-reporting-with-filtering";
+import { dailyAttendanceReport, type DailyAttendanceReportInput } from "@/ai/flows/daily-attendance-report";
 
 const addStudentSchema = z.object({
   name: z.string(),
@@ -73,5 +74,24 @@ export async function generateReport(values: z.infer<typeof reportSchema>) {
           return { success: false, error: "Validation failed: " + error.message };
         }
         return { success: false, error: "An unexpected error occurred while generating the report." };
+    }
+}
+
+export async function generateDailyReport(department: string) {
+    try {
+        if (!department) {
+            return { success: false, error: "Department is required." };
+        }
+        
+        const toolInput: DailyAttendanceReportInput = {
+            department,
+        };
+
+        const result = await dailyAttendanceReport(toolInput);
+        
+        return { success: true, fileUrl: result.fileUrl };
+    } catch (error) {
+        console.error(error);
+        return { success: false, error: "An unexpected error occurred while generating the daily report." };
     }
 }

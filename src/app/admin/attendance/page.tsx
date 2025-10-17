@@ -1,10 +1,22 @@
+'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { mockAttendance } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { FileDown, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import React from "react";
+import { generateDailyReport } from "@/app/actions";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 export default function AdminAttendancePage() {
+    const { user, loading } = useAuth();
+    const { toast } = useToast();
+    const [isDownloading, setIsDownloading] = React.useState(false);
+    
     const attendanceRecords = mockAttendance;
 
     const getStatusVariant = (status: string) => {
@@ -15,21 +27,69 @@ export default function AdminAttendancePage() {
             default: return 'secondary';
         }
     };
+    
+    const handleDownloadDailyReport = async () => {
+        if (!user?.department) return;
+
+        setIsDownloading(true);
+        const result = await generateDailyReport(user.department);
+        setIsDownloading(false);
+
+        if (result.success && result.fileUrl) {
+             const fileName = `${user.department.toUpperCase()}_Daily_Report_${format(new Date(), "yyyy-MM-dd")}.csv`;
+            toast({
+              title: "Daily Report Generated",
+              description: "Your daily attendance report is ready for download.",
+               action: (
+                <a href={result.fileUrl} download={fileName} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="sm">Download</Button>
+                </a>
+              ),
+            })
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Download Failed",
+                description: result.error || "Could not generate the daily report.",
+            });
+        }
+    }
+
+    if (loading || !user) {
+        return (
+            <div className="flex h-full w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+    
+    const departmentAttendance = attendanceRecords.filter(rec => {
+        const studentDept = localStorage.getItem('students') 
+            ? JSON.parse(localStorage.getItem('students')!).find((s: any) => s.registerNumber === rec.studentRegister)?.department
+            : null;
+        return studentDept === user.department;
+    });
 
     return (
         <div className="flex flex-col gap-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight font-headline">
-                    Attendance Log
-                </h1>
-                <p className="text-muted-foreground">
-                    A complete history of all attendance records.
-                </p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight font-headline">
+                        Attendance Log
+                    </h1>
+                    <p className="text-muted-foreground">
+                        A complete history of all attendance records for the {user.department.toUpperCase()} department.
+                    </p>
+                </div>
+                <Button onClick={handleDownloadDailyReport} disabled={isDownloading}>
+                    {isDownloading ? <Loader2 className="animate-spin" /> : <FileDown />}
+                    Download Today's Report
+                </Button>
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle>All Records</CardTitle>
-                    <CardDescription>Showing all recorded attendance entries.</CardDescription>
+                    <CardTitle>All Records for {user.department.toUpperCase()}</CardTitle>
+                    <CardDescription>Showing all recorded attendance entries for your department.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -44,7 +104,7 @@ export default function AdminAttendancePage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {attendanceRecords.map((record) => (
+                            {departmentAttendance.length > 0 ? departmentAttendance.map((record) => (
                                 <TableRow key={record.id}>
                                     <TableCell className="font-medium">{record.studentName}</TableCell>
                                     <TableCell>{record.studentRegister}</TableCell>
@@ -55,7 +115,13 @@ export default function AdminAttendancePage() {
                                     <TableCell className="capitalize">{record.method}</TableCell>
                                     <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
                                 </TableRow>
-                            ))}
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center">
+                                        No attendance records found for your department.
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
