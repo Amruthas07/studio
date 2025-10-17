@@ -55,11 +55,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 name: 'Admin',
                 email: 'jsspn324@gmail.com',
                 role: 'admin',
-                department: (department as Department) || 'cs', // Use selected dept or default
+                department: (department as Department) || 'cs',
                 registerNumber: 'ADMIN_001',
                 fatherName: 'N/A',
                 motherName: 'N/A',
-                photoURL: `https://picsum.photos/seed/admin/100/100`,
+                photoURL: 'https://jssonline.org/wp-content/uploads/2023/11/JSS_Polytechnic-Nanjangud.jpg',
                 contact: 'N/A',
                 createdAt: new Date(),
             };
@@ -67,14 +67,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.setItem('faceattend_user', JSON.stringify(adminUser));
             setLoading(false);
             router.push('/admin');
-            return; // Important: exit after admin login
+            return;
         } else {
              setLoading(false);
              throw new Error('Invalid admin credentials.');
         }
     }
     
-    // If not admin, proceed with student login check
     const savedStudents: Student[] = JSON.parse(localStorage.getItem('students') || '[]');
     const allStudents = [...mockStudents, ...savedStudents];
     const foundStudent = allStudents.find(s => s.email.toLowerCase() === email.toLowerCase());
