@@ -52,14 +52,16 @@ export async function markAttendanceFromCamera(
   return markAttendanceFromCameraFlow(input);
 }
 
-const checkAttendanceData = ai.defineTool({
-  name: 'checkAttendanceData',
-  description: 'Checks the attendance data for validity.',
-  inputSchema: MarkAttendanceFromCameraInputSchema,
-  outputSchema: z.object({
-    isValid: z.boolean().describe('Whether the attendance data is valid.'),
-    reason: z.string().optional().describe('Reason for invalidity, if any.'),
-  }),
+const checkAttendanceData = ai.defineTool(
+  {
+    name: 'checkAttendanceData',
+    description: 'Checks the attendance data for validity.',
+    inputSchema: MarkAttendanceFromCameraInputSchema,
+    outputSchema: z.object({
+      isValid: z.boolean().describe('Whether the attendance data is valid.'),
+      reason: z.string().optional().describe('Reason for invalidity, if any.'),
+    }),
+  },
   async (input) => {
     // Implement the checks here.
     if (input.confidenceScore < 0.7) {
@@ -74,8 +76,8 @@ const checkAttendanceData = ai.defineTool({
     return {
       isValid: true,
     };
-  },
-});
+  }
+);
 
 const markAttendanceFromCameraPrompt = ai.definePrompt({
   name: 'markAttendanceFromCameraPrompt',
