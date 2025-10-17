@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center p-4">
        <Image
-          src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop"
+          src="https://jssonline.org/wp-content/uploads/2023/11/JSS_Polytechnic-Nanjangud.jpg"
           alt="University campus"
           fill
           className="object-cover -z-10"
