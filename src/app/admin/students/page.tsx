@@ -27,6 +27,7 @@ import { StudentsTable } from "@/components/admin/students-table";
 import { Student } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import { getInitialStudents } from '@/lib/mock-data';
 
 export default function StudentsPage() {
   const { toast } = useToast();
@@ -34,8 +35,7 @@ export default function StudentsPage() {
 
   const [allStudents, setAllStudents] = React.useState<Student[]>(() => {
     if (typeof window !== 'undefined') {
-      const savedStudents = localStorage.getItem('students');
-      return savedStudents ? JSON.parse(savedStudents) : [];
+      return getInitialStudents();
     }
     return [];
   });

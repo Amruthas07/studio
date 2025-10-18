@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import type { AttendanceRecord } from '@/lib/types';
 import { useAttendance } from '@/hooks/use-attendance';
+import { getInitialStudents } from '@/lib/mock-data';
 
 export default function CameraAttendancePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -85,7 +86,7 @@ export default function CameraAttendancePage() {
 
     await new Promise(res => setTimeout(res, 1500)); 
     
-    const allStudents = JSON.parse(localStorage.getItem('students') || '[]');
+    const allStudents = getInitialStudents();
     const departmentStudents = allStudents.filter((s: any) => s.department === user.department);
     
     if (departmentStudents.length === 0) {

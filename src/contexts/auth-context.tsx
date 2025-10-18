@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { mockStudents } from '@/lib/mock-data';
+import { getInitialStudents } from '@/lib/mock-data';
 import type { Student } from '@/lib/types';
 import { AttendanceProvider } from './attendance-context';
 
@@ -32,9 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       // Initialize students from mock data if localStorage is empty
-      if (!localStorage.getItem('students')) {
-        localStorage.setItem('students', JSON.stringify(mockStudents));
-      }
+      getInitialStudents();
 
       const storedUser = localStorage.getItem('faceattend_user');
       if (storedUser) {
@@ -81,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const savedStudents: Student[] = JSON.parse(localStorage.getItem('students') || '[]');
+    const savedStudents: Student[] = getInitialStudents();
     const foundStudent = savedStudents.find(s => s.email.toLowerCase() === email.toLowerCase());
 
     if (foundStudent && pass === foundStudent.registerNumber) {

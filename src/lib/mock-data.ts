@@ -31,7 +31,25 @@ const generateStudents = (): Student[] => {
     return students;
 }
 
-export const mockStudents: Student[] = generateStudents();
+export const getInitialStudents = (): Student[] => {
+    if (typeof window === 'undefined') return [];
+    const savedStudents = localStorage.getItem('students');
+    if (savedStudents) {
+      try {
+        const parsed = JSON.parse(savedStudents);
+        // Quick validation to ensure it's an array
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch (e) {
+        // If parsing fails, fall back to generating
+        console.error("Failed to parse students from localStorage", e);
+      }
+    }
+    const generatedStudents = generateStudents();
+    localStorage.setItem('students', JSON.stringify(generatedStudents));
+    return generatedStudents;
+}
 
 
 const generateAttendance = (students: Student[]): AttendanceRecord[] => {
@@ -40,6 +58,10 @@ const generateAttendance = (students: Student[]): AttendanceRecord[] => {
     let recordId = 1;
 
     students.forEach(student => {
+        // Clear records for CS department
+        if (student.department === 'cs') {
+            return;
+        }
         // Generate records for the last 7 days
         for (let i = 0; i < 7; i++) {
             const date = new Date(today);
@@ -94,13 +116,15 @@ export const getInitialAttendance = (): AttendanceRecord[] => {
     
     const storedAttendance = localStorage.getItem('attendance_records');
     if (storedAttendance) {
-        return JSON.parse(storedAttendance);
+        try {
+            const parsed = JSON.parse(storedAttendance);
+            if(Array.isArray(parsed)) return parsed;
+        } catch (e) {
+            console.error("Failed to parse attendance from localStorage", e);
+        }
     }
     
-    // Generate attendance based on students from localStorage, not the static mock list
-    const studentsFromStorage = localStorage.getItem('students');
-    // Only generate attendance if there are students in localStorage.
-    const studentsToUse = studentsFromStorage ? JSON.parse(studentsFromStorage) : [];
+    const studentsToUse = getInitialStudents();
 
     const initialAttendance = generateAttendance(studentsToUse);
     localStorage.setItem('attendance_records', JSON.stringify(initialAttendance));

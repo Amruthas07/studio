@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { getInitialAttendance, mockStudents } from '@/lib/mock-data';
+import { getInitialAttendance, getInitialStudents } from '@/lib/mock-data';
 
 const DailyAttendanceReportInputSchema = z.object({
   department: z.string().describe('The department to generate the report for (e.g., cs, ce, me).'),
@@ -58,6 +58,7 @@ const dailyAttendanceReportFlow = ai.defineFlow(
   },
   async input => {
     const mockAttendance = getInitialAttendance();
+    const mockStudents = getInitialStudents();
     // 1. Get today's date in YYYY-MM-DD format
     const today = new Date().toISOString().split('T')[0];
 

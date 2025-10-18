@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { useAttendance } from "@/hooks/use-attendance";
+import { getInitialStudents } from "@/lib/mock-data";
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
@@ -19,8 +20,7 @@ export default function AdminDashboard() {
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedStudents = localStorage.getItem('students');
-      const allStudents: Student[] = savedStudents ? JSON.parse(savedStudents) : [];
+      const allStudents: Student[] = getInitialStudents();
       setStudents(allStudents);
     }
   }, []);

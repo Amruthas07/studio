@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useAttendance } from "@/hooks/use-attendance";
 import type { Student } from "@/lib/types";
+import { getInitialStudents } from "@/lib/mock-data";
 
 
 export default function AdminAttendancePage() {
@@ -57,7 +58,7 @@ export default function AdminAttendancePage() {
 
     const departmentAttendance = React.useMemo(() => {
         if (!user?.department) return [];
-        const savedStudents: Student[] = JSON.parse(localStorage.getItem('students') || '[]');
+        const savedStudents: Student[] = getInitialStudents();
         const departmentStudentRegisters = new Set(
             savedStudents
                 .filter(s => s.department === user.department)
