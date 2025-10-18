@@ -9,6 +9,7 @@ import { markAttendanceFromCamera, MarkAttendanceFromCameraInput } from '@/ai/fl
 import { useAuth } from '@/hooks/use-auth';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { mockStudents } from '@/lib/mock-data';
+import type { AttendanceRecord } from '@/lib/types';
 
 export default function CameraAttendancePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -81,7 +82,8 @@ export default function CameraAttendancePage() {
     await new Promise(res => setTimeout(res, 1500)); 
     
     // For this demo, we'll just pick a random student from the admin's department
-    const departmentStudents = mockStudents.filter(s => s.department === user.department);
+    const allStudents = JSON.parse(localStorage.getItem('students') || '[]');
+    const departmentStudents = allStudents.filter((s: any) => s.department === user.department);
     
     if (departmentStudents.length === 0) {
         toast({ title: "No Students", description: `No students enrolled in the ${user.department.toUpperCase()} department.`, variant: "destructive"});
@@ -91,19 +93,31 @@ export default function CameraAttendancePage() {
 
     const randomStudent = departmentStudents[Math.floor(Math.random() * departmentStudents.length)];
     
+    const timestamp = new Date().toISOString();
     const input: MarkAttendanceFromCameraInput = {
         studentRegister: randomStudent.registerNumber,
-        date: new Date().toISOString().split('T')[0],
+        date: timestamp.split('T')[0],
         status: 'present',
         markedBy: user.email,
         method: 'face-scan',
-        timestamp: new Date().toISOString(),
+        timestamp: timestamp,
         confidenceScore: Math.random() * (0.99 - 0.8) + 0.8, // Simulate high confidence
     };
 
     const result = await markAttendanceFromCamera(input);
 
     if (result.success) {
+      const newRecord: AttendanceRecord = {
+        id: `rec_${Date.now()}`,
+        studentRegister: randomStudent.registerNumber,
+        studentName: randomStudent.name,
+        ...input,
+      };
+
+      const storedAttendance = JSON.parse(localStorage.getItem('attendance_records') || '[]');
+      const updatedAttendance = [newRecord, ...storedAttendance];
+      localStorage.setItem('attendance_records', JSON.stringify(updatedAttendance));
+
       toast({
         title: "Attendance Marked",
         description: `${randomStudent.name} (${randomStudent.registerNumber}) marked as present.`,

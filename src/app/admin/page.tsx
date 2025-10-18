@@ -4,36 +4,35 @@ import { Users, UserCheck, UserX, History } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useState } from "react";
-import { mockAttendance } from "@/lib/mock-data";
-import { Student } from "@/lib/types";
+import { Student, AttendanceRecord } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
+import { getInitialAttendance } from "@/lib/mock-data";
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
-  const [totalStudents, setTotalStudents] = useState(0);
-  const [presentToday, setPresentToday] = useState(0);
-  const [absentToday, setAbsentToday] = useState(0);
   const [students, setStudents] = useState<Student[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedStudents = localStorage.getItem('students');
       const allStudents: Student[] = savedStudents ? JSON.parse(savedStudents) : [];
       setStudents(allStudents);
+      setAttendance(getInitialAttendance());
     }
   }, []);
 
-  useEffect(() => {
+  const { totalStudents, presentToday, absentToday } = useMemo(() => {
     if (user?.department && user.department !== 'all') {
       const departmentStudents = students.filter(s => s.department === user.department);
       
       const today = new Date().toISOString().split('T')[0];
 
-      const todaysAttendance = mockAttendance.filter(record => 
+      const todaysAttendance = attendance.filter(record => 
         record.date === today && 
         departmentStudents.some(s => s.registerNumber === record.studentRegister)
       );
@@ -41,22 +40,25 @@ export default function AdminDashboard() {
       const presentStudents = new Set(todaysAttendance.filter(r => r.status === 'present' || r.status === 'late').map(r => r.studentRegister));
       const presentCount = presentStudents.size;
       
-      setTotalStudents(departmentStudents.length);
-      setPresentToday(presentCount);
-      setAbsentToday(departmentStudents.length - presentCount);
+      return {
+        totalStudents: departmentStudents.length,
+        presentToday: presentCount,
+        absentToday: departmentStudents.length - presentCount,
+      };
     }
-  }, [user, students]);
+    return { totalStudents: 0, presentToday: 0, absentToday: 0 };
+  }, [user, students, attendance]);
 
   const recentActivity = useMemo(() => {
     if (!user?.department || user.department === 'all') return [];
     
     const departmentStudentRegisters = new Set(students.filter(s => s.department === user.department).map(s => s.registerNumber));
     
-    return mockAttendance
+    return attendance
       .filter(record => departmentStudentRegisters.has(record.studentRegister))
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 5); // Get the 5 most recent records
-  }, [user, students]);
+  }, [user, students, attendance]);
 
   const getInitials = (name: string) => {
     const names = name.split(' ');

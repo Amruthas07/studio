@@ -20,7 +20,7 @@ export interface AttendanceRecord {
   status: 'present' | 'absent' | 'late' | 'manual' | 'unknown-face';
   markedBy: string; // admin email or 'camera'
   method: 'face-scan' | 'manual';
-  timestamp: Date;
+  timestamp: string; // Storing as ISO string for localStorage compatibility
 }
 
 export interface RecentExport {

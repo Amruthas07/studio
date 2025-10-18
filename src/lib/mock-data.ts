@@ -66,7 +66,7 @@ const generateAttendance = (students: Student[]): AttendanceRecord[] => {
                     status: status,
                     markedBy: 'camera',
                     method: 'face-scan',
-                    timestamp: new Date(date.setHours(9, Math.floor(Math.random() * 59))),
+                    timestamp: new Date(date.setHours(9, Math.floor(Math.random() * 59))).toISOString(),
                 });
             } else {
                  // For absent, we might not have a record, or have one marked manually
@@ -80,7 +80,7 @@ const generateAttendance = (students: Student[]): AttendanceRecord[] => {
                         status: 'absent',
                         markedBy: 'jsspn324@gmail.com',
                         method: 'manual',
-                        timestamp: new Date(date.setHours(16, 0)),
+                        timestamp: new Date(date.setHours(16, 0)).toISOString(),
                     });
                  }
             }
@@ -89,4 +89,13 @@ const generateAttendance = (students: Student[]): AttendanceRecord[] => {
     return records;
 }
 
-export const mockAttendance: AttendanceRecord[] = generateAttendance(mockStudents);
+export const getInitialAttendance = (): AttendanceRecord[] => {
+    if (typeof window === 'undefined') return [];
+    const storedAttendance = localStorage.getItem('attendance_records');
+    if (storedAttendance) {
+        return JSON.parse(storedAttendance);
+    }
+    const initialAttendance = generateAttendance(mockStudents);
+    localStorage.setItem('attendance_records', JSON.stringify(initialAttendance));
+    return initialAttendance;
+}

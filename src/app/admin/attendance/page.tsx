@@ -2,7 +2,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { mockAttendance } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FileDown, Loader2 } from "lucide-react";
@@ -11,13 +10,13 @@ import React from "react";
 import { generateDailyReport } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { getInitialAttendance } from "@/lib/mock-data";
 
 export default function AdminAttendancePage() {
     const { user, loading } = useAuth();
     const { toast } = useToast();
     const [isDownloading, setIsDownloading] = React.useState(false);
-    
-    const attendanceRecords = mockAttendance;
+    const [attendanceRecords, setAttendanceRecords] = React.useState(() => getInitialAttendance());
 
     const getStatusVariant = (status: string) => {
         switch (status) {
@@ -104,7 +103,7 @@ export default function AdminAttendancePage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {departmentAttendance.length > 0 ? departmentAttendance.map((record) => (
+                            {departmentAttendance.length > 0 ? departmentAttendance.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((record) => (
                                 <TableRow key={record.id}>
                                     <TableCell className="font-medium">{record.studentName}</TableCell>
                                     <TableCell>{record.studentRegister}</TableCell>

@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { mockAttendance, mockStudents } from '@/lib/mock-data';
+import { getInitialAttendance, mockStudents } from '@/lib/mock-data';
 import type { AttendanceRecord, Student } from '@/lib/types';
 
 const AttendanceReportingWithFilteringInputSchema = z.object({
@@ -69,6 +69,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
     outputSchema: AttendanceReportingWithFilteringOutputSchema,
   },
   async input => {
+    const mockAttendance = getInitialAttendance();
     
     // 1. Filter students by department
     const departmentStudents = input.department === 'all'

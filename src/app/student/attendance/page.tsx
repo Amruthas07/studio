@@ -2,12 +2,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { mockAttendance } from "@/lib/mock-data";
+import { getInitialAttendance } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
+import React from "react";
 
 export default function StudentAttendancePage() {
     const { user, loading } = useAuth();
+    const [attendanceRecords, setAttendanceRecords] = React.useState(() => getInitialAttendance());
     
     if (loading || !user) {
         return (
@@ -17,7 +19,7 @@ export default function StudentAttendancePage() {
         );
     }
     
-    const attendanceRecords = mockAttendance.filter(rec => rec.studentRegister === user.registerNumber);
+    const studentAttendanceRecords = attendanceRecords.filter(rec => rec.studentRegister === user.registerNumber);
 
     const getStatusVariant = (status: string) => {
         switch (status) {
@@ -54,7 +56,7 @@ export default function StudentAttendancePage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {attendanceRecords.length > 0 ? attendanceRecords.map((record) => (
+                            {studentAttendanceRecords.length > 0 ? studentAttendanceRecords.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((record) => (
                                 <TableRow key={record.id}>
                                     <TableCell>{record.date}</TableCell>
                                     <TableCell>
