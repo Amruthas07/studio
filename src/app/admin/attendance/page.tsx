@@ -10,7 +10,7 @@ import { generateDailyReport } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useAttendance } from "@/hooks/use-attendance";
-import { mockStudents } from "@/lib/mock-data";
+import type { Student } from "@/lib/types";
 
 
 export default function AdminAttendancePage() {
@@ -55,6 +55,18 @@ export default function AdminAttendancePage() {
         }
     }
 
+    const departmentAttendance = React.useMemo(() => {
+        if (!user?.department) return [];
+        const savedStudents: Student[] = JSON.parse(localStorage.getItem('students') || '[]');
+        const departmentStudentRegisters = new Set(
+            savedStudents
+                .filter(s => s.department === user.department)
+                .map(s => s.registerNumber)
+        );
+
+        return attendanceRecords.filter(rec => departmentStudentRegisters.has(rec.studentRegister));
+    }, [attendanceRecords, user?.department]);
+
     if (loading || !user) {
         return (
             <div className="flex h-full w-full items-center justify-center">
@@ -62,17 +74,6 @@ export default function AdminAttendancePage() {
             </div>
         );
     }
-    
-    const departmentAttendance = React.useMemo(() => {
-        const studentMap = new Map(mockStudents.map(s => [s.registerNumber, s]));
-        const savedStudents = JSON.parse(localStorage.getItem('students') || '[]');
-        savedStudents.forEach((s: any) => studentMap.set(s.registerNumber, s));
-
-        return attendanceRecords.filter(rec => {
-            const student = studentMap.get(rec.studentRegister);
-            return student?.department === user.department;
-        });
-    }, [attendanceRecords, user?.department]);
 
     return (
         <div className="flex flex-col gap-6">
