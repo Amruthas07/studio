@@ -89,12 +89,15 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
         return isStudentInDepartment && isDateInRange;
     });
 
-    // 3. Calculate summary
-    // We count unique students to avoid counting the same student multiple times if they have multiple records.
+    // 3. Calculate summary by unique students within the date range
     const presentStudents = new Set(filteredRecords.filter(r => r.status === 'present' || r.status === 'late').map(r => r.studentRegister));
-    const absentStudents = new Set(filteredRecords.filter(r => r.status === 'absent').map(r => r.studentRegister));
+    
+    const allStudentRegistersInDept = new Set(departmentStudents.map(s => s.registerNumber));
+    
+    const absentStudentRegisters = new Set([...allStudentRegistersInDept].filter(x => !presentStudents.has(x)));
+    
     const presentCount = presentStudents.size;
-    const absentCount = absentStudents.size;
+    const absentCount = absentStudentRegisters.size;
 
     // 4. Create summary CSV string
     const summaryData = [
