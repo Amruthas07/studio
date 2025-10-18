@@ -31,6 +31,7 @@ import type { Student } from "@/lib/types"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { Calendar } from "../ui/calendar"
 import { cn } from "@/lib/utils"
+import { fileToBase64 } from "@/lib/utils"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -66,7 +67,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     const formData = new FormData();
     Object.entries(values).forEach(([key, value]) => {
         if (key === 'dateOfBirth' && value instanceof Date) {
@@ -84,9 +85,11 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           description: `${values.name} has been enrolled with Face ID: ${result.faceId?.substring(0,10)}...`,
         })
         
+        const photoDataUrl = await fileToBase64(values.photo);
+
         const newStudent: Student = {
             ...values,
-            photoURL: URL.createObjectURL(values.photo),
+            photoURL: photoDataUrl,
             createdAt: new Date(),
             faceId: result.faceId,
         };

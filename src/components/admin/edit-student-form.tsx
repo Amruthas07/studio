@@ -30,7 +30,7 @@ import { updateStudent } from "@/app/actions"
 import type { Student } from "@/lib/types"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { Calendar } from "../ui/calendar"
-import { cn } from "@/lib/utils"
+import { cn, fileToBase64 } from "@/lib/utils"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -89,7 +89,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
         
         let newPhotoURL = student.photoURL;
         if (values.photo instanceof File) {
-            newPhotoURL = URL.createObjectURL(values.photo);
+            newPhotoURL = await fileToBase64(values.photo);
         }
 
         const updatedStudent: Student = {
