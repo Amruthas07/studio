@@ -21,22 +21,33 @@ export default function CameraAttendancePage() {
   const { user } = useAuth();
   const { addAttendanceRecord } = useAttendance();
   
-  const checkCameraPermission = async () => {
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try {
-        // Check permission without starting the stream
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        // Immediately stop the tracks to not keep the camera on
-        stream.getTracks().forEach(track => track.stop());
-        setHasCameraPermission(true);
-      } catch (error) {
-        console.error('Error accessing camera:', error);
+  // This effect will run once on component mount to check for camera permissions.
+  useEffect(() => {
+    const checkCameraPermission = async () => {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          // A quick check for permission status. This might prompt the user.
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          stream.getTracks().forEach(track => track.stop()); // Immediately release the camera
+          setHasCameraPermission(true);
+        } catch (error) {
+          console.error('Initial camera permission check failed:', error);
+          setHasCameraPermission(false);
+        }
+      } else {
         setHasCameraPermission(false);
       }
-    } else {
-      setHasCameraPermission(false);
-    }
-  };
+    };
+
+    checkCameraPermission();
+
+    // Cleanup function to ensure camera is off when leaving the page
+    return () => {
+      stopCamera();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   const startCamera = async () => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -48,7 +59,7 @@ export default function CameraAttendancePage() {
           setIsStreaming(true);
         }
       } catch (error) {
-        console.error('Error accessing camera:', error);
+        console.error('Error starting camera:', error);
         setHasCameraPermission(false);
         toast({
           variant: 'destructive',
@@ -69,15 +80,6 @@ export default function CameraAttendancePage() {
       setIsStreaming(false);
     }
   };
-
-  useEffect(() => {
-    checkCameraPermission();
-    // Cleanup function to ensure camera is off when leaving the page
-    return () => {
-      stopCamera();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
 
   const captureAndMarkAttendance = async () => {
