@@ -21,17 +21,15 @@ export default function CameraAttendancePage() {
   const { user } = useAuth();
   const { addAttendanceRecord } = useAttendance();
   
-  // This effect will run once on component mount to check for camera permissions.
   useEffect(() => {
     const checkCameraPermission = async () => {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
-          // A quick check for permission status. This might prompt the user.
           const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          stream.getTracks().forEach(track => track.stop()); // Immediately release the camera
+          stream.getTracks().forEach(track => track.stop());
           setHasCameraPermission(true);
         } catch (error) {
-          console.error('Initial camera permission check failed:', error);
+          console.error('Camera permission check failed:', error);
           setHasCameraPermission(false);
         }
       } else {
@@ -41,7 +39,6 @@ export default function CameraAttendancePage() {
 
     checkCameraPermission();
 
-    // Cleanup function to ensure camera is off when leaving the page
     return () => {
       stopCamera();
     };
@@ -55,6 +52,7 @@ export default function CameraAttendancePage() {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          await videoRef.current.play();
           setHasCameraPermission(true);
           setIsStreaming(true);
         }
@@ -97,11 +95,8 @@ export default function CameraAttendancePage() {
     const context = canvas.getContext('2d');
     context?.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Simulate AI identifying student
-    // In a real scenario, you'd send this to a face recognition flow
     await new Promise(res => setTimeout(res, 1500)); 
     
-    // For this demo, we'll just pick a random student from the admin's department
     const allStudents = JSON.parse(localStorage.getItem('students') || '[]');
     const departmentStudents = allStudents.filter((s: any) => s.department === user.department);
     
@@ -174,8 +169,8 @@ export default function CameraAttendancePage() {
               {hasCameraPermission === false && (
                 <>
                   <VideoOff className="h-12 w-12 mb-4" />
-                  <h3 className="font-bold">Camera Not Available</h3>
-                  <p className="text-sm">Check browser permissions and ensure a camera is connected.</p>
+                  <h3 className="font-bold">Camera Access Required</h3>
+                  <p className="text-sm">Please enable camera permissions in your browser settings to use this feature.</p>
                 </>
               )}
               {!isStreaming && hasCameraPermission === true && (
