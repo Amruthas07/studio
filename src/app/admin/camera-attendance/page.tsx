@@ -22,29 +22,12 @@ export default function CameraAttendancePage() {
   const { addAttendanceRecord } = useAttendance();
   
   useEffect(() => {
-    const checkCameraPermission = async () => {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          stream.getTracks().forEach(track => track.stop());
-          setHasCameraPermission(true);
-        } catch (error) {
-          console.error('Camera permission check failed:', error);
-          setHasCameraPermission(false);
-        }
-      } else {
-        setHasCameraPermission(false);
-      }
-    };
-
-    checkCameraPermission();
-
+    // Stop camera stream when component unmounts
     return () => {
       stopCamera();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
 
   const startCamera = async () => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -67,6 +50,11 @@ export default function CameraAttendancePage() {
       }
     } else {
        setHasCameraPermission(false);
+       toast({
+          variant: 'destructive',
+          title: 'Camera Not Supported',
+          description: 'Your browser does not support camera access.',
+       });
     }
   };
 
@@ -163,8 +151,12 @@ export default function CameraAttendancePage() {
             <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
             
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4 text-center">
-              {hasCameraPermission === null && (
-                 <Loader2 className="h-8 w-8 animate-spin text-white" />
+              {hasCameraPermission === null && !isStreaming && (
+                 <>
+                    <Camera className="h-12 w-12 mb-4" />
+                    <h3 className="font-bold">Camera is Off</h3>
+                    <p className="text-sm">Click "Start Camera" to begin the video feed.</p>
+                  </>
               )}
               {hasCameraPermission === false && (
                 <>
@@ -212,7 +204,7 @@ export default function CameraAttendancePage() {
                         </>
                     )}
                 </Button>
-                <Button size="lg" variant="outline" onClick={isStreaming ? stopCamera : startCamera} disabled={hasCameraPermission === false}>
+                <Button size="lg" variant="outline" onClick={isStreaming ? stopCamera : startCamera}>
                     {isStreaming ? <VideoOff /> : <Video />}
                     {isStreaming ? 'Stop Camera' : 'Start Camera'}
                 </Button>
