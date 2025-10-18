@@ -2,8 +2,8 @@ import type { Student, AttendanceRecord } from './types';
 
 // Let's create mock data for 5 students in each department
 const departments: ('cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec')[] = ["cs", "ce", "me", "ee", "mce", "ec"];
-const firstNames = ["Rajesh", "Priya", "Amit", "Sunita", "Vijay"];
-const lastNames = ["Kumar", "Sharma", "Patel", "Gupta", "Singh"];
+const firstNames = ["Amrutha", "Akshatha", "Divya", "Bhavana", "Chandana"];
+const lastNames = ["R", "S", "K", "M", "P"];
 
 const generateStudents = (): Student[] => {
     const students: Student[] = [];
@@ -99,7 +99,8 @@ export const getInitialAttendance = (): AttendanceRecord[] => {
     
     // Generate attendance based on students from localStorage, not the static mock list
     const studentsFromStorage = localStorage.getItem('students');
-    const studentsToUse = studentsFromStorage ? JSON.parse(studentsFromStorage) : mockStudents;
+    // Only generate attendance if there are students in localStorage.
+    const studentsToUse = studentsFromStorage ? JSON.parse(studentsFromStorage) : [];
 
     const initialAttendance = generateAttendance(studentsToUse);
     localStorage.setItem('attendance_records', JSON.stringify(initialAttendance));
