@@ -88,12 +88,29 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
         // const hasCertainty = input.certaintyThreshold ? (record.confidenceScore || 1) >= input.certaintyThreshold : true;
         return isStudentInDepartment && isDateInRange;
     });
-    
-    // 3. Convert to CSV
-    const csvData = convertToCSV(filteredRecords);
 
-    // 4. Create a data URI
-    const fileUrl = `data:text/csv;charset=utf-8,${encodeURIComponent(csvData)}`;
+    // 3. Calculate summary
+    // We count unique students to avoid counting the same student multiple times if they have multiple records.
+    const presentStudents = new Set(filteredRecords.filter(r => r.status === 'present' || r.status === 'late').map(r => r.studentRegister));
+    const absentStudents = new Set(filteredRecords.filter(r => r.status === 'absent').map(r => r.studentRegister));
+    const presentCount = presentStudents.size;
+    const absentCount = absentStudents.size;
+
+    // 4. Create summary CSV string
+    const summaryData = [
+      { metric: 'Number of Students Present', value: presentCount },
+      { metric: 'Number of Students Absent', value: absentCount },
+    ];
+    const summaryCsv = convertToCSV(summaryData);
+    
+    // 5. Convert main data to CSV
+    const recordsCsv = convertToCSV(filteredRecords);
+
+    // 6. Combine summary and main data
+    const finalCsvData = `${summaryCsv}\r\n\r\n${recordsCsv}`;
+
+    // 7. Create a data URI
+    const fileUrl = `data:text/csv;charset=utf-8,${encodeURIComponent(finalCsvData)}`;
 
     return {fileUrl};
   }
