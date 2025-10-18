@@ -162,9 +162,9 @@ export default function AdminDashboard() {
                                     {record.studentName}
                                     <span className="text-sm text-muted-foreground"> ({record.studentRegister})</span>
                                 </p>
-                                <p className="text-sm text-muted-foreground">
+                                <div className="text-sm text-muted-foreground">
                                     Marked as <Badge variant={record.status === 'absent' ? 'destructive' : 'secondary'} className="capitalize">{record.status}</Badge> via {record.method}.
-                                </p>
+                                </div>
                             </div>
                             <div className="ml-auto font-medium text-sm text-muted-foreground">
                                 {formatDistanceToNow(new Date(record.timestamp), { addSuffix: true })}
