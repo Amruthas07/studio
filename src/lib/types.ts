@@ -9,6 +9,7 @@ export interface Student {
   contact: string;
   faceId?: string;
   createdAt: Date;
+  dateOfBirth: Date;
 }
 
 export interface AttendanceRecord {

@@ -2,8 +2,9 @@
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, User, Mail, Phone, Building, Briefcase, Hash } from 'lucide-react';
+import { Loader2, User, Mail, Phone, Building, Briefcase, Hash, Cake } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 
 export default function StudentProfilePage() {
   const { user, loading } = useAuth();
@@ -29,6 +30,7 @@ export default function StudentProfilePage() {
     { icon: Phone, label: 'Contact', value: user.contact },
     { icon: Hash, label: 'Register No.', value: user.registerNumber },
     { icon: Briefcase, label: 'Department', value: <Badge variant="secondary" className="uppercase">{user.department}</Badge> },
+    { icon: Cake, label: 'Date of Birth', value: format(new Date(user.dateOfBirth), "PPP") },
     { icon: User, label: "Father's Name", value: user.fatherName },
     { icon: User, label: "Mother's Name", value: user.motherName },
   ];

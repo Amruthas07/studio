@@ -21,6 +21,7 @@ const FaceDataToolInputSchema = z.object({
   name: z.string().describe("The student's name."),
   fatherName: z.string().describe("The student's father's name."),
   motherName: z.string().describe("The student's mother's name."),
+  dateOfBirth: z.string().describe("The student's date of birth."),
   department: z.string().describe("The student's department (e.g., cs, ce, me)."),
   email: z.string().email().describe("The student's email address."),
   contact: z.string().describe("The student's contact number."),
@@ -57,6 +58,7 @@ const faceDataToolPrompt = ai.definePrompt({
   Name: {{{name}}}
   Father's Name: {{{fatherName}}}
   Mother's Name: {{{motherName}}}
+  Date of Birth: {{{dateOfBirth}}}
   Department: {{{department}}}
   Email: {{{email}}}
   Contact: {{{contact}}}

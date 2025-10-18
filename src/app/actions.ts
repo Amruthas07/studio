@@ -14,6 +14,7 @@ const addStudentSchema = z.object({
   fatherName: z.string(),
   motherName: z.string(),
   photo: z.instanceof(File),
+  dateOfBirth: z.string(), // Received as ISO string
 });
 
 const reportSchema = z.object({
@@ -30,6 +31,8 @@ export async function addStudent(formData: FormData) {
   try {
     const data = Object.fromEntries(formData);
     const validatedData = addStudentSchema.parse(data);
+    const dateOfBirth = new Date(validatedData.dateOfBirth);
+
 
     const photoFile = validatedData.photo;
     const photoBuffer = await photoFile.arrayBuffer();
@@ -38,6 +41,7 @@ export async function addStudent(formData: FormData) {
 
     const toolInput: FaceDataToolInput = {
       ...validatedData,
+      dateOfBirth: dateOfBirth.toLocaleDateString(),
       photoDataUri,
       insertIntoMongo: true,
     };

@@ -4,6 +4,8 @@ import React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
+import { format } from "date-fns"
+import { CalendarIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -26,6 +28,9 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { addStudent } from "@/app/actions"
 import type { Student } from "@/lib/types"
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
+import { Calendar } from "../ui/calendar"
+import { cn } from "@/lib/utils"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -36,6 +41,9 @@ const formSchema = z.object({
   fatherName: z.string().min(2, "Father's name is required."),
   motherName: z.string().min(2, "Mother's name is required."),
   photo: z.any().refine(file => file instanceof File, "Photo is required."),
+  dateOfBirth: z.date({
+    required_error: "A date of birth is required.",
+  }),
 })
 
 type AddStudentFormProps = {
@@ -61,7 +69,11 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   function onSubmit(values: z.infer<typeof formSchema>) {
     const formData = new FormData();
     Object.entries(values).forEach(([key, value]) => {
-        formData.append(key, value);
+        if (key === 'dateOfBirth' && value instanceof Date) {
+            formData.append(key, value.toISOString());
+        } else {
+            formData.append(key, value);
+        }
     });
 
     startTransition(async () => {
@@ -76,7 +88,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
             ...values,
             photoURL: URL.createObjectURL(values.photo),
             createdAt: new Date(),
-            faceId: result.faceId
+            faceId: result.faceId,
         };
         onStudentAdded(newStudent);
         form.reset();
@@ -209,6 +221,47 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                     <FormDescription>Used for face recognition.</FormDescription>
                     <FormMessage />
                 </FormItem>
+                )}
+            />
+             <FormField
+                control={form.control}
+                name="dateOfBirth"
+                render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                    <FormLabel>Date of birth</FormLabel>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <FormControl>
+                            <Button
+                            variant={"outline"}
+                            className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                            )}
+                            >
+                            {field.value ? (
+                                format(field.value, "PPP")
+                            ) : (
+                                <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                        </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                            }
+                            initialFocus
+                        />
+                        </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                    </FormItem>
                 )}
             />
         </div>

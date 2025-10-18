@@ -50,46 +50,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isAttemptingAdminLogin = email.toLowerCase() === 'jsspn324@gmail.com';
 
     if (isAttemptingAdminLogin) {
-        if (pass === '571301') {
-             const adminUser: AuthUser = {
-                name: 'Admin',
-                email: 'jsspn324@gmail.com',
-                role: 'admin',
-                department: (department as Department) || 'cs',
-                registerNumber: 'ADMIN_001',
-                fatherName: 'N/A',
-                motherName: 'N/A',
-                photoURL: 'https://jssonline.org/wp-content/uploads/2023/11/JSS_Polytechnic-Nanjangud.jpg',
-                contact: 'N/A',
-                createdAt: new Date(),
-            };
-            setUser(adminUser);
-            localStorage.setItem('faceattend_user', JSON.stringify(adminUser));
-            setLoading(false);
-            router.push('/admin');
-            return;
-        } else {
-             setLoading(false);
-             throw new Error('Invalid admin credentials.');
-        }
+      if (pass === '571301') {
+        const adminUser: AuthUser = {
+          name: 'JSS Admin',
+          email: 'jsspn324@gmail.com',
+          role: 'admin',
+          department: (department as Department) || 'cs',
+          registerNumber: 'ADMIN_001',
+          fatherName: 'N/A',
+          motherName: 'N/A',
+          photoURL: 'https://jssonline.org/wp-content/uploads/2023/11/JSS_Polytechnic-Nanjangud.jpg',
+          contact: 'N/A',
+          createdAt: new Date(),
+          dateOfBirth: new Date(),
+        };
+        setUser(adminUser);
+        localStorage.setItem('faceattend_user', JSON.stringify(adminUser));
+        setLoading(false);
+        router.push('/admin');
+        return;
+      } else {
+        setLoading(false);
+        throw new Error('Invalid admin credentials.');
+      }
     }
-    
+
     const savedStudents: Student[] = JSON.parse(localStorage.getItem('students') || '[]');
     const allStudents = [...mockStudents, ...savedStudents];
     const foundStudent = allStudents.find(s => s.email.toLowerCase() === email.toLowerCase());
 
     if (foundStudent && pass === foundStudent.registerNumber) {
-        const studentUser: AuthUser = { ...foundStudent, role: 'student' };
-        setUser(studentUser);
-        localStorage.setItem('faceattend_user', JSON.stringify(studentUser));
-        setLoading(false);
-        router.push('/student');
-        return;
+      const studentUser: AuthUser = { ...foundStudent, role: 'student' };
+      setUser(studentUser);
+      localStorage.setItem('faceattend_user', JSON.stringify(studentUser));
+      setLoading(false);
+      router.push('/student');
+    } else {
+      setLoading(false);
+      throw new Error('Invalid email or password.');
     }
-    
-    setLoading(false);
-    throw new Error('Invalid email or password.');
   };
+
 
   const logout = () => {
     setUser(null);
