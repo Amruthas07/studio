@@ -21,6 +21,23 @@ export default function CameraAttendancePage() {
   const { user } = useAuth();
   const { addAttendanceRecord } = useAttendance();
   
+  const checkCameraPermission = async () => {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        // Check permission without starting the stream
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // Immediately stop the tracks to not keep the camera on
+        stream.getTracks().forEach(track => track.stop());
+        setHasCameraPermission(true);
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+      }
+    } else {
+      setHasCameraPermission(false);
+    }
+  };
+
   const startCamera = async () => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
@@ -54,7 +71,8 @@ export default function CameraAttendancePage() {
   };
 
   useEffect(() => {
-    startCamera();
+    checkCameraPermission();
+    // Cleanup function to ensure camera is off when leaving the page
     return () => {
       stopCamera();
     };
@@ -146,18 +164,27 @@ export default function CameraAttendancePage() {
         <CardContent className="flex flex-col items-center gap-4">
           <div className="w-full max-w-2xl aspect-video rounded-md overflow-hidden bg-secondary border relative">
             <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-            {!isStreaming && hasCameraPermission === true && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                    <Loader2 className="h-8 w-8 animate-spin text-white" />
-                </div>
-            )}
-             {hasCameraPermission === false && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4 text-center">
-                    <VideoOff className="h-12 w-12 mb-4" />
-                    <h3 className="font-bold">Camera Not Available</h3>
-                    <p className="text-sm">Check browser permissions and ensure a camera is connected.</p>
-                </div>
-            )}
+            
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4 text-center">
+              {hasCameraPermission === null && (
+                 <Loader2 className="h-8 w-8 animate-spin text-white" />
+              )}
+              {hasCameraPermission === false && (
+                <>
+                  <VideoOff className="h-12 w-12 mb-4" />
+                  <h3 className="font-bold">Camera Not Available</h3>
+                  <p className="text-sm">Check browser permissions and ensure a camera is connected.</p>
+                </>
+              )}
+              {!isStreaming && hasCameraPermission === true && (
+                  <>
+                    <Camera className="h-12 w-12 mb-4" />
+                    <h3 className="font-bold">Camera is Off</h3>
+                    <p className="text-sm">Click "Start Camera" to begin the video feed.</p>
+                  </>
+              )}
+            </div>
+            
             <canvas ref={canvasRef} className="hidden" />
           </div>
 
