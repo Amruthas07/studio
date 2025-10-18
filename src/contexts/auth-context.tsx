@@ -31,6 +31,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
+      // Initialize students from mock data if localStorage is empty
+      if (!localStorage.getItem('students')) {
+        localStorage.setItem('students', JSON.stringify(mockStudents));
+      }
+
       const storedUser = localStorage.getItem('faceattend_user');
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
@@ -77,8 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const savedStudents: Student[] = JSON.parse(localStorage.getItem('students') || '[]');
-    const allStudents = [...mockStudents, ...savedStudents];
-    const foundStudent = allStudents.find(s => s.email.toLowerCase() === email.toLowerCase());
+    const foundStudent = savedStudents.find(s => s.email.toLowerCase() === email.toLowerCase());
 
     if (foundStudent && pass === foundStudent.registerNumber) {
       const studentUser: AuthUser = { ...foundStudent, role: 'student' };

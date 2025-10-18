@@ -91,11 +91,17 @@ const generateAttendance = (students: Student[]): AttendanceRecord[] => {
 
 export const getInitialAttendance = (): AttendanceRecord[] => {
     if (typeof window === 'undefined') return [];
+    
     const storedAttendance = localStorage.getItem('attendance_records');
     if (storedAttendance) {
         return JSON.parse(storedAttendance);
     }
-    const initialAttendance = generateAttendance(mockStudents);
+    
+    // Generate attendance based on students from localStorage, not the static mock list
+    const studentsFromStorage = localStorage.getItem('students');
+    const studentsToUse = studentsFromStorage ? JSON.parse(studentsFromStorage) : mockStudents;
+
+    const initialAttendance = generateAttendance(studentsToUse);
     localStorage.setItem('attendance_records', JSON.stringify(initialAttendance));
     return initialAttendance;
 }
