@@ -64,7 +64,7 @@ export default function StudentProfilePage() {
                 <detail.icon className="h-5 w-5 mt-1 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">{detail.label}</p>
-                  <p className="font-semibold">{detail.value}</p>
+                  <div className="font-semibold">{detail.value}</div>
                 </div>
               </div>
             ))}
