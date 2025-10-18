@@ -2,14 +2,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { getInitialAttendance } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import React from "react";
+import { useAttendance } from "@/hooks/use-attendance";
 
 export default function StudentAttendancePage() {
     const { user, loading } = useAuth();
-    const [attendanceRecords, setAttendanceRecords] = React.useState(() => getInitialAttendance());
+    const { attendanceRecords } = useAttendance();
     
     if (loading || !user) {
         return (

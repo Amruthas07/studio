@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -8,8 +8,8 @@ import { Camera, Loader2, Video, VideoOff } from 'lucide-react';
 import { markAttendanceFromCamera, MarkAttendanceFromCameraInput } from '@/ai/flows/mark-attendance-with-checks';
 import { useAuth } from '@/hooks/use-auth';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { mockStudents } from '@/lib/mock-data';
 import type { AttendanceRecord } from '@/lib/types';
+import { useAttendance } from '@/hooks/use-attendance';
 
 export default function CameraAttendancePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -19,6 +19,7 @@ export default function CameraAttendancePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { addAttendanceRecord } = useAttendance();
   
   const startCamera = async () => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -57,6 +58,7 @@ export default function CameraAttendancePage() {
     return () => {
       stopCamera();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -74,8 +76,6 @@ export default function CameraAttendancePage() {
     canvas.height = video.videoHeight;
     const context = canvas.getContext('2d');
     context?.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const photoDataUri = canvas.toDataURL('image/jpeg');
 
     // Simulate AI identifying student
     // In a real scenario, you'd send this to a face recognition flow
@@ -114,9 +114,7 @@ export default function CameraAttendancePage() {
         ...input,
       };
 
-      const storedAttendance = JSON.parse(localStorage.getItem('attendance_records') || '[]');
-      const updatedAttendance = [newRecord, ...storedAttendance];
-      localStorage.setItem('attendance_records', JSON.stringify(updatedAttendance));
+      addAttendanceRecord(newRecord);
 
       toast({
         title: "Attendance Marked",

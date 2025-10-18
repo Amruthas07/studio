@@ -10,19 +10,18 @@ import { Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-import { getInitialAttendance } from "@/lib/mock-data";
+import { useAttendance } from "@/hooks/use-attendance";
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
+  const { attendanceRecords } = useAttendance();
   const [students, setStudents] = useState<Student[]>([]);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
-
+  
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedStudents = localStorage.getItem('students');
       const allStudents: Student[] = savedStudents ? JSON.parse(savedStudents) : [];
       setStudents(allStudents);
-      setAttendance(getInitialAttendance());
     }
   }, []);
 
@@ -32,7 +31,7 @@ export default function AdminDashboard() {
       
       const today = new Date().toISOString().split('T')[0];
 
-      const todaysAttendance = attendance.filter(record => 
+      const todaysAttendance = attendanceRecords.filter(record => 
         record.date === today && 
         departmentStudents.some(s => s.registerNumber === record.studentRegister)
       );
@@ -47,18 +46,18 @@ export default function AdminDashboard() {
       };
     }
     return { totalStudents: 0, presentToday: 0, absentToday: 0 };
-  }, [user, students, attendance]);
+  }, [user, students, attendanceRecords]);
 
   const recentActivity = useMemo(() => {
     if (!user?.department || user.department === 'all') return [];
     
     const departmentStudentRegisters = new Set(students.filter(s => s.department === user.department).map(s => s.registerNumber));
     
-    return attendance
+    return attendanceRecords
       .filter(record => departmentStudentRegisters.has(record.studentRegister))
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 5); // Get the 5 most recent records
-  }, [user, students, attendance]);
+  }, [user, students, attendanceRecords]);
 
   const getInitials = (name: string) => {
     const names = name.split(' ');

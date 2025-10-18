@@ -2,7 +2,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FileDown, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -10,14 +9,16 @@ import React from "react";
 import { generateDailyReport } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { getInitialAttendance } from "@/lib/mock-data";
+import { useAttendance } from "@/hooks/use-attendance";
+import { mockStudents } from "@/lib/mock-data";
+
 
 export default function AdminAttendancePage() {
     const { user, loading } = useAuth();
     const { toast } = useToast();
+    const { attendanceRecords } = useAttendance();
     const [isDownloading, setIsDownloading] = React.useState(false);
-    const [attendanceRecords, setAttendanceRecords] = React.useState(() => getInitialAttendance());
-
+   
     const getStatusVariant = (status: string) => {
         switch (status) {
             case 'present': return 'default';
@@ -62,12 +63,16 @@ export default function AdminAttendancePage() {
         );
     }
     
-    const departmentAttendance = attendanceRecords.filter(rec => {
-        const studentDept = localStorage.getItem('students') 
-            ? JSON.parse(localStorage.getItem('students')!).find((s: any) => s.registerNumber === rec.studentRegister)?.department
-            : null;
-        return studentDept === user.department;
-    });
+    const departmentAttendance = React.useMemo(() => {
+        const studentMap = new Map(mockStudents.map(s => [s.registerNumber, s]));
+        const savedStudents = JSON.parse(localStorage.getItem('students') || '[]');
+        savedStudents.forEach((s: any) => studentMap.set(s.registerNumber, s));
+
+        return attendanceRecords.filter(rec => {
+            const student = studentMap.get(rec.studentRegister);
+            return student?.department === user.department;
+        });
+    }, [attendanceRecords, user?.department]);
 
     return (
         <div className="flex flex-col gap-6">
