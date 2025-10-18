@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, PlusCircle } from "lucide-react";
 import { AddStudentForm } from "@/components/admin/add-student-form";
+import { EditStudentForm } from "@/components/admin/edit-student-form";
 import { StudentsTable } from "@/components/admin/students-table";
 import { Student } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -40,7 +41,10 @@ export default function StudentsPage() {
   });
   
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+
+  const [studentToEdit, setStudentToEdit] = React.useState<Student | null>(null);
   const [studentToDelete, setStudentToDelete] = React.useState<Student | null>(null);
 
   const handleStudentAdded = (newStudent: Student) => {
@@ -51,7 +55,26 @@ export default function StudentsPage() {
       }
       return updatedStudents;
     });
-    setIsAddDialogOpen(false); // Close dialog on successful add
+    setIsAddDialogOpen(false);
+  };
+  
+  const handleStudentUpdated = (updatedStudent: Student) => {
+    setAllStudents(prevStudents => {
+        const updatedStudents = prevStudents.map(student => 
+            student.registerNumber === updatedStudent.registerNumber ? updatedStudent : student
+        );
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('students', JSON.stringify(updatedStudents));
+        }
+        return updatedStudents;
+    });
+    setIsEditDialogOpen(false);
+    setStudentToEdit(null);
+  };
+
+  const openEditDialog = (student: Student) => {
+    setStudentToEdit(student);
+    setIsEditDialogOpen(true);
   };
   
   const openDeleteDialog = (student: Student) => {
@@ -120,8 +143,23 @@ export default function StudentsPage() {
         </Dialog>
       </div>
 
-      <StudentsTable students={departmentStudents} onDeleteStudent={openDeleteDialog} />
+      <StudentsTable students={departmentStudents} onEditStudent={openEditDialog} onDeleteStudent={openDeleteDialog} />
 
+      {/* Edit Student Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[625px]">
+              <DialogHeader>
+                  <DialogTitle className="font-headline text-2xl">Edit Student Details</DialogTitle>
+                  <DialogDescription>
+                    Update the information for {studentToEdit?.name}. The register number cannot be changed.
+                  </DialogDescription>
+              </DialogHeader>
+              {studentToEdit && <EditStudentForm student={studentToEdit} onStudentUpdated={handleStudentUpdated} />}
+          </DialogContent>
+      </Dialog>
+
+
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

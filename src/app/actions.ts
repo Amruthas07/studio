@@ -17,6 +17,10 @@ const addStudentSchema = z.object({
   dateOfBirth: z.string(), // Received as ISO string
 });
 
+const editStudentSchema = addStudentSchema.omit({ photo: true }).extend({
+    photo: z.instanceof(File).optional(),
+});
+
 const reportSchema = z.object({
   dateRange: z.object({
     from: z.date(),
@@ -55,6 +59,45 @@ export async function addStudent(formData: FormData) {
       return { success: false, error: "Validation failed: " + error.message };
     }
     return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+export async function updateStudent(formData: FormData) {
+  try {
+    const data = Object.fromEntries(formData);
+    const validatedData = editStudentSchema.parse(data);
+    const dateOfBirth = new Date(validatedData.dateOfBirth);
+
+    const toolInput = {
+        ...validatedData,
+        dateOfBirth: dateOfBirth.toLocaleDateString(),
+        insertIntoMongo: true,
+    };
+
+    // In a real app, you would find and update the student in the database.
+    // For this mock, we're just validating and returning success.
+    // If a new photo is provided, a new face embedding would be generated.
+
+    if (validatedData.photo) {
+        const photoFile = validatedData.photo;
+        const photoBuffer = await photoFile.arrayBuffer();
+        const photoBase64 = Buffer.from(photoBuffer).toString('base64');
+        const photoDataUri = `data:${photoFile.type};base64,${photoBase64}`;
+        (toolInput as FaceDataToolInput).photoDataUri = photoDataUri;
+
+        // Simulate getting a new face ID if photo is updated
+        const result = await faceDataTool(toolInput as FaceDataToolInput);
+        return { success: true, faceId: result.faceId };
+    }
+
+
+    return { success: true };
+  } catch (error) {
+      console.error(error);
+      if (error instanceof z.ZodError) {
+        return { success: false, error: "Validation failed: " + error.message };
+      }
+      return { success: false, error: "An unexpected error occurred while updating the student." };
   }
 }
 
