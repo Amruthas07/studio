@@ -10,8 +10,8 @@ const generateStudents = (): Student[] => {
     const students: Student[] = [];
     let studentCount = 1;
     departments.forEach(dept => {
-        // Create 2 students for 'cs', 0 for others initially
-        const studentLimit = dept === 'cs' ? 2 : 0;
+        // Create 0 students for 'cs', and 2 for other departments initially
+        const studentLimit = dept === 'cs' ? 0 : 2;
         for (let i = 0; i < studentLimit; i++) {
             const registerNumber = `324${dept}21${String(studentCount).padStart(3, '0')}`;
             const name = `${firstNames[i]} ${lastNames[i]}`;
