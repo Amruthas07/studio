@@ -3,28 +3,20 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Users, UserCheck, UserX, History } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { useEffect, useMemo, useState } from "react";
-import { Student, AttendanceRecord } from "@/lib/types";
+import { useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { useAttendance } from "@/hooks/use-attendance";
-import { getInitialStudents } from "@/lib/mock-data";
+import { useStudents } from "@/hooks/use-students";
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
   const { attendanceRecords } = useAttendance();
-  const [students, setStudents] = useState<Student[]>([]);
+  const { students, loading: studentsLoading } = useStudents();
   
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const allStudents: Student[] = getInitialStudents();
-      setStudents(allStudents);
-    }
-  }, []);
-
   const { totalStudents, presentToday, absentToday } = useMemo(() => {
     if (user?.department && user.department !== 'all') {
       const departmentStudents = students.filter(s => s.department === user.department);
@@ -67,7 +59,7 @@ export default function AdminDashboard() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  if (loading || !user) {
+  if (loading || studentsLoading || !user) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

@@ -27,19 +27,13 @@ import { StudentsTable } from "@/components/admin/students-table";
 import { Student } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { getInitialStudents } from '@/lib/mock-data';
+import { useStudents } from '@/hooks/use-students';
 
 export default function StudentsPage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+  const { students, addStudent, updateStudent, deleteStudent, loading: studentsLoading } = useStudents();
 
-  const [allStudents, setAllStudents] = React.useState<Student[]>(() => {
-    if (typeof window !== 'undefined') {
-      return getInitialStudents();
-    }
-    return [];
-  });
-  
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -48,26 +42,12 @@ export default function StudentsPage() {
   const [studentToDelete, setStudentToDelete] = React.useState<Student | null>(null);
 
   const handleStudentAdded = (newStudent: Student) => {
-    setAllStudents(prevStudents => {
-      const updatedStudents = [...prevStudents, newStudent];
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('students', JSON.stringify(updatedStudents));
-      }
-      return updatedStudents;
-    });
+    addStudent(newStudent);
     setIsAddDialogOpen(false);
   };
   
   const handleStudentUpdated = (updatedStudent: Student) => {
-    setAllStudents(prevStudents => {
-        const updatedStudents = prevStudents.map(student => 
-            student.registerNumber === updatedStudent.registerNumber ? updatedStudent : student
-        );
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('students', JSON.stringify(updatedStudents));
-        }
-        return updatedStudents;
-    });
+    updateStudent(updatedStudent);
     setIsEditDialogOpen(false);
     setStudentToEdit(null);
   };
@@ -84,14 +64,7 @@ export default function StudentsPage() {
 
   const handleDeleteStudent = () => {
     if (!studentToDelete) return;
-
-    const updatedStudents = allStudents.filter(
-      (student) => student.registerNumber !== studentToDelete.registerNumber
-    );
-    setAllStudents(updatedStudents);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('students', JSON.stringify(updatedStudents));
-    }
+    deleteStudent(studentToDelete.registerNumber);
     toast({
         title: "Student Deleted",
         description: `${studentToDelete.name} has been removed from the system.`
@@ -102,10 +75,11 @@ export default function StudentsPage() {
   
   const departmentStudents = React.useMemo(() => {
       if (!user?.department) return [];
-      return allStudents.filter(student => student.department === user.department);
-  }, [allStudents, user]);
+      if (user.department === 'all') return students;
+      return students.filter(student => student.department === user.department);
+  }, [students, user]);
 
-  if (authLoading) {
+  if (authLoading || studentsLoading) {
       return (
           <div className="flex h-full w-full items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />

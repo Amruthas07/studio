@@ -4,6 +4,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { AuthProvider } from '@/contexts/auth-context';
 import { Toaster } from '@/components/ui/toaster';
+import { StudentsProvider } from '@/contexts/students-context';
 
 const fontInter = Inter({
   subsets: ['latin'],
@@ -41,8 +42,10 @@ export default function RootLayout({
         )}
       >
         <AuthProvider>
-          {children}
-          <Toaster />
+          <StudentsProvider>
+            {children}
+            <Toaster />
+          </StudentsProvider>
         </AuthProvider>
       </body>
     </html>
