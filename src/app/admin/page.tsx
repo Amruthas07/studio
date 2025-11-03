@@ -16,8 +16,10 @@ export default function AdminDashboard() {
   const { students, loading: studentsLoading } = useStudents();
   
   const { totalStudents, presentToday, absentToday } = useMemo(() => {
-    if (user?.department && user.department !== 'all') {
-      const departmentStudents = students.filter(s => s.department === user.department);
+    if (user?.department && students.length > 0) {
+      const departmentStudents = user.department === 'all' 
+        ? students 
+        : students.filter(s => s.department === user.department);
       
       const today = new Date().toISOString().split('T')[0];
 
@@ -94,7 +96,7 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{presentToday}</div>
              <p className="text-xs text-muted-foreground">
-              {totalStudents > 0 ? `${Math.round((presentToday/totalStudents) * 100)}% attendance rate` : 'N/A'}
+              {totalStudents > 0 ? `${Math.round((presentToday/totalStudents) * 100)}% attendance rate` : 'No students enrolled.'}
             </p>
           </CardContent>
         </Card>
@@ -108,7 +110,7 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{absentToday}</div>
              <p className="text-xs text-muted-foreground">
-              {totalStudents > 0 ? `${absentToday} out of ${totalStudents} absent` : 'N/A'}
+              {totalStudents > 0 ? `${absentToday} out of ${totalStudents} absent` : 'No students enrolled.'}
             </p>
           </CardContent>
         </Card>
