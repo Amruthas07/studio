@@ -36,30 +36,21 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   };
 
   const addStudent = useCallback((newStudent: Student) => {
-    setStudents(prevStudents => {
-      const updatedStudents = [...prevStudents, newStudent];
-      persistStudents(updatedStudents);
-      return updatedStudents;
-    });
-  }, []);
+    const updatedStudents = [...students, newStudent];
+    persistStudents(updatedStudents);
+  }, [students]);
 
   const updateStudent = useCallback((updatedStudent: Student) => {
-    setStudents(prevStudents => {
-      const updatedStudents = prevStudents.map(s => 
-        s.registerNumber === updatedStudent.registerNumber ? updatedStudent : s
-      );
-      persistStudents(updatedStudents);
-      return updatedStudents;
-    });
-  }, []);
+    const updatedStudents = students.map(s => 
+      s.registerNumber === updatedStudent.registerNumber ? updatedStudent : s
+    );
+    persistStudents(updatedStudents);
+  }, [students]);
 
   const deleteStudent = useCallback((registerNumber: string) => {
-    setStudents(prevStudents => {
-      const updatedStudents = prevStudents.filter(s => s.registerNumber !== registerNumber);
-      persistStudents(updatedStudents);
-      return updatedStudents;
-    });
-  }, []);
+    const updatedStudents = students.filter(s => s.registerNumber !== registerNumber);
+    persistStudents(updatedStudents);
+  }, [students]);
   
   const value = { students, loading, addStudent, updateStudent, deleteStudent };
 
