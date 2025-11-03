@@ -13,7 +13,7 @@ const addStudentSchema = z.object({
   contact: z.string(),
   fatherName: z.string(),
   motherName: z.string(),
-  photo: z.instanceof(File),
+  photoDataUri: z.string(), // Changed from File to string
   dateOfBirth: z.string(), // Received as ISO string
 });
 
@@ -37,16 +37,9 @@ export async function addStudent(formData: FormData) {
     const validatedData = addStudentSchema.parse(data);
     const dateOfBirth = new Date(validatedData.dateOfBirth);
 
-
-    const photoFile = validatedData.photo;
-    const photoBuffer = await photoFile.arrayBuffer();
-    const photoBase64 = Buffer.from(photoBuffer).toString('base64');
-    const photoDataUri = `data:${photoFile.type};base64,${photoBase64}`;
-
     const toolInput: FaceDataToolInput = {
       ...validatedData,
       dateOfBirth: dateOfBirth.toLocaleDateString(),
-      photoDataUri,
       insertIntoMongo: true,
     };
 

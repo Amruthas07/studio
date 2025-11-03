@@ -68,14 +68,19 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    const photoDataUrl = await fileToBase64(values.photo);
+
     const formData = new FormData();
     Object.entries(values).forEach(([key, value]) => {
         if (key === 'dateOfBirth' && value instanceof Date) {
             formData.append(key, value.toISOString());
-        } else {
+        } else if (key !== 'photo') { // Don't append the file object
             formData.append(key, value);
         }
     });
+    // Append the base64 string instead of the file
+    formData.append('photoDataUri', photoDataUrl);
+
 
     startTransition(async () => {
       const result = await addStudent(formData);
@@ -85,8 +90,6 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           description: `${values.name} has been enrolled with Face ID: ${result.faceId?.substring(0,10)}...`,
         })
         
-        const photoDataUrl = await fileToBase64(values.photo);
-
         const newStudent: Student = {
             ...values,
             photoURL: photoDataUrl,
