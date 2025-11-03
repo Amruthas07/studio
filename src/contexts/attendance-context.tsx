@@ -1,8 +1,10 @@
+
 "use client";
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import type { AttendanceRecord } from '@/lib/types';
 import { getInitialAttendance } from '@/lib/mock-data';
+import { useStudents } from '@/hooks/use-students';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
@@ -15,10 +17,12 @@ export const AttendanceContext = createContext<AttendanceContextType | undefined
 export function AttendanceProvider({ children }: { children: ReactNode }) {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const { students, loading: studentsLoading } = useStudents();
 
   useEffect(() => {
+    if (studentsLoading) return;
     try {
-      const initialAttendance = getInitialAttendance();
+      const initialAttendance = getInitialAttendance(students);
       setAttendanceRecords(initialAttendance);
     } catch (error) {
       console.error("Failed to load attendance data", error);
@@ -26,7 +30,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [students, studentsLoading]);
 
   const addAttendanceRecord = useCallback((newRecord: AttendanceRecord) => {
     setAttendanceRecords(prevRecords => {

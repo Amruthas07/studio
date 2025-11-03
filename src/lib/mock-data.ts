@@ -1,3 +1,4 @@
+
 import type { Student, AttendanceRecord } from './types';
 
 // Let's create mock data for 5 students in each department
@@ -9,7 +10,9 @@ const generateStudents = (): Student[] => {
     const students: Student[] = [];
     let studentCount = 1;
     departments.forEach(dept => {
-        for (let i = 0; i < 5; i++) {
+        // Create 2 students for 'cs', 0 for others initially
+        const studentLimit = dept === 'cs' ? 2 : 0;
+        for (let i = 0; i < studentLimit; i++) {
             const registerNumber = `324${dept}21${String(studentCount).padStart(3, '0')}`;
             const name = `${firstNames[i]} ${lastNames[i]}`;
             students.push({
@@ -38,8 +41,8 @@ export const getInitialStudents = (): Student[] => {
       try {
         const parsed = JSON.parse(savedStudents);
         // Quick validation to ensure it's an array
-        if (Array.isArray(parsed)) {
-          return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(p => ({...p, createdAt: new Date(p.createdAt), dateOfBirth: new Date(p.dateOfBirth)}));
         }
       } catch (e) {
         // If parsing fails, fall back to generating
@@ -58,10 +61,11 @@ const generateAttendance = (students: Student[]): AttendanceRecord[] => {
     let recordId = 1;
 
     students.forEach(student => {
-        // Clear records for CS department
+        // Dont generate any records for cs department
         if (student.department === 'cs') {
             return;
         }
+
         // Generate records for the last 7 days
         for (let i = 0; i < 7; i++) {
             const date = new Date(today);
@@ -111,7 +115,7 @@ const generateAttendance = (students: Student[]): AttendanceRecord[] => {
     return records;
 }
 
-export const getInitialAttendance = (): AttendanceRecord[] => {
+export const getInitialAttendance = (students: Student[]): AttendanceRecord[] => {
     if (typeof window === 'undefined') return [];
     
     const storedAttendance = localStorage.getItem('attendance_records');
@@ -124,9 +128,7 @@ export const getInitialAttendance = (): AttendanceRecord[] => {
         }
     }
     
-    const studentsToUse = getInitialStudents();
-
-    const initialAttendance = generateAttendance(studentsToUse);
+    const initialAttendance = generateAttendance(students);
     localStorage.setItem('attendance_records', JSON.stringify(initialAttendance));
     return initialAttendance;
 }

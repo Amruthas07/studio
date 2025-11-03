@@ -1,10 +1,10 @@
+
 "use client";
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { getInitialStudents } from '@/lib/mock-data';
 import type { Student } from '@/lib/types';
-import { AttendanceProvider } from './attendance-context';
 
 type Role = 'admin' | 'student';
 
@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>
-      <AttendanceProvider>{children}</AttendanceProvider>
+      {children}
     </AuthContext.Provider>
   );
 }

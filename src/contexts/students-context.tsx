@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -35,21 +36,30 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   };
 
   const addStudent = useCallback((newStudent: Student) => {
-    const updatedStudents = [...students, newStudent];
-    persistStudents(updatedStudents);
-  }, [students]);
+    setStudents(prevStudents => {
+      const updatedStudents = [...prevStudents, newStudent];
+      persistStudents(updatedStudents);
+      return updatedStudents;
+    });
+  }, []);
 
   const updateStudent = useCallback((updatedStudent: Student) => {
-    const updatedStudents = students.map(s => 
-      s.registerNumber === updatedStudent.registerNumber ? updatedStudent : s
-    );
-    persistStudents(updatedStudents);
-  }, [students]);
+    setStudents(prevStudents => {
+      const updatedStudents = prevStudents.map(s => 
+        s.registerNumber === updatedStudent.registerNumber ? updatedStudent : s
+      );
+      persistStudents(updatedStudents);
+      return updatedStudents;
+    });
+  }, []);
 
   const deleteStudent = useCallback((registerNumber: string) => {
-    const updatedStudents = students.filter(s => s.registerNumber !== registerNumber);
-    persistStudents(updatedStudents);
-  }, [students]);
+    setStudents(prevStudents => {
+      const updatedStudents = prevStudents.filter(s => s.registerNumber !== registerNumber);
+      persistStudents(updatedStudents);
+      return updatedStudents;
+    });
+  }, []);
   
   const value = { students, loading, addStudent, updateStudent, deleteStudent };
 

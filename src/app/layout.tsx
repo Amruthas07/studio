@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { Inter, Space_Grotesk, Source_Code_Pro } from 'next/font/google';
 import './globals.css';
@@ -5,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { AuthProvider } from '@/contexts/auth-context';
 import { Toaster } from '@/components/ui/toaster';
 import { StudentsProvider } from '@/contexts/students-context';
+import { AttendanceProvider } from '@/contexts/attendance-context';
 
 const fontInter = Inter({
   subsets: ['latin'],
@@ -43,8 +45,10 @@ export default function RootLayout({
       >
         <AuthProvider>
           <StudentsProvider>
-            {children}
-            <Toaster />
+            <AttendanceProvider>
+              {children}
+              <Toaster />
+            </AttendanceProvider>
           </StudentsProvider>
         </AuthProvider>
       </body>
