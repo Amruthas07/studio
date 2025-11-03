@@ -15,8 +15,8 @@ export const getInitialStudents = (): Student[] => {
         // Quick validation to ensure it's an array
         if (Array.isArray(parsed)) {
           // Check if it's the old, non-empty mock data and clear it if so.
-          if (parsed.length > 0 && !localStorage.getItem('mock_data_cleared')) {
-              localStorage.setItem('mock_data_cleared', 'true');
+          if (parsed.length > 0 && parsed.some((s: any) => s.registerNumber === '324cs21001') && !localStorage.getItem('mock_data_cleared_v2')) {
+              localStorage.setItem('mock_data_cleared_v2', 'true');
               localStorage.removeItem('attendance_records'); // Clear old attendance too
               const emptyStudents: Student[] = [];
               localStorage.setItem('students', JSON.stringify(emptyStudents));
@@ -41,6 +41,13 @@ const generateAttendance = (students: Student[]): AttendanceRecord[] => {
 export const getInitialAttendance = (students: Student[]): AttendanceRecord[] => {
     if (typeof window === 'undefined') return [];
     
+    // If there are no students, there can be no attendance.
+    if (!students || students.length === 0) {
+        // Also clear any orphaned attendance records.
+        localStorage.removeItem('attendance_records');
+        return [];
+    }
+
     const storedAttendance = localStorage.getItem('attendance_records');
     if (storedAttendance) {
         try {

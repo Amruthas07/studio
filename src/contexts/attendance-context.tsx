@@ -20,8 +20,12 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   const { students, loading: studentsLoading } = useStudents();
 
   useEffect(() => {
-    if (studentsLoading) return;
+    // Wait until the students are loaded before trying to load attendance
+    if (studentsLoading) {
+      return; 
+    }
     try {
+      // Pass the loaded students to get the initial attendance
       const initialAttendance = getInitialAttendance(students);
       setAttendanceRecords(initialAttendance);
     } catch (error) {
