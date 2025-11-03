@@ -3,7 +3,6 @@
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import type { AttendanceRecord } from '@/lib/types';
-import { getInitialAttendance } from '@/lib/mock-data';
 import { useStudents } from '@/hooks/use-students';
 
 interface AttendanceContextType {
@@ -20,28 +19,18 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   const { students, loading: studentsLoading } = useStudents();
 
   useEffect(() => {
-    // Wait until the students are loaded before trying to load attendance
     if (studentsLoading) {
       return; 
     }
-    try {
-      // Pass the loaded students to get the initial attendance
-      const initialAttendance = getInitialAttendance(students);
-      setAttendanceRecords(initialAttendance);
-    } catch (error) {
-      console.error("Failed to load attendance data", error);
-      setAttendanceRecords([]);
-    } finally {
-      setLoading(false);
-    }
+    // In a real Firestore implementation, you would set up a listener here.
+    // For now, we'll start with an empty list.
+    setAttendanceRecords([]);
+    setLoading(false);
   }, [students, studentsLoading]);
 
   const addAttendanceRecord = useCallback((newRecord: AttendanceRecord) => {
-    setAttendanceRecords(prevRecords => {
-      const updatedRecords = [newRecord, ...prevRecords];
-      localStorage.setItem('attendance_records', JSON.stringify(updatedRecords));
-      return updatedRecords;
-    });
+    setAttendanceRecords(prevRecords => [newRecord, ...prevRecords]);
+    // Firestore logic to add a document would go here.
   }, []);
   
   const value = { attendanceRecords, addAttendanceRecord, loading };

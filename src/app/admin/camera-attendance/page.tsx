@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
@@ -10,7 +11,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import type { AttendanceRecord } from '@/lib/types';
 import { useAttendance } from '@/hooks/use-attendance';
-import { getInitialStudents } from '@/lib/mock-data';
+import { useStudents } from '@/hooks/use-students';
 
 export default function CameraAttendancePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -21,9 +22,9 @@ export default function CameraAttendancePage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { addAttendanceRecord } = useAttendance();
+  const { students } = useStudents();
   
   useEffect(() => {
-    // Stop camera stream when component unmounts
     return () => {
       stopCamera();
     };
@@ -84,17 +85,19 @@ export default function CameraAttendancePage() {
     const context = canvas.getContext('2d');
     context?.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+    // This is a placeholder for a real face recognition API call
+    // In a real app, you would send the canvas image data to a service
     await new Promise(res => setTimeout(res, 1500)); 
     
-    const allStudents = getInitialStudents();
-    const departmentStudents = allStudents.filter((s: any) => s.department === user.department);
+    const departmentStudents = students.filter((s: any) => s.department === user.department);
     
     if (departmentStudents.length === 0) {
         toast({ title: "No Students", description: `No students enrolled in the ${user.department.toUpperCase()} department.`, variant: "destructive"});
         setIsProcessing(false);
         return;
     }
-
+    
+    // Simulate finding a random student from the department
     const randomStudent = departmentStudents[Math.floor(Math.random() * departmentStudents.length)];
     
     const timestamp = new Date().toISOString();

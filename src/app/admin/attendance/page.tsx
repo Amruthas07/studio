@@ -1,3 +1,4 @@
+
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,13 +12,14 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useAttendance } from "@/hooks/use-attendance";
 import type { Student } from "@/lib/types";
-import { getInitialStudents } from "@/lib/mock-data";
+import { useStudents } from "@/hooks/use-students";
 
 
 export default function AdminAttendancePage() {
-    const { user, loading } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
-    const { attendanceRecords } = useAttendance();
+    const { attendanceRecords, loading: attendanceLoading } = useAttendance();
+    const { students, loading: studentsLoading } = useStudents();
     const [isDownloading, setIsDownloading] = React.useState(false);
    
     const getStatusVariant = (status: string) => {
@@ -57,18 +59,17 @@ export default function AdminAttendancePage() {
     }
 
     const departmentAttendance = React.useMemo(() => {
-        if (!user?.department) return [];
-        const savedStudents: Student[] = getInitialStudents();
+        if (!user?.department || studentsLoading) return [];
         const departmentStudentRegisters = new Set(
-            savedStudents
+            students
                 .filter(s => s.department === user.department)
                 .map(s => s.registerNumber)
         );
 
         return attendanceRecords.filter(rec => departmentStudentRegisters.has(rec.studentRegister));
-    }, [attendanceRecords, user?.department]);
+    }, [attendanceRecords, user?.department, students, studentsLoading]);
 
-    if (loading || !user) {
+    if (authLoading || attendanceLoading || studentsLoading || !user) {
         return (
             <div className="flex h-full w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />

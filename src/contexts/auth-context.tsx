@@ -3,7 +3,7 @@
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { getInitialStudents } from '@/lib/mock-data';
+// getInitialStudents is no longer the source of truth
 import type { Student } from '@/lib/types';
 
 type Role = 'admin' | 'student';
@@ -30,10 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // This part remains the same, as it deals with session management
     try {
-      // Initialize students from mock data if localStorage is empty
-      getInitialStudents();
-
       const storedUser = localStorage.getItem('faceattend_user');
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
@@ -79,19 +77,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const savedStudents: Student[] = getInitialStudents();
-    const foundStudent = savedStudents.find(s => s.email.toLowerCase() === email.toLowerCase());
+    // This part needs to be replaced with a Firestore query
+    // For now, it will fail because there are no students in localStorage
+    // This is expected until the Firestore logic is complete
+    console.warn("Login logic needs to be updated to use Firestore instead of localStorage.");
+    
+    // Placeholder: In a real scenario, you'd query Firestore for the student.
+    // const savedStudents: Student[] = []; // Data now in Firestore
+    // const foundStudent = savedStudents.find(s => s.email.toLowerCase() === email.toLowerCase());
 
-    if (foundStudent && pass === foundStudent.registerNumber) {
-      const studentUser: AuthUser = { ...foundStudent, role: 'student' };
-      setUser(studentUser);
-      localStorage.setItem('faceattend_user', JSON.stringify(studentUser));
+    // if (foundStudent && pass === foundStudent.registerNumber) {
+    //   const studentUser: AuthUser = { ...foundStudent, role: 'student' };
+    //   setUser(studentUser);
+    //   localStorage.setItem('faceattend_user', JSON.stringify(studentUser));
+    //   setLoading(false);
+    //   router.push('/student');
+    // } else {
       setLoading(false);
-      router.push('/student');
-    } else {
-      setLoading(false);
-      throw new Error('Invalid email or password.');
-    }
+      throw new Error('Student login is temporarily disabled pending database migration.');
+    // }
   };
 
 
