@@ -65,22 +65,28 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   const addStudent = useCallback(async (newStudent: Student) => {
     if (!firestore) throw new Error("Firestore is not initialized");
     const studentDocRef = doc(firestore, 'students', newStudent.registerNumber);
-    // Use setDoc to create a new document with a specific ID (registerNumber)
-    await setDoc(studentDocRef, {
+    
+    const studentToSave = {
         ...newStudent,
-        createdAt: new Date(), // Ensure createdAt is a JS Date
-    });
+        createdAt: new Date(), 
+        dateOfBirth: new Date(newStudent.dateOfBirth),
+    };
+
+    await setDoc(studentDocRef, studentToSave);
   }, [firestore]);
 
   const updateStudent = useCallback(async (updatedStudent: Student) => {
     if (!firestore) throw new Error("Firestore is not initialized");
     const studentDocRef = doc(firestore, 'students', updatedStudent.registerNumber);
-    // When updating, only pass the fields that can be changed.
-    const { registerNumber, createdAt, faceId, ...updateData } = updatedStudent;
-    await updateDoc(studentDocRef, {
-        ...updateData,
-        dateOfBirth: new Date(updateData.dateOfBirth), // Ensure date is a JS Date
-    });
+    
+    // Create a new object for update to avoid modifying the original state object
+    const updateData = { ...updatedStudent };
+    
+    // Ensure dates are Firestore-compatible Timestamps or JS Dates
+    updateData.dateOfBirth = new Date(updateData.dateOfBirth);
+    updateData.createdAt = new Date(updateData.createdAt);
+
+    await updateDoc(studentDocRef, updateData as any);
   }, [firestore]);
 
   const deleteStudent = useCallback(async (registerNumber: string) => {

@@ -56,75 +56,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, pass: string, department?: string) => {
     setLoading(true);
-    await new Promise((res) => setTimeout(res, 500));
+    
+    try {
+      const isAttemptingAdminLogin = email.toLowerCase() === 'jsspn324@gmail.com';
 
-    const isAttemptingAdminLogin = email.toLowerCase() === 'jsspn324@gmail.com';
-
-    if (isAttemptingAdminLogin) {
-      if (pass === '571301') {
-        const adminUser: AuthUser = {
-          name: 'JSS Admin',
-          email: 'jsspn324@gmail.com',
-          role: 'admin',
-          department: (department as Department) || 'cs',
-          registerNumber: 'ADMIN_001',
-          fatherName: 'N/A',
-          motherName: 'N/A',
-          photoURL:
-            'https://jssonline.org/wp-content/uploads/2023/11/JSS_Polytechnic-Nanjangud.jpg',
-          contact: 'N/A',
-          createdAt: new Date(),
-          dateOfBirth: new Date(),
-        };
-        setUser(adminUser);
-        localStorage.setItem('faceattend_user', JSON.stringify(adminUser));
-        setLoading(false);
-        router.push('/admin');
-        return;
-      } else {
-        setLoading(false);
-        throw new Error('Invalid admin credentials.');
+      if (isAttemptingAdminLogin) {
+        if (pass === '571301') {
+          const adminUser: AuthUser = {
+            name: 'JSS Admin',
+            email: 'jsspn324@gmail.com',
+            role: 'admin',
+            department: (department as Department) || 'cs',
+            registerNumber: 'ADMIN_001',
+            fatherName: 'N/A',
+            motherName: 'N/A',
+            photoURL:
+              'https://jssonline.org/wp-content/uploads/2023/11/JSS_Polytechnic-Nanjangud.jpg',
+            contact: 'N/A',
+            createdAt: new Date(),
+            dateOfBirth: new Date(),
+          };
+          setUser(adminUser);
+          localStorage.setItem('faceattend_user', JSON.stringify(adminUser));
+          router.push('/admin');
+          return;
+        } else {
+          throw new Error('Invalid admin credentials.');
+        }
       }
-    }
-    
-    if (!firestore) {
-        setLoading(false);
-        throw new Error("Database service is not ready.");
-    }
+      
+      if (!firestore) {
+          throw new Error("Database service is not ready.");
+      }
 
-    // Student Login
-    const studentsRef = collection(firestore, 'students');
-    const q = query(
-      studentsRef,
-      where('email', '==', email.toLowerCase()),
-      limit(1)
-    );
-    
-    const querySnapshot = await getDocs(q);
+      // Student Login
+      const studentsRef = collection(firestore, 'students');
+      const q = query(
+        studentsRef,
+        where('email', '==', email.toLowerCase()),
+        limit(1)
+      );
+      
+      const querySnapshot = await getDocs(q);
 
-    if (querySnapshot.empty) {
-        setLoading(false);
-        throw new Error("No student found with this email address.");
-    }
-    
-    const studentDoc = querySnapshot.docs[0];
-    const foundStudent = studentDoc.data() as Student;
+      if (querySnapshot.empty) {
+          throw new Error("No student found with this email address.");
+      }
+      
+      const studentDoc = querySnapshot.docs[0];
+      const foundStudent = studentDoc.data();
 
-    if (foundStudent && pass === foundStudent.registerNumber) {
-      const studentUser: AuthUser = { 
-          ...foundStudent, 
-          role: 'student',
-          // Firestore timestamps need to be converted to serializable format for localStorage
-          createdAt: foundStudent.createdAt.toString(),
-          dateOfBirth: foundStudent.dateOfBirth.toString(),
-      };
-      setUser(studentUser);
-      localStorage.setItem('faceattend_user', JSON.stringify(studentUser));
+      if (foundStudent && pass === foundStudent.registerNumber) {
+        const studentUser: AuthUser = { 
+            ...(foundStudent as Student), 
+            role: 'student',
+            // Firestore timestamps need to be converted to serializable format for localStorage
+            createdAt: foundStudent.createdAt?.toDate ? foundStudent.createdAt.toDate() : new Date(foundStudent.createdAt),
+            dateOfBirth: foundStudent.dateOfBirth?.toDate ? foundStudent.dateOfBirth.toDate() : new Date(foundStudent.dateOfBirth),
+        };
+        setUser(studentUser);
+        localStorage.setItem('faceattend_user', JSON.stringify(studentUser));
+        router.push('/student');
+      } else {
+        throw new Error('Invalid email or password.');
+      }
+    } catch(error) {
+      throw error;
+    } finally {
       setLoading(false);
-      router.push('/student');
-    } else {
-      setLoading(false);
-      throw new Error('Invalid email or password.');
     }
   };
 
