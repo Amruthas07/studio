@@ -72,13 +72,15 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
         const photoDataUrl = await fileToBase64(values.photo);
 
         const formData = new FormData();
-        Object.entries(values).forEach(([key, value]) => {
-            if (key === 'dateOfBirth' && value instanceof Date) {
-                formData.append(key, value.toISOString());
-            } else if (key !== 'photo') { // Don't append the file object
-                formData.append(key, value as string);
-            }
-        });
+        // Append all form values to formData
+        formData.append('name', values.name);
+        formData.append('registerNumber', values.registerNumber);
+        formData.append('department', values.department);
+        formData.append('email', values.email);
+        formData.append('contact', values.contact);
+        formData.append('fatherName', values.fatherName);
+        formData.append('motherName', values.motherName);
+        formData.append('dateOfBirth', values.dateOfBirth.toISOString());
         formData.append('photoDataUri', photoDataUrl);
 
         const result = await addStudent(formData);

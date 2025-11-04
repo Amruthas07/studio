@@ -21,8 +21,8 @@ const addStudentSchema = z.object({
   dateOfBirth: z.string(), // Received as ISO string
 });
 
-const editStudentSchema = addStudentSchema.omit({ photo: true }).extend({
-    photo: z.instanceof(File).optional(),
+const editStudentSchema = addStudentSchema.omit({ photoDataUri: true }).extend({
+    photoDataUri: z.string().optional(),
 });
 
 const reportSchema = z.object({
@@ -43,7 +43,14 @@ export async function addStudent(formData: FormData) {
 
     // 1. Generate face embedding
     const toolInput: FaceDataToolInput = {
-      ...validatedData,
+      name: validatedData.name,
+      registerNumber: validatedData.registerNumber,
+      department: validatedData.department,
+      email: validatedData.email,
+      contact: validatedData.contact,
+      fatherName: validatedData.fatherName,
+      motherName: validatedData.motherName,
+      photoDataUri: validatedData.photoDataUri,
       dateOfBirth: dateOfBirth.toLocaleDateString(),
       insertIntoMongo: false, // We are using Firestore, not MongoDB
     };
@@ -101,13 +108,8 @@ export async function updateStudent(formData: FormData) {
     // For this mock, we're just validating and returning success.
     // If a new photo is provided, a new face embedding would be generated.
 
-    if (validatedData.photo) {
-        const photoFile = validatedData.photo;
-        const photoBuffer = await photoFile.arrayBuffer();
-        const photoBase64 = Buffer.from(photoBuffer).toString('base64');
-        const photoDataUri = `data:${photoFile.type};base64,${photoBase64}`;
-        (toolInput as FaceDataToolInput).photoDataUri = photoDataUri;
-
+    if (validatedData.photoDataUri) {
+        (toolInput as FaceDataToolInput).photoDataUri = validatedData.photoDataUri;
         // Simulate getting a new face ID if photo is updated
         const result = await faceDataTool(toolInput as FaceDataToolInput);
         return { success: true, faceId: result.faceId };
@@ -165,4 +167,3 @@ export async function generateDailyReport(department: string) {
         return { success: false, error: "An unexpected error occurred while generating the daily report." };
     }
 }
-
