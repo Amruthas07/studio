@@ -16,28 +16,29 @@ export default function AdminDashboard() {
   const { students, loading: studentsLoading } = useStudents();
   
   const { totalStudents, presentToday, absentToday } = useMemo(() => {
-    if (user?.department && students.length > 0) {
-      const departmentStudents = user.department === 'all' 
-        ? students 
-        : students.filter(s => s.department === user.department);
-      
-      const today = new Date().toISOString().split('T')[0];
-
-      const todaysAttendance = attendanceRecords.filter(record => 
-        record.date === today && 
-        departmentStudents.some(s => s.registerNumber === record.studentRegister)
-      );
-
-      const presentStudents = new Set(todaysAttendance.filter(r => r.status === 'present' || r.status === 'late').map(r => r.studentRegister));
-      const presentCount = presentStudents.size;
-      
-      return {
-        totalStudents: departmentStudents.length,
-        presentToday: presentCount,
-        absentToday: departmentStudents.length - presentCount,
-      };
+    if (!user || students.length === 0) {
+      return { totalStudents: 0, presentToday: 0, absentToday: 0 };
     }
-    return { totalStudents: 0, presentToday: 0, absentToday: 0 };
+
+    const departmentStudents = user.department === 'all' 
+      ? students 
+      : students.filter(s => s.department === user.department);
+    
+    const today = new Date().toISOString().split('T')[0];
+
+    const todaysAttendance = attendanceRecords.filter(record => 
+      record.date === today && 
+      departmentStudents.some(s => s.registerNumber === record.studentRegister)
+    );
+
+    const presentStudents = new Set(todaysAttendance.filter(r => r.status === 'present' || r.status === 'late').map(r => r.studentRegister));
+    const presentCount = presentStudents.size;
+    
+    return {
+      totalStudents: departmentStudents.length,
+      presentToday: presentCount,
+      absentToday: departmentStudents.length - presentCount,
+    };
   }, [user, students, attendanceRecords]);
 
 
