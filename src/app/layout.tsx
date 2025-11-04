@@ -7,6 +7,7 @@ import { AuthProvider } from '@/contexts/auth-context';
 import { Toaster } from '@/components/ui/toaster';
 import { StudentsProvider } from '@/contexts/students-context';
 import { AttendanceProvider } from '@/contexts/attendance-context';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 const fontInter = Inter({
   subsets: ['latin'],
@@ -43,14 +44,16 @@ export default function RootLayout({
           fontSourceCodePro.variable
         )}
       >
-        <AuthProvider>
-          <StudentsProvider>
-            <AttendanceProvider>
-              {children}
-              <Toaster />
-            </AttendanceProvider>
-          </StudentsProvider>
-        </AuthProvider>
+        <FirebaseClientProvider>
+          <AuthProvider>
+            <StudentsProvider>
+              <AttendanceProvider>
+                {children}
+                <Toaster />
+              </AttendanceProvider>
+            </StudentsProvider>
+          </AuthProvider>
+        </FirebaseClientProvider>
       </body>
     </html>
   );

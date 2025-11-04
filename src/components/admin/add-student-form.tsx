@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -5,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -32,6 +33,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { Calendar } from "../ui/calendar"
 import { cn } from "@/lib/utils"
 import { fileToBase64 } from "@/lib/utils"
+import { useStudents } from "@/hooks/use-students"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -48,12 +50,13 @@ const formSchema = z.object({
 })
 
 type AddStudentFormProps = {
-    onStudentAdded: (student: Student) => void;
+    onStudentAdded: () => void;
 }
 
 export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const { toast } = useToast()
   const [isPending, startTransition] = React.useTransition()
+  const { addStudent: addStudentToContext } = useStudents();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -75,10 +78,9 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
         if (key === 'dateOfBirth' && value instanceof Date) {
             formData.append(key, value.toISOString());
         } else if (key !== 'photo') { // Don't append the file object
-            formData.append(key, value);
+            formData.append(key, value as string);
         }
     });
-    // Append the base64 string instead of the file
     formData.append('photoDataUri', photoDataUrl);
 
 
@@ -86,9 +88,9 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       const result = await addStudent(formData);
       if (result.success && result.faceId) {
         toast({
-          title: "Student Added Successfully",
-          description: `${values.name} has been enrolled with Face ID: ${result.faceId?.substring(0,10)}...`,
-        })
+          title: "Student Enrolling...",
+          description: "This may take a moment. The dialog will close on success.",
+        });
         
         const newStudent: Student = {
             ...values,
@@ -96,8 +98,22 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
             createdAt: new Date(),
             faceId: result.faceId,
         };
-        onStudentAdded(newStudent);
-        form.reset();
+        
+        try {
+            await addStudentToContext(newStudent);
+            toast({
+              title: "Student Added Successfully",
+              description: `${values.name} has been enrolled.`,
+            });
+            onStudentAdded();
+            form.reset();
+        } catch (e: any) {
+            toast({
+              variant: "destructive",
+              title: "Failed to Save Student",
+              description: e.message || "Could not save the student to the database.",
+            });
+        }
       } else {
         toast({
           variant: "destructive",
@@ -276,6 +292,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
         </div>
         <div className="flex justify-end pt-4">
             <Button type="submit" disabled={isPending}>
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isPending ? 'Enrolling...' : 'Enroll Student'}
             </Button>
         </div>

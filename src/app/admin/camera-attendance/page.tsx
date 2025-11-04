@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, Loader2, Video, VideoOff } from 'lucide-react';
-import { markAttendanceFromCamera, MarkAttendanceFromCameraInput } from '@/ai/flows/mark-attendance-with-checks';
+import { markAttendanceFromCamera, type MarkAttendanceFromCameraInput } from '@/ai/flows/mark-attendance-with-checks';
 import { useAuth } from '@/hooks/use-auth';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import type { AttendanceRecord } from '@/lib/types';
@@ -71,8 +71,8 @@ export default function CameraAttendancePage() {
 
 
   const captureAndMarkAttendance = async () => {
-    if (!videoRef.current || !canvasRef.current || !user?.department) {
-        toast({ title: "Error", description: "Video feed or user department not available.", variant: "destructive"});
+    if (!videoRef.current || !canvasRef.current || !user?.department || !user?.email) {
+        toast({ title: "Error", description: "Video feed, user department, or email not available.", variant: "destructive"});
         return;
     }
 
@@ -114,14 +114,9 @@ export default function CameraAttendancePage() {
     const result = await markAttendanceFromCamera(input);
 
     if (result.success) {
-      const newRecord: AttendanceRecord = {
-        id: `rec_${Date.now()}`,
-        studentRegister: randomStudent.registerNumber,
-        studentName: randomStudent.name,
-        ...input,
-      };
-
-      addAttendanceRecord(newRecord);
+      // The local add is now redundant if using Firestore listeners, but good for immediate UI feedback.
+      // Firestore will soon be the single source of truth.
+      await addAttendanceRecord(input);
 
       toast({
         title: "Attendance Marked",
@@ -198,7 +193,7 @@ export default function CameraAttendancePage() {
                 >
                     {isProcessing ? (
                         <>
-                            <Loader2 className="animate-spin" />
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Processing...
                         </>
                     ) : (

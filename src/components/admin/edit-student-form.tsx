@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -5,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -26,11 +27,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { updateStudent } from "@/app/actions"
+import { updateStudent as updateStudentAction } from "@/app/actions"
 import type { Student } from "@/lib/types"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { Calendar } from "../ui/calendar"
 import { cn, fileToBase64 } from "@/lib/utils"
+import { useStudents } from "@/hooks/use-students"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -48,12 +50,13 @@ const formSchema = z.object({
 
 type EditStudentFormProps = {
     student: Student;
-    onStudentUpdated: (student: Student) => void;
+    onStudentUpdated: () => void;
 }
 
 export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormProps) {
   const { toast } = useToast()
   const [isPending, startTransition] = React.useTransition()
+  const { updateStudent } = useStudents();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,44 +73,34 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const formData = new FormData();
-    Object.entries(values).forEach(([key, value]) => {
-        if (key === 'dateOfBirth' && value instanceof Date) {
-            formData.append(key, value.toISOString());
-        } else if (value) { // Don't append undefined/null values (like photo)
-            formData.append(key, value);
+    startTransition(async () => {
+        let photoDataUrl: string | undefined = undefined;
+        if (values.photo instanceof File) {
+            photoDataUrl = await fileToBase64(values.photo);
+        }
+
+        const updatedStudentData: Student = {
+            ...student, // keep old ids and timestamps
+            ...values, // override with new form values
+            photoURL: photoDataUrl || student.photoURL,
+            dateOfBirth: values.dateOfBirth, // ensure it's a date object
+        };
+
+        try {
+            await updateStudent(updatedStudentData);
+            toast({
+                title: "Student Updated Successfully",
+                description: `${values.name}'s details have been saved.`,
+            });
+            onStudentUpdated();
+        } catch (e: any) {
+             toast({
+                variant: "destructive",
+                title: "Failed to Update Student",
+                description: e.message || "Could not save changes to the database.",
+            });
         }
     });
-
-    startTransition(async () => {
-      const result = await updateStudent(formData);
-      if (result.success) {
-        toast({
-          title: "Student Updated Successfully",
-          description: `${values.name}'s details have been updated.`,
-        })
-        
-        let newPhotoURL = student.photoURL;
-        if (values.photo instanceof File) {
-            newPhotoURL = await fileToBase64(values.photo);
-        }
-
-        const updatedStudent: Student = {
-            ...student, // keep old faceId, createdAt etc.
-            ...values, // override with new form values
-            photoURL: newPhotoURL,
-            faceId: result.faceId || student.faceId, // use new faceId if photo changed
-        };
-        onStudentUpdated(updatedStudent);
-        
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Failed to Update Student",
-          description: result.error || "An unknown error occurred.",
-        })
-      }
-    })
   }
 
   return (
@@ -279,6 +272,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
         </div>
         <div className="flex justify-end pt-4">
             <Button type="submit" disabled={isPending}>
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isPending ? 'Saving...' : 'Save Changes'}
             </Button>
         </div>

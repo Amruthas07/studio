@@ -1,38 +1,72 @@
 
-"use client";
+'use client';
 
-import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from 'react';
+import { collection, onSnapshot, addDoc } from 'firebase/firestore';
 import type { AttendanceRecord } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
+import { useFirestore } from '@/hooks/use-firebase';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
-  addAttendanceRecord: (record: AttendanceRecord) => void;
+  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'studentName'>) => Promise<void>;
   loading: boolean;
 }
 
-export const AttendanceContext = createContext<AttendanceContextType | undefined>(undefined);
+export const AttendanceContext = createContext<AttendanceContextType | undefined>(
+  undefined
+);
 
 export function AttendanceProvider({ children }: { children: ReactNode }) {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const { students, loading: studentsLoading } = useStudents();
+  const firestore = useFirestore();
 
   useEffect(() => {
-    if (studentsLoading) {
-      return; 
+    if (!firestore || studentsLoading) {
+      // Don't fetch attendance until firestore is ready and students are loaded
+      return;
     }
-    // In a real Firestore implementation, you would set up a listener here.
-    // For now, we'll start with an empty list.
-    setAttendanceRecords([]);
-    setLoading(false);
-  }, [students, studentsLoading]);
+    
+    setLoading(true);
+    const attendanceCollection = collection(firestore, 'attendance');
+    const unsubscribe = onSnapshot(
+      attendanceCollection,
+      (snapshot) => {
+        const studentMap = new Map(students.map(s => [s.registerNumber, s.name]));
+        const attendanceData = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            ...data,
+            id: doc.id,
+            studentName: studentMap.get(data.studentRegister) || 'Unknown Student',
+          } as AttendanceRecord;
+        });
+        setAttendanceRecords(attendanceData);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching attendance:", error);
+        setLoading(false);
+      }
+    );
 
-  const addAttendanceRecord = useCallback((newRecord: AttendanceRecord) => {
-    setAttendanceRecords(prevRecords => [newRecord, ...prevRecords]);
-    // Firestore logic to add a document would go here.
-  }, []);
-  
+    return () => unsubscribe();
+  }, [firestore, students, studentsLoading]);
+
+  const addAttendanceRecord = useCallback(async (newRecord: Omit<AttendanceRecord, 'id' | 'studentName'>) => {
+    if (!firestore) throw new Error("Firestore is not initialized");
+    const attendanceCollection = collection(firestore, 'attendance');
+    await addDoc(attendanceCollection, newRecord);
+  }, [firestore]);
+
   const value = { attendanceRecords, addAttendanceRecord, loading };
 
   return (

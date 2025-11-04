@@ -33,7 +33,7 @@ import { useStudents } from '@/hooks/use-students';
 export default function StudentsPage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const { students, addStudent, updateStudent, deleteStudent, loading: studentsLoading } = useStudents();
+  const { students, deleteStudent, loading: studentsLoading } = useStudents();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
@@ -42,13 +42,11 @@ export default function StudentsPage() {
   const [studentToEdit, setStudentToEdit] = React.useState<Student | null>(null);
   const [studentToDelete, setStudentToDelete] = React.useState<Student | null>(null);
 
-  const handleStudentAdded = (newStudent: Student) => {
-    addStudent(newStudent);
+  const handleStudentAdded = () => {
     setIsAddDialogOpen(false);
   };
   
-  const handleStudentUpdated = (updatedStudent: Student) => {
-    updateStudent(updatedStudent);
+  const handleStudentUpdated = () => {
     setIsEditDialogOpen(false);
     setStudentToEdit(null);
   };
@@ -63,13 +61,21 @@ export default function StudentsPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const handleDeleteStudent = () => {
+  const handleDeleteStudent = async () => {
     if (!studentToDelete) return;
-    deleteStudent(studentToDelete.registerNumber);
-    toast({
-        title: "Student Deleted",
-        description: `${studentToDelete.name} has been removed from the system.`
-    })
+    try {
+        await deleteStudent(studentToDelete.registerNumber);
+        toast({
+            title: "Student Deleted",
+            description: `${studentToDelete.name} has been removed from the system.`
+        })
+    } catch (e: any) {
+        toast({
+            variant: 'destructive',
+            title: "Deletion Failed",
+            description: e.message || "Could not remove the student."
+        })
+    }
     setIsDeleteDialogOpen(false);
     setStudentToDelete(null);
   };

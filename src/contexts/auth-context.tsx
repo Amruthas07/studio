@@ -1,9 +1,16 @@
 
-"use client";
+'use client';
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-// getInitialStudents is no longer the source of truth
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  limit,
+} from 'firebase/firestore';
+import { useFirestore } from '@/hooks/use-firebase';
 import type { Student } from '@/lib/types';
 
 type Role = 'admin' | 'student';
@@ -11,8 +18,8 @@ type Role = 'admin' | 'student';
 type Department = 'cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec';
 
 interface AuthUser extends Omit<Student, 'department'> {
-    role: Role;
-    department: Department | 'all';
+  role: Role;
+  department: Department | 'all';
 }
 
 interface AuthContextType {
@@ -22,15 +29,17 @@ interface AuthContextType {
   logout: () => void;
 }
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined
+);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const firestore = useFirestore();
 
   useEffect(() => {
-    // This part remains the same, as it deals with session management
     try {
       const storedUser = localStorage.getItem('faceattend_user');
       if (storedUser) {
@@ -38,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(parsedUser);
       }
     } catch (error) {
-      console.error("Failed to parse user from localStorage", error);
+      console.error('Failed to parse user from localStorage', error);
       localStorage.removeItem('faceattend_user');
     } finally {
       setLoading(false);
@@ -47,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, pass: string, department?: string) => {
     setLoading(true);
-    await new Promise(res => setTimeout(res, 500));
+    await new Promise((res) => setTimeout(res, 500));
 
     const isAttemptingAdminLogin = email.toLowerCase() === 'jsspn324@gmail.com';
 
@@ -61,7 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           registerNumber: 'ADMIN_001',
           fatherName: 'N/A',
           motherName: 'N/A',
-          photoURL: 'https://jssonline.org/wp-content/uploads/2023/11/JSS_Polytechnic-Nanjangud.jpg',
+          photoURL:
+            'https://jssonline.org/wp-content/uploads/2023/11/JSS_Polytechnic-Nanjangud.jpg',
           contact: 'N/A',
           createdAt: new Date(),
           dateOfBirth: new Date(),
@@ -76,28 +86,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Invalid admin credentials.');
       }
     }
-
-    // This part needs to be replaced with a Firestore query
-    // For now, it will fail because there are no students in localStorage
-    // This is expected until the Firestore logic is complete
-    console.warn("Login logic needs to be updated to use Firestore instead of localStorage.");
     
-    // Placeholder: In a real scenario, you'd query Firestore for the student.
-    // const savedStudents: Student[] = []; // Data now in Firestore
-    // const foundStudent = savedStudents.find(s => s.email.toLowerCase() === email.toLowerCase());
+    if (!firestore) {
+        setLoading(false);
+        throw new Error("Database service is not ready.");
+    }
 
-    // if (foundStudent && pass === foundStudent.registerNumber) {
-    //   const studentUser: AuthUser = { ...foundStudent, role: 'student' };
-    //   setUser(studentUser);
-    //   localStorage.setItem('faceattend_user', JSON.stringify(studentUser));
-    //   setLoading(false);
-    //   router.push('/student');
-    // } else {
+    // Student Login
+    const studentsRef = collection(firestore, 'students');
+    const q = query(
+      studentsRef,
+      where('email', '==', email.toLowerCase()),
+      limit(1)
+    );
+    
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+        setLoading(false);
+        throw new Error("No student found with this email address.");
+    }
+    
+    const studentDoc = querySnapshot.docs[0];
+    const foundStudent = studentDoc.data() as Student;
+
+    if (foundStudent && pass === foundStudent.registerNumber) {
+      const studentUser: AuthUser = { 
+          ...foundStudent, 
+          role: 'student',
+          // Firestore timestamps need to be converted to serializable format for localStorage
+          createdAt: foundStudent.createdAt.toString(),
+          dateOfBirth: foundStudent.dateOfBirth.toString(),
+      };
+      setUser(studentUser);
+      localStorage.setItem('faceattend_user', JSON.stringify(studentUser));
       setLoading(false);
-      throw new Error('Student login is temporarily disabled pending database migration.');
-    // }
+      router.push('/student');
+    } else {
+      setLoading(false);
+      throw new Error('Invalid email or password.');
+    }
   };
-
 
   const logout = () => {
     setUser(null);
