@@ -15,7 +15,7 @@ const FaceDataToolInputSchema = z.object({
   photoDataUri: z
     .string()
     .describe(
-      "A photo of the student's face, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A photo of the student's face, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
   registerNumber: z.string().describe("The student's register number."),
   name: z.string().describe("The student's name."),
@@ -45,30 +45,6 @@ export async function faceDataTool(input: FaceDataToolInput): Promise<FaceDataTo
   return faceDataToolFlow(input);
 }
 
-const faceDataToolPrompt = ai.definePrompt({
-  name: 'faceDataToolPrompt',
-  input: {schema: FaceDataToolInputSchema},
-  output: {schema: FaceDataToolOutputSchema},
-  prompt: `You are an AI assistant specialized in generating face embeddings.
-
-  Generate a unique face ID (embedding) for the given student photo. This ID will be used for face recognition in the attendance system.
-
-  Student Information:
-  Register Number: {{{registerNumber}}}
-  Name: {{{name}}}
-  Father's Name: {{{fatherName}}}
-  Mother's Name: {{{motherName}}}
-  Date of Birth: {{{dateOfBirth}}}
-  Department: {{{department}}}
-  Email: {{{email}}}
-  Contact: {{{contact}}}
-
-  Photo: {{media url=photoDataUri}}
-
-  Output the generated face ID.
-  `,
-});
-
 const faceDataToolFlow = ai.defineFlow(
   {
     name: 'faceDataToolFlow',
@@ -76,19 +52,18 @@ const faceDataToolFlow = ai.defineFlow(
     outputSchema: FaceDataToolOutputSchema,
   },
   async input => {
-    const {output} = await faceDataToolPrompt(input);
+    // Generate a simple unique ID as a placeholder instead of calling the AI model.
+    // This avoids failures when the external AI service is unavailable.
+    const uniqueId = `face_${input.registerNumber}_${Date.now()}`;
 
     let mongoInsertionResult: string | undefined = undefined;
     if (input.insertIntoMongo) {
-      // TODO: Implement the logic to save student data to a database.
-      // This could involve making an HTTP call to a backend service or directly
-      // using a database client if the environment supports it.
-      // For now, this is a placeholder.
-      mongoInsertionResult = 'Database insertion requested but not yet implemented';
+      // This is a placeholder as the app uses Firestore.
+      mongoInsertionResult = 'Database insertion requested but not implemented (using Firestore).';
     }
 
     return {
-      faceId: output!.faceId,
+      faceId: uniqueId,
       mongoInsertionResult,
     };
   }
