@@ -35,7 +35,7 @@ import { fileToBase64 } from "@/lib/utils"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
-  registerNumber: z.string().regex(/^[0-9]{3}[a-z]{2}[0-9]{5}$/, "Invalid register number format (e.g., 324cs21001)."),
+  registerNumber: z.string().min(1, "Register number is required."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   email: z.string().email(),
   contact: z.string().length(10, "Contact number must be exactly 10 digits."),

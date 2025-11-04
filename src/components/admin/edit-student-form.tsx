@@ -36,7 +36,7 @@ import { useStudents } from "@/hooks/use-students"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
-  registerNumber: z.string(), // Not editable, but needed for submission
+  registerNumber: z.string().min(1, "Register number is required."), // Not editable, but needed for submission
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   email: z.string().email(),
   contact: z.string().length(10, "Contact number must be exactly 10 digits."),
