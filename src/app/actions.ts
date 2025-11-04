@@ -5,8 +5,6 @@ import { z } from "zod";
 import { faceDataTool, type FaceDataToolInput } from "@/ai/flows/face-data-tool";
 import { attendanceReportingWithFiltering, type AttendanceReportingWithFilteringInput } from "@/ai/flows/attendance-reporting-with-filtering";
 import { dailyAttendanceReport, type DailyAttendanceReportInput } from "@/ai/flows/daily-attendance-report";
-import { doc, setDoc } from "firebase/firestore";
-import { firestore } from "@/firebase/server-init";
 import type { Student } from "@/lib/types";
 
 const addStudentSchema = z.object({
@@ -21,7 +19,7 @@ const addStudentSchema = z.object({
   dateOfBirth: z.string(), // Received as ISO string
 });
 
-type AddStudentInput = z.infer<typeof addStudentSchema>;
+export type AddStudentInput = z.infer<typeof addStudentSchema>;
 
 const editStudentSchema = addStudentSchema.omit({ photoDataUri: true }).extend({
     photoDataUri: z.string().optional(),
@@ -37,23 +35,21 @@ const reportSchema = z.object({
 });
 
 
-export async function addStudent(data: AddStudentInput) {
+export async function generateFaceId(data: Omit<AddStudentInput, 'photoDataUri'> & { photoDataUri: string }) {
   try {
-    const validatedData = addStudentSchema.parse(data);
-    const dateOfBirth = new Date(validatedData.dateOfBirth);
+    const dateOfBirth = new Date(data.dateOfBirth);
 
-    // 1. Generate face embedding
     const toolInput: FaceDataToolInput = {
-      name: validatedData.name,
-      registerNumber: validatedData.registerNumber,
-      department: validatedData.department,
-      email: validatedData.email,
-      contact: validatedData.contact,
-      fatherName: validatedData.fatherName,
-      motherName: validatedData.motherName,
-      photoDataUri: validatedData.photoDataUri,
+      name: data.name,
+      registerNumber: data.registerNumber,
+      department: data.department,
+      email: data.email,
+      contact: data.contact,
+      fatherName: data.fatherName,
+      motherName: data.motherName,
+      photoDataUri: data.photoDataUri,
       dateOfBirth: dateOfBirth.toLocaleDateString(),
-      insertIntoMongo: false, // We are using Firestore, not MongoDB
+      insertIntoMongo: false,
     };
 
     const result = await faceDataTool(toolInput);
@@ -62,32 +58,23 @@ export async function addStudent(data: AddStudentInput) {
         throw new Error("Failed to generate a face ID for the student.");
     }
 
-    // 2. Prepare student record for Firestore
     const studentToSave: Student = {
-        name: validatedData.name,
-        registerNumber: validatedData.registerNumber,
-        department: validatedData.department as Student['department'],
-        email: validatedData.email,
-        contact: validatedData.contact,
-        fatherName: validatedData.fatherName,
-        motherName: validatedData.motherName,
-        photoURL: validatedData.photoDataUri,
+        name: data.name,
+        registerNumber: data.registerNumber,
+        department: data.department as Student['department'],
+        email: data.email,
+        contact: data.contact,
+        fatherName: data.fatherName,
+        motherName: data.motherName,
+        photoURL: data.photoDataUri,
         dateOfBirth: dateOfBirth,
         faceId: result.faceId,
         createdAt: new Date(),
     };
-
-    // 3. Save to Firestore
-    const studentDocRef = doc(firestore, 'students', studentToSave.registerNumber);
-    await setDoc(studentDocRef, studentToSave);
-
+    
     return { success: true, student: studentToSave };
-
   } catch (error) {
-    console.error("Error in addStudent action:", error);
-    if (error instanceof z.ZodError) {
-      return { success: false, error: "Validation failed: " + error.message };
-    }
+    console.error("Error in generateFaceId action:", error);
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
     return { success: false, error: errorMessage };
   }
@@ -105,13 +92,8 @@ export async function updateStudent(formData: FormData) {
         insertIntoMongo: true,
     };
 
-    // In a real app, you would find and update the student in the database.
-    // For this mock, we're just validating and returning success.
-    // If a new photo is provided, a new face embedding would be generated.
-
     if (validatedData.photoDataUri) {
         (toolInput as FaceDataToolInput).photoDataUri = validatedData.photoDataUri;
-        // Simulate getting a new face ID if photo is updated
         const result = await faceDataTool(toolInput as FaceDataToolInput);
         return { success: true, faceId: result.faceId };
     }

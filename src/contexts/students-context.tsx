@@ -64,14 +64,14 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
   const addStudent = useCallback(async (newStudent: Student) => {
     if (!firestore) throw new Error("Firestore is not initialized");
-    const studentDocRef = doc(firestore, 'students', newStudent.registerNumber);
     
     const studentToSave = {
         ...newStudent,
-        createdAt: new Date(), 
+        createdAt: new Date(newStudent.createdAt), 
         dateOfBirth: new Date(newStudent.dateOfBirth),
     };
-
+    
+    const studentDocRef = doc(firestore, 'students', studentToSave.registerNumber);
     await setDoc(studentDocRef, studentToSave);
   }, [firestore]);
 

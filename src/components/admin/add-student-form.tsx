@@ -27,11 +27,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { addStudent } from "@/app/actions"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { Calendar } from "../ui/calendar"
 import { cn } from "@/lib/utils"
 import { fileToBase64 } from "@/lib/utils"
+import { useStudents } from "@/hooks/use-students"
+import { generateFaceId } from "@/app/actions"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -54,6 +55,7 @@ type AddStudentFormProps = {
 export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const { toast } = useToast()
   const [isPending, startTransition] = React.useTransition()
+  const { addStudent } = useStudents();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -69,36 +71,38 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
-        const photoDataUrl = await fileToBase64(values.photo);
+      try {
+        const photoDataUri = await fileToBase64(values.photo);
 
-        const studentData = {
-          name: values.name,
-          registerNumber: values.registerNumber,
-          department: values.department,
-          email: values.email,
-          contact: values.contact,
-          fatherName: values.fatherName,
-          motherName: values.motherName,
+        const studentDataForFaceId = {
+          ...values,
           dateOfBirth: values.dateOfBirth.toISOString(),
-          photoDataUri: photoDataUrl,
+          photoDataUri: photoDataUri,
         };
-
-        const result = await addStudent(studentData);
         
-        if (result.success) {
-            toast({
-            title: "Student Added Successfully",
-            description: `${values.name} has been enrolled. The list will update automatically.`,
-            });
-            onStudentAdded();
-            form.reset();
-        } else {
-            toast({
-            variant: "destructive",
-            title: "Failed to Add Student",
-            description: result.error || "An unknown error occurred.",
-            })
+        const faceIdResult = await generateFaceId(studentDataForFaceId);
+
+        if (!faceIdResult.success || !faceIdResult.student) {
+          throw new Error(faceIdResult.error || "Failed to generate Face ID.");
         }
+        
+        await addStudent(faceIdResult.student);
+
+        toast({
+          title: "Student Added Successfully",
+          description: `${values.name} has been enrolled. The list will update automatically.`,
+        });
+        onStudentAdded();
+        form.reset();
+
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        toast({
+          variant: "destructive",
+          title: "Failed to Add Student",
+          description: errorMessage,
+        })
+      }
     });
   }
 
