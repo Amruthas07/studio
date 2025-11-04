@@ -21,6 +21,8 @@ const addStudentSchema = z.object({
   dateOfBirth: z.string(), // Received as ISO string
 });
 
+type AddStudentInput = z.infer<typeof addStudentSchema>;
+
 const editStudentSchema = addStudentSchema.omit({ photoDataUri: true }).extend({
     photoDataUri: z.string().optional(),
 });
@@ -35,9 +37,8 @@ const reportSchema = z.object({
 });
 
 
-export async function addStudent(formData: FormData) {
+export async function addStudent(data: AddStudentInput) {
   try {
-    const data = Object.fromEntries(formData);
     const validatedData = addStudentSchema.parse(data);
     const dateOfBirth = new Date(validatedData.dateOfBirth);
 

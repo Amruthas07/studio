@@ -71,19 +71,19 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     startTransition(async () => {
         const photoDataUrl = await fileToBase64(values.photo);
 
-        const formData = new FormData();
-        // Append all form values to formData
-        formData.append('name', values.name);
-        formData.append('registerNumber', values.registerNumber);
-        formData.append('department', values.department);
-        formData.append('email', values.email);
-        formData.append('contact', values.contact);
-        formData.append('fatherName', values.fatherName);
-        formData.append('motherName', values.motherName);
-        formData.append('dateOfBirth', values.dateOfBirth.toISOString());
-        formData.append('photoDataUri', photoDataUrl);
+        const studentData = {
+          name: values.name,
+          registerNumber: values.registerNumber,
+          department: values.department,
+          email: values.email,
+          contact: values.contact,
+          fatherName: values.fatherName,
+          motherName: values.motherName,
+          dateOfBirth: values.dateOfBirth.toISOString(),
+          photoDataUri: photoDataUrl,
+        };
 
-        const result = await addStudent(formData);
+        const result = await addStudent(studentData);
         
         if (result.success) {
             toast({
@@ -126,7 +126,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                 <FormItem>
                   <FormLabel>Register Number</FormLabel>
                   <FormControl>
-                    <Input placeholder="324cs21001" {...field} />
+                    <Input placeholder="Any format is accepted" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
