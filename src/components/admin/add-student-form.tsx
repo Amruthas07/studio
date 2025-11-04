@@ -28,12 +28,10 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { addStudent } from "@/app/actions"
-import type { Student } from "@/lib/types"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { Calendar } from "../ui/calendar"
 import { cn } from "@/lib/utils"
 import { fileToBase64 } from "@/lib/utils"
-import { useStudents } from "@/hooks/use-students"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -56,7 +54,6 @@ type AddStudentFormProps = {
 export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const { toast } = useToast()
   const [isPending, startTransition] = React.useTransition()
-  const { addStudent: addStudentToContext } = useStudents();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -71,57 +68,36 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const photoDataUrl = await fileToBase64(values.photo);
-
-    const formData = new FormData();
-    Object.entries(values).forEach(([key, value]) => {
-        if (key === 'dateOfBirth' && value instanceof Date) {
-            formData.append(key, value.toISOString());
-        } else if (key !== 'photo') { // Don't append the file object
-            formData.append(key, value as string);
-        }
-    });
-    formData.append('photoDataUri', photoDataUrl);
-
-
     startTransition(async () => {
-      const result = await addStudent(formData);
-      if (result.success && result.faceId) {
-        toast({
-          title: "Student Enrolling...",
-          description: "This may take a moment. The dialog will close on success.",
+        const photoDataUrl = await fileToBase64(values.photo);
+
+        const formData = new FormData();
+        Object.entries(values).forEach(([key, value]) => {
+            if (key === 'dateOfBirth' && value instanceof Date) {
+                formData.append(key, value.toISOString());
+            } else if (key !== 'photo') { // Don't append the file object
+                formData.append(key, value as string);
+            }
         });
+        formData.append('photoDataUri', photoDataUrl);
+
+        const result = await addStudent(formData);
         
-        const newStudent: Student = {
-            ...values,
-            photoURL: photoDataUrl,
-            createdAt: new Date(),
-            faceId: result.faceId,
-        };
-        
-        try {
-            await addStudentToContext(newStudent);
+        if (result.success) {
             toast({
-              title: "Student Added Successfully",
-              description: `${values.name} has been enrolled.`,
+            title: "Student Added Successfully",
+            description: `${values.name} has been enrolled. The list will update automatically.`,
             });
             onStudentAdded();
             form.reset();
-        } catch (e: any) {
+        } else {
             toast({
-              variant: "destructive",
-              title: "Failed to Save Student",
-              description: e.message || "Could not save the student to the database.",
-            });
+            variant: "destructive",
+            title: "Failed to Add Student",
+            description: result.error || "An unknown error occurred.",
+            })
         }
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Failed to Add Student",
-          description: result.error || "An unknown error occurred.",
-        })
-      }
-    })
+    });
   }
 
   return (

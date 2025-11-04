@@ -1,9 +1,13 @@
+
 "use server";
 
 import { z } from "zod";
 import { faceDataTool, type FaceDataToolInput } from "@/ai/flows/face-data-tool";
 import { attendanceReportingWithFiltering, type AttendanceReportingWithFilteringInput } from "@/ai/flows/attendance-reporting-with-filtering";
 import { dailyAttendanceReport, type DailyAttendanceReportInput } from "@/ai/flows/daily-attendance-report";
+import { doc, setDoc } from "firebase/firestore";
+import { firestore } from "@/firebase/server-init";
+import type { Student } from "@/lib/types";
 
 const addStudentSchema = z.object({
   name: z.string(),
@@ -13,7 +17,7 @@ const addStudentSchema = z.object({
   contact: z.string(),
   fatherName: z.string(),
   motherName: z.string(),
-  photoDataUri: z.string(), // Changed from File to string
+  photoDataUri: z.string(),
   dateOfBirth: z.string(), // Received as ISO string
 });
 
@@ -37,21 +41,47 @@ export async function addStudent(formData: FormData) {
     const validatedData = addStudentSchema.parse(data);
     const dateOfBirth = new Date(validatedData.dateOfBirth);
 
+    // 1. Generate face embedding
     const toolInput: FaceDataToolInput = {
       ...validatedData,
       dateOfBirth: dateOfBirth.toLocaleDateString(),
-      insertIntoMongo: true,
+      insertIntoMongo: false, // We are using Firestore, not MongoDB
     };
 
     const result = await faceDataTool(toolInput);
+    
+    if (!result.faceId) {
+        throw new Error("Failed to generate a face ID for the student.");
+    }
 
-    return { success: true, faceId: result.faceId };
+    // 2. Prepare student record for Firestore
+    const studentToSave: Student = {
+        name: validatedData.name,
+        registerNumber: validatedData.registerNumber,
+        department: validatedData.department as Student['department'],
+        email: validatedData.email,
+        contact: validatedData.contact,
+        fatherName: validatedData.fatherName,
+        motherName: validatedData.motherName,
+        photoURL: validatedData.photoDataUri,
+        dateOfBirth: dateOfBirth,
+        faceId: result.faceId,
+        createdAt: new Date(),
+    };
+
+    // 3. Save to Firestore
+    const studentDocRef = doc(firestore, 'students', studentToSave.registerNumber);
+    await setDoc(studentDocRef, studentToSave);
+
+    return { success: true, student: studentToSave };
+
   } catch (error) {
-    console.error(error);
+    console.error("Error in addStudent action:", error);
     if (error instanceof z.ZodError) {
       return { success: false, error: "Validation failed: " + error.message };
     }
-    return { success: false, error: "An unexpected error occurred." };
+    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
+    return { success: false, error: errorMessage };
   }
 }
 
@@ -135,3 +165,4 @@ export async function generateDailyReport(department: string) {
         return { success: false, error: "An unexpected error occurred while generating the daily report." };
     }
 }
+
