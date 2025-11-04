@@ -32,7 +32,7 @@ import { Calendar } from "../ui/calendar"
 import { cn } from "@/lib/utils"
 import { fileToBase64 } from "@/lib/utils"
 import { useStudents } from "@/hooks/use-students"
-import { generateFaceId } from "@/app/actions"
+import type { Student } from "@/lib/types"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -74,19 +74,22 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       try {
         const photoDataUri = await fileToBase64(values.photo);
 
-        const studentDataForFaceId = {
-          ...values,
-          dateOfBirth: values.dateOfBirth.toISOString(),
-          photoDataUri: photoDataUri,
+        const studentToSave: Student = {
+          name: values.name,
+          registerNumber: values.registerNumber,
+          department: values.department,
+          email: values.email,
+          contact: values.contact,
+          fatherName: values.fatherName,
+          motherName: values.motherName,
+          photoURL: photoDataUri,
+          dateOfBirth: values.dateOfBirth,
+          // Generate a simple unique placeholder for faceId on the client
+          faceId: `face_${values.registerNumber}_${Date.now()}`,
+          createdAt: new Date(),
         };
         
-        const faceIdResult = await generateFaceId(studentDataForFaceId);
-
-        if (!faceIdResult.success || !faceIdResult.student) {
-          throw new Error(faceIdResult.error || "Failed to generate Face ID.");
-        }
-        
-        await addStudent(faceIdResult.student);
+        await addStudent(studentToSave);
 
         toast({
           title: "Student Added Successfully",

@@ -2,10 +2,8 @@
 "use server";
 
 import { z } from "zod";
-import { faceDataTool, type FaceDataToolInput } from "@/ai/flows/face-data-tool";
 import { attendanceReportingWithFiltering, type AttendanceReportingWithFilteringInput } from "@/ai/flows/attendance-reporting-with-filtering";
 import { dailyAttendanceReport, type DailyAttendanceReportInput } from "@/ai/flows/daily-attendance-report";
-import type { Student } from "@/lib/types";
 
 const addStudentSchema = z.object({
   name: z.string(),
@@ -35,70 +33,19 @@ const reportSchema = z.object({
 });
 
 
-export async function generateFaceId(data: Omit<AddStudentInput, 'photoDataUri'> & { photoDataUri: string }) {
-  try {
-    const dateOfBirth = new Date(data.dateOfBirth);
-
-    const toolInput: FaceDataToolInput = {
-      name: data.name,
-      registerNumber: data.registerNumber,
-      department: data.department,
-      email: data.email,
-      contact: data.contact,
-      fatherName: data.fatherName,
-      motherName: data.motherName,
-      photoDataUri: data.photoDataUri,
-      dateOfBirth: dateOfBirth.toLocaleDateString(),
-      insertIntoMongo: false,
-    };
-
-    const result = await faceDataTool(toolInput);
-    
-    if (!result.faceId) {
-        throw new Error("Failed to generate a face ID for the student.");
-    }
-
-    const studentToSave: Student = {
-        name: data.name,
-        registerNumber: data.registerNumber,
-        department: data.department as Student['department'],
-        email: data.email,
-        contact: data.contact,
-        fatherName: data.fatherName,
-        motherName: data.motherName,
-        photoURL: data.photoDataUri,
-        dateOfBirth: dateOfBirth,
-        faceId: result.faceId,
-        createdAt: new Date(),
-    };
-    
-    return { success: true, student: studentToSave };
-  } catch (error) {
-    console.error("Error in generateFaceId action:", error);
-    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
-    return { success: false, error: errorMessage };
-  }
-}
-
 export async function updateStudent(formData: FormData) {
   try {
     const data = Object.fromEntries(formData);
     const validatedData = editStudentSchema.parse(data);
-    const dateOfBirth = new Date(validatedData.dateOfBirth);
-
-    const toolInput = {
-        ...validatedData,
-        dateOfBirth: dateOfBirth.toLocaleDateString(),
-        insertIntoMongo: true,
-    };
-
+    
+    // In a real app, you would handle the update in Firestore here.
+    // For now, we simulate success.
+    
+    // If a new photo is uploaded, you might want to re-generate a face ID.
     if (validatedData.photoDataUri) {
-        (toolInput as FaceDataToolInput).photoDataUri = validatedData.photoDataUri;
-        const result = await faceDataTool(toolInput as FaceDataToolInput);
-        return { success: true, faceId: result.faceId };
+      // const result = await faceDataTool(...);
     }
-
-
+    
     return { success: true };
   } catch (error) {
       console.error(error);
