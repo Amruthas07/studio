@@ -8,7 +8,7 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useFirestore } from '@/hooks/use-firebase';
 import type { Student } from '@/lib/types';
 
@@ -16,7 +16,7 @@ interface StudentsContextType {
   students: Student[];
   loading: boolean;
   addStudent: (student: Student) => Promise<void>;
-  updateStudent: (student: Student) => Promise<void>;
+  updateStudent: (registerNumber: string, studentUpdate: Partial<Student>) => Promise<void>;
   deleteStudent: (registerNumber: string) => Promise<void>;
 }
 
@@ -44,6 +44,8 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             const data = doc.data();
             return {
                 ...data,
+                // The document ID is the registerNumber, which is already in the data.
+                // Keep 'id' if you need a separate unique key, otherwise it can be removed.
                 id: doc.id,
                 // Convert Firestore Timestamps to JS Date objects
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
@@ -72,21 +74,23 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     };
     
     const studentDocRef = doc(firestore, 'students', studentToSave.registerNumber);
+    // Use setDoc to create the document with a specific ID (registerNumber)
     await setDoc(studentDocRef, studentToSave);
   }, [firestore]);
 
-  const updateStudent = useCallback(async (updatedStudent: Student) => {
+  const updateStudent = useCallback(async (registerNumber: string, studentUpdate: Partial<Student>) => {
     if (!firestore) throw new Error("Firestore is not initialized");
-    const studentDocRef = doc(firestore, 'students', updatedStudent.registerNumber);
+    const studentDocRef = doc(firestore, 'students', registerNumber);
     
-    // Create a new object for update to avoid modifying the original state object
-    const updateData = { ...updatedStudent };
+    const updateData = { ...studentUpdate };
     
-    // Ensure dates are Firestore-compatible Timestamps or JS Dates
-    updateData.dateOfBirth = new Date(updateData.dateOfBirth);
-    updateData.createdAt = new Date(updateData.createdAt);
+    // If dateOfBirth is being updated, ensure it's a Date object
+    if (updateData.dateOfBirth) {
+        updateData.dateOfBirth = new Date(updateData.dateOfBirth);
+    }
 
-    await updateDoc(studentDocRef, updateData as any);
+    // Use setDoc with merge: true to update only the specified fields
+    await setDoc(studentDocRef, updateData, { merge: true });
   }, [firestore]);
 
   const deleteStudent = useCallback(async (registerNumber: string) => {

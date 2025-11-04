@@ -27,7 +27,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { updateStudent as updateStudentAction } from "@/app/actions"
 import type { Student } from "@/lib/types"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { Calendar } from "../ui/calendar"
@@ -36,7 +35,6 @@ import { useStudents } from "@/hooks/use-students"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
-  registerNumber: z.string().min(1, "Register number is required."), // Not editable, but needed for submission
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   email: z.string().email(),
   contact: z.string().length(10, "Contact number must be exactly 10 digits."),
@@ -62,7 +60,6 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: student.name,
-      registerNumber: student.registerNumber,
       department: student.department,
       email: student.email,
       contact: student.contact,
@@ -74,20 +71,23 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
-        let photoDataUrl: string | undefined = undefined;
-        if (values.photo instanceof File) {
-            photoDataUrl = await fileToBase64(values.photo);
-        }
-
-        const updatedStudentData: Student = {
-            ...student, // keep old ids and timestamps
-            ...values, // override with new form values
-            photoURL: photoDataUrl || student.photoURL,
-            dateOfBirth: values.dateOfBirth, // ensure it's a date object
-        };
-
         try {
-            await updateStudent(updatedStudentData);
+            let photoDataUrl: string | undefined = undefined;
+            if (values.photo instanceof File) {
+                photoDataUrl = await fileToBase64(values.photo);
+            }
+
+            const updatedStudentData: Partial<Student> = {
+                ...values,
+                dateOfBirth: values.dateOfBirth,
+            };
+
+            if (photoDataUrl) {
+                updatedStudentData.photoURL = photoDataUrl;
+            }
+
+            await updateStudent(student.registerNumber, updatedStudentData);
+            
             toast({
                 title: "Student Updated Successfully",
                 description: `${values.name}'s details have been saved.`,
@@ -120,20 +120,14 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="registerNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Register Number</FormLabel>
-                  <FormControl>
-                    <Input {...field} disabled />
-                  </FormControl>
-                  <FormDescription>Register number cannot be changed.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormItem>
+                <FormLabel>Register Number</FormLabel>
+                <FormControl>
+                <Input value={student.registerNumber} disabled />
+                </FormControl>
+                <FormDescription>Register number cannot be changed.</FormDescription>
+            </FormItem>
+
              <FormField
               control={form.control}
               name="fatherName"
