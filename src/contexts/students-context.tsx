@@ -63,14 +63,22 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   const addStudent = useCallback(async (newStudent: Student) => {
     if (!firestore) throw new Error("Firestore is not initialized");
     
-    const studentToSave = {
+    // Optimistic update: add to local state immediately
+    const studentWithDateObjects = {
         ...newStudent,
         createdAt: new Date(newStudent.createdAt), 
         dateOfBirth: new Date(newStudent.dateOfBirth),
     };
-    
-    const studentDocRef = doc(firestore, 'students', studentToSave.registerNumber);
-    await setDoc(studentDocRef, studentToSave);
+    setStudents(prevStudents => [...prevStudents, studentWithDateObjects]);
+
+    // Save to firestore in the background
+    const studentDocRef = doc(firestore, 'students', studentWithDateObjects.registerNumber);
+    // No await here, let it run in the background. The onSnapshot listener will handle the final state.
+    setDoc(studentDocRef, studentWithDateObjects).catch(error => {
+        console.error("Failed to add student to Firestore:", error);
+        // If it fails, remove the optimistically added student to keep UI consistent
+        setStudents(prevStudents => prevStudents.filter(s => s.registerNumber !== newStudent.registerNumber));
+    });
   }, [firestore]);
 
   const updateStudent = useCallback(async (registerNumber: string, studentUpdate: Partial<Student>) => {
