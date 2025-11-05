@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import type { Student } from "@/lib/types";
 import { Button } from "../ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,10 +25,9 @@ import { MoreHorizontal } from "lucide-react";
 interface StudentsTableProps {
     students: Student[];
     onEditStudent: (student: Student) => void;
-    onDeleteStudent: (student: Student) => void;
 }
 
-export function StudentsTable({ students, onEditStudent, onDeleteStudent }: StudentsTableProps) {
+export function StudentsTable({ students, onEditStudent }: StudentsTableProps) {
     
     const getInitials = (name: string) => {
         const names = name.split(' ');
@@ -92,13 +91,6 @@ export function StudentsTable({ students, onEditStudent, onDeleteStudent }: Stud
                                         <DropdownMenuItem onClick={() => onEditStudent(student)}>
                                             <Pencil className="mr-2 h-4 w-4" />
                                             Edit
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            className="text-destructive"
-                                            onClick={() => onDeleteStudent(student)}
-                                        >
-                                            <Trash2 className="mr-2 h-4 w-4" />
-                                            Delete
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>

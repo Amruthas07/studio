@@ -8,7 +8,7 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { useFirestore } from '@/hooks/use-firebase';
 import type { Student } from '@/lib/types';
 
@@ -17,7 +17,6 @@ interface StudentsContextType {
   loading: boolean;
   addStudent: (student: Student) => Promise<void>;
   updateStudent: (registerNumber: string, studentUpdate: Partial<Student>) => Promise<void>;
-  deleteStudent: (registerNumber: string) => Promise<void>;
 }
 
 export const StudentsContext = createContext<StudentsContextType | undefined>(
@@ -44,10 +43,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             const data = doc.data();
             return {
                 ...data,
-                // The document ID is the registerNumber, which is already in the data.
-                // Keep 'id' if you need a separate unique key, otherwise it can be removed.
                 id: doc.id,
-                // Convert Firestore Timestamps to JS Date objects
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
                 dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : new Date(data.dateOfBirth),
             } as Student;
@@ -74,7 +70,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     };
     
     const studentDocRef = doc(firestore, 'students', studentToSave.registerNumber);
-    // Use setDoc to create the document with a specific ID (registerNumber)
     await setDoc(studentDocRef, studentToSave);
   }, [firestore]);
 
@@ -84,22 +79,14 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     
     const updateData = { ...studentUpdate };
     
-    // If dateOfBirth is being updated, ensure it's a Date object
     if (updateData.dateOfBirth) {
         updateData.dateOfBirth = new Date(updateData.dateOfBirth);
     }
-
-    // Use setDoc with merge: true to update only the specified fields
+    
     await setDoc(studentDocRef, updateData, { merge: true });
   }, [firestore]);
 
-  const deleteStudent = useCallback(async (registerNumber: string) => {
-    if (!firestore) throw new Error("Firestore is not initialized");
-    const studentDocRef = doc(firestore, 'students', registerNumber);
-    await deleteDoc(studentDocRef);
-  }, [firestore]);
-
-  const value = { students, loading, addStudent, updateStudent, deleteStudent };
+  const value = { students, loading, addStudent, updateStudent };
 
   return (
     <StudentsContext.Provider value={value}>

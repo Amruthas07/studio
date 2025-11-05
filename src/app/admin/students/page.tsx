@@ -11,16 +11,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Loader2, PlusCircle } from "lucide-react";
 import { AddStudentForm } from "@/components/admin/add-student-form";
 import { EditStudentForm } from "@/components/admin/edit-student-form";
@@ -33,14 +23,12 @@ import { useStudents } from '@/hooks/use-students';
 export default function StudentsPage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const { students, deleteStudent, loading: studentsLoading } = useStudents();
+  const { students, loading: studentsLoading } = useStudents();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-
+  
   const [studentToEdit, setStudentToEdit] = React.useState<Student | null>(null);
-  const [studentToDelete, setStudentToDelete] = React.useState<Student | null>(null);
 
   const handleStudentAdded = () => {
     setIsAddDialogOpen(false);
@@ -54,30 +42,6 @@ export default function StudentsPage() {
   const openEditDialog = (student: Student) => {
     setStudentToEdit(student);
     setIsEditDialogOpen(true);
-  };
-  
-  const openDeleteDialog = (student: Student) => {
-    setStudentToDelete(student);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDeleteStudent = async () => {
-    if (!studentToDelete) return;
-    try {
-        await deleteStudent(studentToDelete.registerNumber);
-        toast({
-            title: "Student Deleted",
-            description: `${studentToDelete.name} has been removed from the system.`
-        })
-    } catch (e: any) {
-        toast({
-            variant: 'destructive',
-            title: "Deletion Failed",
-            description: e.message || "Could not remove the student."
-        })
-    }
-    setIsDeleteDialogOpen(false);
-    setStudentToDelete(null);
   };
   
   const departmentStudents = React.useMemo(() => {
@@ -124,7 +88,7 @@ export default function StudentsPage() {
         </Dialog>
       </div>
 
-      <StudentsTable students={departmentStudents} onEditStudent={openEditDialog} onDeleteStudent={openDeleteDialog} />
+      <StudentsTable students={departmentStudents} onEditStudent={openEditDialog} />
 
       {/* Edit Student Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -138,25 +102,6 @@ export default function StudentsPage() {
               {studentToEdit && <EditStudentForm student={studentToEdit} onStudentUpdated={handleStudentUpdated} />}
           </DialogContent>
       </Dialog>
-
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the student record for <span className='font-bold'>{studentToDelete?.name}</span>.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteStudent}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
