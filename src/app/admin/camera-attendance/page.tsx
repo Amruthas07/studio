@@ -87,7 +87,6 @@ export default function CameraAttendancePage() {
 
     // This is a placeholder for a real face recognition API call
     // In a real app, you would send the canvas image data to a service
-    await new Promise(res => setTimeout(res, 1500)); 
     
     const departmentStudents = students.filter((s: any) => s.department === user.department);
     
