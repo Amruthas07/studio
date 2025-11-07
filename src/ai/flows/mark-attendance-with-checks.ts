@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -63,7 +64,12 @@ const checkAttendanceData = ai.defineTool(
     }),
   },
   async (input) => {
-    // Implement the checks here.
+    // If the face is unknown, we still consider it "valid" to record,
+    // but the confidence is low.
+    if (input.status === 'unknown-face') {
+        return { isValid: true };
+    }
+    
     if (input.confidenceScore < 0.7) {
       return {
         isValid: false,
@@ -71,7 +77,6 @@ const checkAttendanceData = ai.defineTool(
       };
     }
 
-    // Add more checks as needed (e.g., date format, status validity).
 
     return {
       isValid: true,

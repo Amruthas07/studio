@@ -9,9 +9,10 @@ import { Camera, Loader2, Video, VideoOff } from 'lucide-react';
 import { markAttendanceFromCamera, type MarkAttendanceFromCameraInput } from '@/ai/flows/mark-attendance-with-checks';
 import { useAuth } from '@/hooks/use-auth';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import type { AttendanceRecord } from '@/lib/types';
+import type { AttendanceRecord, Student } from '@/lib/types';
 import { useAttendance } from '@/hooks/use-attendance';
 import { useStudents } from '@/hooks/use-students';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function CameraAttendancePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -23,6 +24,13 @@ export default function CameraAttendancePage() {
   const { user } = useAuth();
   const { addAttendanceRecord } = useAttendance();
   const { students } = useStudents();
+  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+
+  const departmentStudents = React.useMemo(() => {
+    if (!user?.department || !students) return [];
+    if (user.department === 'all') return students;
+    return students.filter(s => s.department === user.department);
+  }, [user, students]);
   
   useEffect(() => {
     return () => {
@@ -76,6 +84,11 @@ export default function CameraAttendancePage() {
         return;
     }
 
+    if (!selectedStudent) {
+        toast({ title: "No Student Selected", description: "Please select a student to simulate recognition.", variant: "destructive"});
+        return;
+    }
+    
     setIsProcessing(true);
 
     const video = videoRef.current;
@@ -87,8 +100,6 @@ export default function CameraAttendancePage() {
 
     // This is a placeholder for a real face recognition API call
     // In a real app, you would send the canvas image data to a service
-    
-    const departmentStudents = students.filter((s: any) => s.department === user.department);
     
     if (departmentStudents.length === 0) {
         toast({ title: "No Students", description: `No students enrolled in the ${user.department.toUpperCase()} department.`, variant: "destructive"});
@@ -104,11 +115,14 @@ export default function CameraAttendancePage() {
     let studentName = "";
 
     if (isRecognized) {
-        // Simulate finding a random student from the department
-        const randomStudent = departmentStudents[Math.floor(Math.random() * departmentStudents.length)];
-        studentName = randomStudent.name;
+        const student = students.find(s => s.registerNumber === selectedStudent);
+        if (!student) {
+            setIsProcessing(false);
+            return toast({title: "Student not found", variant: "destructive"});
+        }
+        studentName = student.name;
         input = {
-            studentRegister: randomStudent.registerNumber,
+            studentRegister: student.registerNumber,
             date: timestamp.split('T')[0],
             status: 'present',
             markedBy: user.email,
@@ -124,7 +138,7 @@ export default function CameraAttendancePage() {
             markedBy: user.email,
             method: 'face-scan',
             timestamp: timestamp,
-            confidenceScore: 0, // No confidence
+            confidenceScore: Math.random() * (0.6 - 0.2) + 0.2, // Simulate low confidence
         };
     }
 
@@ -142,7 +156,7 @@ export default function CameraAttendancePage() {
         toast({
             variant: "destructive",
             title: "Face Not Recognised",
-            description: "Could not identify the student. Please try again.",
+            description: "Could not identify the student (simulated failure).",
         });
       }
     } else {
@@ -166,7 +180,7 @@ export default function CameraAttendancePage() {
       <Card>
         <CardHeader>
           <CardTitle>Camera Feed</CardTitle>
-          <CardDescription>Position the student's face within the frame and capture.</CardDescription>
+          <CardDescription>Select a student to simulate recognition, position their face in the frame, and capture.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-4">
           <div className="w-full max-w-2xl aspect-video rounded-md overflow-hidden bg-secondary border relative">
@@ -207,12 +221,29 @@ export default function CameraAttendancePage() {
                   </AlertDescription>
               </Alert>
            )}
+          
+          <div className="w-full max-w-sm space-y-2">
+            <label className="text-sm font-medium">Simulate Recognition For:</label>
+             <Select onValueChange={setSelectedStudent} value={selectedStudent ?? undefined}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Select a student..." />
+                </SelectTrigger>
+                <SelectContent>
+                    {departmentStudents.map(student => (
+                        <SelectItem key={student.registerNumber} value={student.registerNumber}>
+                           {student.name} ({student.registerNumber})
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+          </div>
+
 
             <div className="flex gap-4">
                 <Button 
                     size="lg"
                     onClick={captureAndMarkAttendance}
-                    disabled={!isStreaming || isProcessing || hasCameraPermission === false}
+                    disabled={!isStreaming || isProcessing || hasCameraPermission === false || !selectedStudent}
                 >
                     {isProcessing ? (
                         <>
