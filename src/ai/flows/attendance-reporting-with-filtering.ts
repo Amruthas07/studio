@@ -11,7 +11,6 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { getInitialAttendance, getInitialStudents } from '@/lib/mock-data';
-import type { AttendanceRecord, Student } from '@/lib/types';
 
 const AttendanceReportingWithFilteringInputSchema = z.object({
   startDate: z
@@ -82,7 +81,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
     const startDate = new Date(input.startDate);
     const endDate = new Date(input.endDate);
 
-    const filteredRecords = mockAttendance.filter(record => {
+    let filteredRecords = mockAttendance.filter(record => {
         const recordDate = new Date(record.date);
         const isStudentInDepartment = departmentStudentRegisters.has(record.studentRegister);
         const isDateInRange = recordDate >= startDate && recordDate <= endDate;
@@ -91,7 +90,15 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
         return isStudentInDepartment && isDateInRange;
     });
 
-    // 3. Calculate summary by unique students within the date range
+    // 3. Join student name into records
+    const studentMap = new Map(mockStudents.map(s => [s.registerNumber, s.name]));
+    const enhancedRecords = filteredRecords.map(rec => ({
+      ...rec,
+      studentName: studentMap.get(rec.studentRegister) || 'Unknown Student',
+    }));
+
+
+    // 4. Calculate summary by unique students within the date range
     const presentStudents = new Set(filteredRecords.filter(r => r.status === 'present' || r.status === 'late').map(r => r.studentRegister));
     
     const allStudentRegistersInDept = new Set(departmentStudents.map(s => s.registerNumber));
@@ -101,20 +108,20 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
     const presentCount = presentStudents.size;
     const absentCount = absentStudentRegisters.size;
 
-    // 4. Create summary CSV string
+    // 5. Create summary CSV string
     const summaryData = [
       { metric: 'Number of Students Present', value: presentCount },
       { metric: 'Number of Students Absent', value: absentCount },
     ];
     const summaryCsv = convertToCSV(summaryData);
     
-    // 5. Convert main data to CSV
-    const recordsCsv = convertToCSV(filteredRecords);
+    // 6. Convert main data to CSV
+    const recordsCsv = convertToCSV(enhancedRecords);
 
-    // 6. Combine summary and main data
+    // 7. Combine summary and main data
     const finalCsvData = `${summaryCsv}\r\n\r\n${recordsCsv}`;
 
-    // 7. Create a data URI
+    // 8. Create a data URI
     const fileUrl = `data:text/csv;charset=utf-8,${encodeURIComponent(finalCsvData)}`;
 
     return {fileUrl};

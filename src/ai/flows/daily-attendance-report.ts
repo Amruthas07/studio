@@ -71,12 +71,19 @@ const dailyAttendanceReportFlow = ai.defineFlow(
         record.date === today && departmentStudentRegisters.has(record.studentRegister)
     );
 
-    // 4. Convert to CSV
-    const csvData = convertToCSV(todaysDepartmentRecords.length > 0 ? todaysDepartmentRecords : [
+    // 4. Join student names
+    const studentMap = new Map(mockStudents.map(s => [s.registerNumber, s.name]));
+    const enhancedRecords = todaysDepartmentRecords.map(rec => ({
+      ...rec,
+      studentName: studentMap.get(rec.studentRegister) || 'Unknown Student',
+    }));
+
+    // 5. Convert to CSV
+    const csvData = convertToCSV(enhancedRecords.length > 0 ? enhancedRecords : [
         { id: "N/A", studentRegister: "N/A", studentName: "No records found", date: today, status: "N/A", markedBy: "N/A", method: "N/A", timestamp: "N/A" }
     ]);
     
-    // 5. Create a data URI
+    // 6. Create a data URI
     const fileUrl = `data:text/csv;charset=utf-8,${encodeURIComponent(csvData)}`;
 
     return {fileUrl};
