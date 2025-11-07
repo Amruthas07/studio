@@ -96,31 +96,55 @@ export default function CameraAttendancePage() {
         return;
     }
     
-    // Simulate finding a random student from the department
-    const randomStudent = departmentStudents[Math.floor(Math.random() * departmentStudents.length)];
+    // Simulate a 25% chance of face not being recognized
+    const isRecognized = Math.random() > 0.25;
     
     const timestamp = new Date().toISOString();
-    const input: MarkAttendanceFromCameraInput = {
-        studentRegister: randomStudent.registerNumber,
-        date: timestamp.split('T')[0],
-        status: 'present',
-        markedBy: user.email,
-        method: 'face-scan',
-        timestamp: timestamp,
-        confidenceScore: Math.random() * (0.99 - 0.8) + 0.8, // Simulate high confidence
-    };
+    let input: MarkAttendanceFromCameraInput;
+    let studentName = "";
+
+    if (isRecognized) {
+        // Simulate finding a random student from the department
+        const randomStudent = departmentStudents[Math.floor(Math.random() * departmentStudents.length)];
+        studentName = randomStudent.name;
+        input = {
+            studentRegister: randomStudent.registerNumber,
+            date: timestamp.split('T')[0],
+            status: 'present',
+            markedBy: user.email,
+            method: 'face-scan',
+            timestamp: timestamp,
+            confidenceScore: Math.random() * (0.99 - 0.8) + 0.8, // Simulate high confidence
+        };
+    } else {
+        input = {
+            studentRegister: 'UNKNOWN',
+            date: timestamp.split('T')[0],
+            status: 'unknown-face',
+            markedBy: user.email,
+            method: 'face-scan',
+            timestamp: timestamp,
+            confidenceScore: 0, // No confidence
+        };
+    }
 
     const result = await markAttendanceFromCamera(input);
 
     if (result.success) {
-      // The local add is now redundant if using Firestore listeners, but good for immediate UI feedback.
-      // Firestore will soon be the single source of truth.
       await addAttendanceRecord(input);
 
-      toast({
-        title: "Attendance Marked",
-        description: `${randomStudent.name} (${randomStudent.registerNumber}) marked as present.`,
-      });
+      if (isRecognized) {
+        toast({
+            title: "Attendance Marked",
+            description: `${studentName} (${input.studentRegister}) marked as present.`,
+        });
+      } else {
+        toast({
+            variant: "destructive",
+            title: "Face Not Recognised",
+            description: "Could not identify the student. Please try again.",
+        });
+      }
     } else {
       toast({
         variant: "destructive",
