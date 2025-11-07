@@ -5,7 +5,7 @@
  *
  * - attendanceReportingWithFiltering - A function that handles the attendance reporting process with filtering.
  * - AttendanceReportingWithFilteringInput - The input type for the attendanceReportingWithFiltering function.
- * - AttendanceReportingWithFilteringOutput - The return type for the attendanceReportingWithFiltering function.
+ * - AttendanceReportingWithFilteringOutput - The return type for the attendanceReportingWith-filtering function.
  */
 
 import {ai} from '@/ai/genkit';
