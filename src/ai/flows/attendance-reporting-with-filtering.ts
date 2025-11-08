@@ -24,8 +24,8 @@ const StudentSchema = z.object({
   email: z.string().email(),
   contact: z.string(),
   faceId: z.string().optional(),
-  createdAt: z.date(),
-  dateOfBirth: z.date(),
+  createdAt: z.string(), // Changed from z.date()
+  dateOfBirth: z.string(), // Changed from z.date()
 });
 
 const AttendanceRecordSchema = z.object({
