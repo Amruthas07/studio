@@ -14,6 +14,7 @@ import type { Student } from '@/lib/types';
 
 interface StudentsContextType {
   students: Student[];
+  setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   loading: boolean;
   addStudent: (student: Student) => Promise<void>;
   updateStudent: (registerNumber: string, studentUpdate: Partial<Student>) => Promise<void>;
@@ -63,12 +64,12 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   const addStudent = useCallback(async (newStudent: Student) => {
     if (!firestore) throw new Error("Firestore is not initialized");
     
-    // Optimistic update: add to local state immediately
     const studentWithDateObjects = {
         ...newStudent,
         createdAt: new Date(newStudent.createdAt), 
         dateOfBirth: new Date(newStudent.dateOfBirth),
     };
+    // Optimistic update: add to local state immediately
     setStudents(prevStudents => [...prevStudents, studentWithDateObjects]);
 
     // Save to firestore in the background
@@ -91,10 +92,14 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         updateData.dateOfBirth = new Date(updateData.dateOfBirth);
     }
     
-    await setDoc(studentDocRef, updateData, { merge: true });
+    // No await here, optimistic update handled in component
+    setDoc(studentDocRef, updateData, { merge: true }).catch(error => {
+        console.error(`Failed to update student ${registerNumber} in Firestore:`, error);
+        // Optionally handle rollback or notification here
+    });
   }, [firestore]);
 
-  const value = { students, loading, addStudent, updateStudent };
+  const value = { students, setStudents, loading, addStudent, updateStudent };
 
   return (
     <StudentsContext.Provider value={value}>

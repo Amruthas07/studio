@@ -47,14 +47,16 @@ export default function StudentsPage() {
     setStudentToEdit(null);
   };
 
-  const handleFaceEnrolled = async (photoDataUri: string) => {
+  const handleFaceEnrolled = (photoDataUri: string) => {
     if (!studentToEnroll) return;
     try {
-      // Optimistically update the UI
       const studentName = studentToEnroll.name;
-      setStudentToEnroll(prev => prev ? {...prev, photoURL: photoDataUri} : null);
 
-      await updateStudent(studentToEnroll.registerNumber, { photoURL: photoDataUri });
+      // Optimistically update the UI
+      setStudents(prev => prev.map(s => s.registerNumber === studentToEnroll.registerNumber ? {...s, photoURL: photoDataUri} : s));
+
+      // No await here for optimistic update
+      updateStudent(studentToEnroll.registerNumber, { photoURL: photoDataUri });
       
       toast({
         title: "Face Enrolled Successfully",
