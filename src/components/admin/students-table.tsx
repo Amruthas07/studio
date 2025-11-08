@@ -1,4 +1,3 @@
-
 import {
   Table,
   TableBody,
@@ -13,14 +12,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import type { Student } from "@/lib/types";
 import { Button } from "../ui/button";
-import { Camera, Pencil, MoreHorizontal } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+import { Camera, Pencil } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+
 
 interface StudentsTableProps {
     students: Student[];
@@ -45,6 +39,7 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace }: Student
                 <CardDescription>A list of all registered students. Enroll their face for recognition.</CardDescription>
             </CardHeader>
             <CardContent>
+                <TooltipProvider>
                  <Table>
                     {students.length === 0 && <TableCaption>No students have been added yet.</TableCaption>}
                     <TableHeader>
@@ -85,30 +80,36 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace }: Student
                                 )}
                             </TableCell>
                             <TableCell className="text-right">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                            <span className="sr-only">Open menu</span>
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => onEnrollFace(student)}>
-                                            <Camera className="mr-2 h-4 w-4" />
-                                            {student.photoURL ? 'Re-enroll Face' : 'Enroll Face'}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={() => onEditStudent(student)}>
-                                            <Pencil className="mr-2 h-4 w-4" />
-                                            Edit Details
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                               <div className="flex justify-end gap-2">
+                                     <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="outline" size="icon" onClick={() => onEnrollFace(student)}>
+                                                <Camera className="h-4 w-4" />
+                                                <span className="sr-only">{student.photoURL ? 'Re-enroll Face' : 'Enroll Face'}</span>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{student.photoURL ? 'Re-enroll Face' : 'Enroll Face'}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                     <Tooltip>
+                                        <TooltipTrigger asChild>
+                                             <Button variant="outline" size="icon" onClick={() => onEditStudent(student)}>
+                                                <Pencil className="h-4 w-4" />
+                                                <span className="sr-only">Edit Details</span>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Edit Details</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                               </div>
                             </TableCell>
                         </TableRow>
                         ))}
                     </TableBody>
                 </Table>
+                </TooltipProvider>
             </CardContent>
         </Card>
     )
