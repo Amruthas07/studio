@@ -35,7 +35,12 @@ export default function AdminAttendancePage() {
         if (!user?.department) return;
 
         setIsDownloading(true);
-        const result = await generateDailyReport(user.department);
+        // Pass all the required data to the action
+        const result = await generateDailyReport({
+            department: user.department,
+            students: students,
+            attendanceRecords: attendanceRecords,
+        });
         setIsDownloading(false);
 
         if (result.success && result.fileUrl) {
@@ -88,7 +93,7 @@ export default function AdminAttendancePage() {
                         A complete history of all attendance records for the {user.department.toUpperCase()} department.
                     </p>
                 </div>
-                <Button onClick={handleDownloadDailyReport} disabled={isDownloading}>
+                <Button onClick={handleDownloadDailyReport} disabled={isDownloading || studentsLoading || attendanceLoading}>
                     {isDownloading ? <Loader2 className="animate-spin" /> : <FileDown />}
                     Download Today's Report
                 </Button>
