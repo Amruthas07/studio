@@ -137,14 +137,13 @@ const markAttendanceFromCameraPrompt = ai.definePrompt({
   tools: [checkAttendanceData],
   input: {schema: MarkAttendanceFromCameraInputSchema},
   output: {schema: MarkAttendanceFromCameraOutputSchema},
-  prompt: `You are an attendance recording assistant. You will receive attendance information.
-Your task is to validate this data by calling the 'checkAttendanceData' tool with the provided input.
+  prompt: `You are an attendance validation assistant. Your only task is to validate incoming attendance data by calling the 'checkAttendanceData' tool.
 
-Based on the tool's response:
-- If the tool returns 'isValid: true', you MUST respond with '{ success: true, message: "Attendance marked successfully." }'.
-- If the tool returns 'isValid: false', you MUST respond with '{ success: false, message: <reason from tool> }', where <reason from tool> is the reason provided by the tool.
+Based on the tool's response, you MUST respond with a JSON object that mirrors the tool's conclusion.
+- If the tool returns 'isValid: true', you MUST respond with '{ "success": true, "message": "Attendance data is valid." }'.
+- If the tool returns 'isValid: false', you MUST respond with '{ "success": false, "message": "<reason from tool>" }', using the exact reason provided by the tool.
 
-Do not add any other information to your response.
+Do not save any data. Do not add any other information to your response.
 
 Input Data: {{{JSON.stringify $}}}
 `,

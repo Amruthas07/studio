@@ -118,19 +118,18 @@ export default function CameraAttendancePage() {
 
     // No await here for optimistic update
     markAttendanceFromCamera(input).then(result => {
+        setIsProcessing(false);
         if (result.success) {
-            // Optimistically add record to local state
-            const newRecord: AttendanceRecord = {
-              id: `temp_${Date.now()}`,
+            // If validation is successful, THEN add the record
+            const newRecord = {
               studentRegister: input.studentRegister,
-              studentName: randomStudent.name,
               date: input.date,
               status: input.status,
               markedBy: input.markedBy,
               method: input.method,
               timestamp: input.timestamp,
             };
-            addAttendanceRecord(newRecord);
+            addAttendanceRecord(newRecord); // This will add to firestore and local state
 
             toast({
                 title: "Attendance Marked",
@@ -143,9 +142,14 @@ export default function CameraAttendancePage() {
                 description: result.message,
             });
         }
+    }).catch(error => {
+        setIsProcessing(false);
+        toast({
+            variant: "destructive",
+            title: "An Error Occurred",
+            description: "Could not communicate with the validation service.",
+        });
     });
-
-    setIsProcessing(false);
   };
 
   return (
