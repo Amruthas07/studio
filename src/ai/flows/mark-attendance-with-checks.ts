@@ -150,21 +150,13 @@ const markAttendanceFromCameraFlow = ai.defineFlow(
     outputSchema: MarkAttendanceFromCameraOutputSchema,
   },
   async input => {
-    const checkResult = await checkAttendanceData(input);
-
-    if (!checkResult.isValid) {
+    const { output } = await markAttendanceFromCameraPrompt(input);
+    if (!output) {
       return {
         success: false,
-        message: `${checkResult.reason || 'Invalid attendance data.'}`,
+        message: 'Failed to get a response from the attendance validation service.',
       };
     }
-
-    // This is a simulation. In a real implementation, you would save the new record to Firestore.
-    // The front-end is already optimistically adding the record, so no further action is needed here for the simulation.
-
-    return {
-      success: true,
-      message: 'Attendance successfully recorded.',
-    };
+    return output;
   }
 );
