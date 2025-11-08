@@ -50,10 +50,12 @@ type AddStudentFormProps = {
     onStudentAdded: (newStudent: Student) => void;
 }
 
+const DEPARTMENT_LIMIT = 700;
+
 export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const { toast } = useToast()
   const [isPending, startTransition] = React.useTransition()
-  const { addStudent } = useStudents();
+  const { addStudent, students } = useStudents();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,6 +72,19 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
       try {
+        const departmentStudentsCount = students.filter(
+            (student) => student.department === values.department
+        ).length;
+
+        if (departmentStudentsCount >= DEPARTMENT_LIMIT) {
+          toast({
+            variant: "destructive",
+            title: "Department Full",
+            description: `The ${values.department.toUpperCase()} department has reached its limit of ${DEPARTMENT_LIMIT} students.`,
+          });
+          return;
+        }
+        
         const studentToSave: Student = {
           ...values,
           photoURL: "", // Initially empty, will be captured via camera
