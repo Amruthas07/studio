@@ -132,22 +132,6 @@ const checkAttendanceData = ai.defineTool(
   }
 );
 
-const markAttendanceFromCameraPrompt = ai.definePrompt({
-  name: 'markAttendanceFromCameraPrompt',
-  tools: [checkAttendanceData],
-  input: {schema: MarkAttendanceFromCameraInputSchema},
-  output: {schema: MarkAttendanceFromCameraOutputSchema},
-  prompt: `You are an attendance validation assistant. Your only task is to validate incoming attendance data by calling the 'checkAttendanceData' tool.
-
-Based on the tool's response, you MUST respond with a JSON object that mirrors the tool's conclusion.
-- If the tool returns 'isValid: true', you MUST respond with '{ "success": true, "message": "Attendance data is valid." }'.
-- If the tool returns 'isValid: false', you MUST respond with '{ "success": false, "message": "<reason from tool>" }', using the exact reason provided by the tool.
-
-Do not save any data. Do not add any other information to your response.
-
-Input Data: {{{JSON.stringify $}}}
-`,
-});
 
 const markAttendanceFromCameraFlow = ai.defineFlow(
   {
@@ -156,13 +140,19 @@ const markAttendanceFromCameraFlow = ai.defineFlow(
     outputSchema: MarkAttendanceFromCameraOutputSchema,
   },
   async input => {
-    const { output } = await markAttendanceFromCameraPrompt(input);
-    if (!output) {
+    // Directly call the validation tool instead of a prompt
+    const validationResult = await checkAttendanceData(input);
+
+    if (validationResult.isValid) {
+      return {
+        success: true,
+        message: 'Attendance data is valid.'
+      };
+    } else {
       return {
         success: false,
-        message: 'Failed to get a response from the attendance validation service.',
+        message: validationResult.reason || 'An unknown validation error occurred.'
       };
     }
-    return output;
   }
 );
