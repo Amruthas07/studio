@@ -15,20 +15,25 @@ import { Loader2, PlusCircle } from "lucide-react";
 import { AddStudentForm } from "@/components/admin/add-student-form";
 import { EditStudentForm } from "@/components/admin/edit-student-form";
 import { StudentsTable } from "@/components/admin/students-table";
-import { Student } from '@/lib/types';
+import type { Student } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useStudents } from '@/hooks/use-students';
+import { EnrollFaceDialog } from '@/components/admin/enroll-face-dialog';
+
 
 export default function StudentsPage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const { students, loading: studentsLoading } = useStudents();
+  const { students, loading: studentsLoading, updateStudent } = useStudents();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+  const [isEnrollDialogOpen, setIsEnrollDialogOpen] = React.useState(false);
   
   const [studentToEdit, setStudentToEdit] = React.useState<Student | null>(null);
+  const [studentToEnroll, setStudentToEnroll] = React.useState<Student | null>(null);
+
 
   const handleStudentAdded = () => {
     setIsAddDialogOpen(false);
@@ -39,9 +44,34 @@ export default function StudentsPage() {
     setStudentToEdit(null);
   };
 
+  const handleFaceEnrolled = async (photoDataUri: string) => {
+    if (!studentToEnroll) return;
+    try {
+      await updateStudent(studentToEnroll.registerNumber, { photoURL: photoDataUri });
+      toast({
+        title: "Face Enrolled Successfully",
+        description: `A new face has been captured for ${studentToEnroll.name}.`,
+      });
+    } catch(e: any) {
+       toast({
+        variant: "destructive",
+        title: "Face Enrollment Failed",
+        description: e.message || "An unexpected error occurred.",
+      });
+    } finally {
+      setIsEnrollDialogOpen(false);
+      setStudentToEnroll(null);
+    }
+  };
+
   const openEditDialog = (student: Student) => {
     setStudentToEdit(student);
     setIsEditDialogOpen(true);
+  };
+
+  const openEnrollDialog = (student: Student) => {
+    setStudentToEnroll(student);
+    setIsEnrollDialogOpen(true);
   };
   
   const departmentStudents = React.useMemo(() => {
@@ -80,7 +110,7 @@ export default function StudentsPage() {
             <DialogHeader>
               <DialogTitle className="font-headline text-2xl">Add New Student</DialogTitle>
               <DialogDescription>
-                Fill in the details below to enroll a new student. This will create their profile and face data for recognition.
+                Fill in the details below to enroll a new student. Then, enroll their face for recognition.
               </DialogDescription>
             </DialogHeader>
             <AddStudentForm onStudentAdded={handleStudentAdded} />
@@ -88,7 +118,11 @@ export default function StudentsPage() {
         </Dialog>
       </div>
 
-      <StudentsTable students={departmentStudents} onEditStudent={openEditDialog} />
+      <StudentsTable 
+        students={departmentStudents} 
+        onEditStudent={openEditDialog}
+        onEnrollFace={openEnrollDialog}
+      />
 
       {/* Edit Student Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -102,6 +136,14 @@ export default function StudentsPage() {
               {studentToEdit && <EditStudentForm student={studentToEdit} onStudentUpdated={handleStudentUpdated} />}
           </DialogContent>
       </Dialog>
+      
+      {/* Enroll Face Dialog */}
+       <EnrollFaceDialog 
+          isOpen={isEnrollDialogOpen} 
+          onOpenChange={setIsEnrollDialogOpen}
+          student={studentToEnroll}
+          onFaceEnrolled={handleFaceEnrolled}
+      />
     </div>
   );
 }

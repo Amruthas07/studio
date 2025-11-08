@@ -1,3 +1,4 @@
+
 import {
   Table,
   TableBody,
@@ -12,22 +13,22 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import type { Student } from "@/lib/types";
 import { Button } from "../ui/button";
-import { Pencil } from "lucide-react";
+import { Camera, Pencil, MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
-
 
 interface StudentsTableProps {
     students: Student[];
     onEditStudent: (student: Student) => void;
+    onEnrollFace: (student: Student) => void;
 }
 
-export function StudentsTable({ students, onEditStudent }: StudentsTableProps) {
+export function StudentsTable({ students, onEditStudent, onEnrollFace }: StudentsTableProps) {
     
     const getInitials = (name: string) => {
         const names = name.split(' ');
@@ -41,7 +42,7 @@ export function StudentsTable({ students, onEditStudent }: StudentsTableProps) {
         <Card>
             <CardHeader>
                 <CardTitle>All Students</CardTitle>
-                <CardDescription>A list of all registered students in the system.</CardDescription>
+                <CardDescription>A list of all registered students. Enroll their face for recognition.</CardDescription>
             </CardHeader>
             <CardContent>
                  <Table>
@@ -52,7 +53,7 @@ export function StudentsTable({ students, onEditStudent }: StudentsTableProps) {
                             <TableHead>Register No.</TableHead>
                             <TableHead>Department</TableHead>
                             <TableHead>Contact</TableHead>
-                            <TableHead>Enrolled On</TableHead>
+                            <TableHead>Face Enrolled</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -77,7 +78,11 @@ export function StudentsTable({ students, onEditStudent }: StudentsTableProps) {
                             </TableCell>
                             <TableCell>{student.contact}</TableCell>
                             <TableCell>
-                            {new Date(student.createdAt).toLocaleDateString()}
+                                {student.photoURL ? (
+                                    <Badge variant="default">Yes</Badge>
+                                ) : (
+                                    <Badge variant="destructive">No</Badge>
+                                )}
                             </TableCell>
                             <TableCell className="text-right">
                                 <DropdownMenu>
@@ -88,9 +93,14 @@ export function StudentsTable({ students, onEditStudent }: StudentsTableProps) {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => onEnrollFace(student)}>
+                                            <Camera className="mr-2 h-4 w-4" />
+                                            {student.photoURL ? 'Re-enroll Face' : 'Enroll Face'}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
                                         <DropdownMenuItem onClick={() => onEditStudent(student)}>
                                             <Pencil className="mr-2 h-4 w-4" />
-                                            Edit
+                                            Edit Details
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>

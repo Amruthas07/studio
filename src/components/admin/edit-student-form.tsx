@@ -30,7 +30,7 @@ import { useToast } from "@/hooks/use-toast"
 import type { Student } from "@/lib/types"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { Calendar } from "../ui/calendar"
-import { cn, fileToBase64 } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { useStudents } from "@/hooks/use-students"
 
 const formSchema = z.object({
@@ -40,7 +40,6 @@ const formSchema = z.object({
   contact: z.string().length(10, "Contact number must be exactly 10 digits."),
   fatherName: z.string().min(2, "Father's name is required."),
   motherName: z.string().min(2, "Mother's name is required."),
-  photo: z.any().optional(),
   dateOfBirth: z.date({
     required_error: "A date of birth is required.",
   }),
@@ -72,19 +71,10 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
         try {
-            let photoDataUrl: string | undefined = undefined;
-            if (values.photo instanceof File) {
-                photoDataUrl = await fileToBase64(values.photo);
-            }
-
             const updatedStudentData: Partial<Student> = {
                 ...values,
                 dateOfBirth: values.dateOfBirth,
             };
-
-            if (photoDataUrl) {
-                updatedStudentData.photoURL = photoDataUrl;
-            }
 
             await updateStudent(student.registerNumber, updatedStudentData);
             
@@ -204,20 +194,6 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                   <FormMessage />
                 </FormItem>
               )}
-            />
-             <FormField
-                control={form.control}
-                name="photo"
-                render={({ field: { onChange, value, ...rest } }) => (
-                <FormItem>
-                    <FormLabel>Update Student Photo (Optional)</FormLabel>
-                    <FormControl>
-                    <Input type="file" accept="image/*" onChange={(e) => onChange(e.target.files?.[0])} {...rest} />
-                    </FormControl>
-                    <FormDescription>Upload a new photo to update the face recognition data.</FormDescription>
-                    <FormMessage />
-                </FormItem>
-                )}
             />
              <FormField
                 control={form.control}

@@ -30,7 +30,6 @@ import { useToast } from "@/hooks/use-toast"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { Calendar } from "../ui/calendar"
 import { cn } from "@/lib/utils"
-import { fileToBase64 } from "@/lib/utils"
 import { useStudents } from "@/hooks/use-students"
 import type { Student } from "@/lib/types"
 
@@ -42,7 +41,6 @@ const formSchema = z.object({
   contact: z.string().length(10, "Contact number must be exactly 10 digits."),
   fatherName: z.string().min(2, "Father's name is required."),
   motherName: z.string().min(2, "Mother's name is required."),
-  photo: z.any().refine(file => file instanceof File, "Photo is required."),
   dateOfBirth: z.date({
     required_error: "A date of birth is required.",
   }),
@@ -72,18 +70,9 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
       try {
-        const photoDataUri = await fileToBase64(values.photo);
-
         const studentToSave: Student = {
-          name: values.name,
-          registerNumber: values.registerNumber,
-          department: values.department,
-          email: values.email,
-          contact: values.contact,
-          fatherName: values.fatherName,
-          motherName: values.motherName,
-          photoURL: photoDataUri,
-          dateOfBirth: values.dateOfBirth,
+          ...values,
+          photoURL: "", // Initially empty, will be captured via camera
           // Generate a simple unique placeholder for faceId on the client
           faceId: `face_${values.registerNumber}_${Date.now()}`,
           createdAt: new Date(),
@@ -93,7 +82,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
 
         toast({
           title: "Student Added Successfully",
-          description: `${values.name} has been enrolled. The list will update automatically.`,
+          description: `${values.name} has been enrolled. You can now enroll their face for recognition.`,
         });
         onStudentAdded();
         form.reset();
@@ -111,8 +100,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="name"
@@ -218,23 +206,9 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
             />
              <FormField
                 control={form.control}
-                name="photo"
-                render={({ field: { onChange, value, ...rest } }) => (
-                <FormItem>
-                    <FormLabel>Student Photo</FormLabel>
-                    <FormControl>
-                    <Input type="file" accept="image/*" onChange={(e) => onChange(e.target.files?.[0])} {...rest} />
-                    </FormControl>
-                    <FormDescription>Used for face recognition.</FormDescription>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
                 name="dateOfBirth"
                 render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem className="flex flex-col pt-2">
                     <FormLabel>Date of birth</FormLabel>
                     <Popover>
                         <PopoverTrigger asChild>
@@ -274,8 +248,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                     </FormItem>
                 )}
             />
-        </div>
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end pt-4 col-span-2">
             <Button type="submit" disabled={isPending}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isPending ? 'Enrolling...' : 'Enroll Student'}
