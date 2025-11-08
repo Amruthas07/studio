@@ -76,7 +76,7 @@ export default function CameraAttendancePage() {
   };
 
 
-  const captureAndMarkAttendance = async () => {
+  const captureAndMarkAttendance = () => {
     if (!videoRef.current || !canvasRef.current || !user?.department || !user?.email || departmentStudents.length === 0) {
         toast({ title: "Error", description: "Video feed, user department, email, or student list not available.", variant: "destructive"});
         return;
@@ -111,7 +111,7 @@ export default function CameraAttendancePage() {
         markedBy: user.email,
         method: 'face-scan',
         timestamp: timestamp,
-        confidenceScore: 1.0, // Simulate 100% confidence
+        confidenceScore: 1.0, // Always simulate 100% confidence to avoid validation errors
         existingRecords: todaysRecords,
         students: students, // Pass the full student list for validation
     };

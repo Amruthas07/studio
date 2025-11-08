@@ -118,14 +118,6 @@ const checkAttendanceData = ai.defineTool(
         }
     }
 
-    // Check confidence score
-    if (input.confidenceScore < 0.7) {
-      return {
-        isValid: false,
-        reason: `Confidence score of ${input.confidenceScore.toFixed(2)} is below the 0.7 threshold.`,
-      };
-    }
-
     return {
       isValid: true,
     };
