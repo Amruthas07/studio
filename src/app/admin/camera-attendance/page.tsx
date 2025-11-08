@@ -102,19 +102,7 @@ export default function CameraAttendancePage() {
       return;
     }
     
-    // **Client-side check for existing attendance**
     const todaysRecords = attendanceRecords.filter(rec => rec.date === today);
-    const alreadyMarked = todaysRecords.some(rec => rec.studentRegister === randomStudent.registerNumber);
-    
-    if (alreadyMarked) {
-        toast({
-            variant: "default",
-            title: "Attendance Already Marked",
-            description: `${randomStudent.name} (${randomStudent.registerNumber}) has already been marked present today.`,
-        });
-        setIsProcessing(false);
-        return;
-    }
     
     const input: MarkAttendanceFromCameraInput = {
         studentRegister: randomStudent.registerNumber,
@@ -123,24 +111,27 @@ export default function CameraAttendancePage() {
         markedBy: user.email,
         method: 'face-scan',
         timestamp: timestamp,
-        confidenceScore: Math.random() * (0.99 - 0.8) + 0.8, // Simulate high confidence
+        confidenceScore: 1.0, // Simulate 100% confidence
         existingRecords: todaysRecords,
+        students: students, // Pass the full student list for validation
     };
 
     // No await here for optimistic update
     markAttendanceFromCamera(input).then(result => {
         if (result.success) {
-            // This is now fully in the background
-            const newRecord = {
+            // Optimistically add record to local state
+            const newRecord: AttendanceRecord = {
+              id: `temp_${Date.now()}`,
               studentRegister: input.studentRegister,
+              studentName: randomStudent.name,
               date: input.date,
               status: input.status,
               markedBy: input.markedBy,
               method: input.method,
               timestamp: input.timestamp,
-              confidenceScore: input.confidenceScore,
             };
             addAttendanceRecord(newRecord);
+
             toast({
                 title: "Attendance Marked",
                 description: `${randomStudent.name} (${input.studentRegister}) marked as present.`,

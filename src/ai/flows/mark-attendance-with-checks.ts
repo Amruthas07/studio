@@ -11,6 +11,22 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import type { Student } from '@/lib/types';
+
+const StudentSchema = z.object({
+  registerNumber: z.string(),
+  name: z.string(),
+  fatherName: z.string(),
+  motherName: z.string(),
+  department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
+  photoURL: z.string(),
+  email: z.string().email(),
+  contact: z.string(),
+  faceId: z.string().optional(),
+  createdAt: z.date(),
+  dateOfBirth: z.date(),
+});
+
 
 const AttendanceRecordSchema = z.object({
   id: z.string(),
@@ -44,6 +60,7 @@ const MarkAttendanceFromCameraInputSchema = z.object({
     .describe('The timestamp of when the attendance was marked (ISO format).'),
   confidenceScore: z.number().describe('Confidence score of the face recognition match.'),
   existingRecords: z.array(AttendanceRecordSchema).describe('List of existing attendance records for the day.'),
+  students: z.array(StudentSchema).describe("List of all students"),
 });
 
 export type MarkAttendanceFromCameraInput = z.infer<
@@ -76,7 +93,7 @@ const checkAttendanceData = ai.defineTool(
     }),
   },
   async (input) => {
-    // Check for existing record
+    // Check for existing record for the same student on the same day
     const alreadyExists = input.existingRecords.some(
         record => record.studentRegister === input.studentRegister && record.date === input.date
     );
@@ -89,13 +106,23 @@ const checkAttendanceData = ai.defineTool(
     }
 
     if (input.status === 'unknown-face') {
-        return { isValid: true };
+        return { isValid: true, reason: 'Unknown face detected.' };
     }
     
+    // Check if student register number exists in the student list
+    const studentExists = input.students.some(s => s.registerNumber === input.studentRegister);
+    if (!studentExists) {
+        return {
+            isValid: false,
+            reason: 'Recognized student does not exist in the database.',
+        }
+    }
+
+    // Check confidence score
     if (input.confidenceScore < 0.7) {
       return {
         isValid: false,
-        reason: 'Confidence score below threshold.',
+        reason: `Confidence score of ${input.confidenceScore.toFixed(2)} is below the 0.7 threshold.`,
       };
     }
 
@@ -110,7 +137,7 @@ const markAttendanceFromCameraPrompt = ai.definePrompt({
   tools: [checkAttendanceData],
   input: {schema: MarkAttendanceFromCameraInputSchema},
   output: {schema: MarkAttendanceFromCameraOutputSchema},
-  prompt: `You are an attendance recording assistant.  You will receive attendance information that has already been processed by a face-scanning camera.  Use the checkAttendanceData tool to validate the data, and return a success or failure message appropriately.
+  prompt: `You are an attendance recording assistant. You will receive attendance information that has already been processed by a face-scanning camera. Use the checkAttendanceData tool to validate the data, and return a success or failure message appropriately.
 
 Input Data: {{{JSON.stringify $}}}
 `,
@@ -128,16 +155,16 @@ const markAttendanceFromCameraFlow = ai.defineFlow(
     if (!checkResult.isValid) {
       return {
         success: false,
-        message: `Invalid attendance data: ${checkResult.reason || 'Unknown reason'}`,
+        message: `${checkResult.reason || 'Invalid attendance data.'}`,
       };
     }
 
-    // Here, in a real implementation, you would save the attendance record to Firestore.
-    // This is just a simulation.
+    // This is a simulation. In a real implementation, you would save the new record to Firestore.
+    // The front-end is already optimistically adding the record, so no further action is needed here for the simulation.
 
     return {
       success: true,
-      message: 'Attendance successfully recorded (simulated).',
+      message: 'Attendance successfully recorded.',
     };
   }
 );
