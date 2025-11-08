@@ -113,7 +113,7 @@ export default function CameraAttendancePage() {
         };
     } else {
         input = {
-            studentRegister: randomStudent.registerNumber, // Still log which student was attempted
+            studentRegister: randomStudent?.registerNumber || "UNKNOWN", // Still log which student was attempted if possible
             date: timestamp.split('T')[0],
             status: 'unknown-face',
             markedBy: user.email,
@@ -123,30 +123,32 @@ export default function CameraAttendancePage() {
         };
     }
 
-    const result = await markAttendanceFromCamera(input);
+    // No await here for optimistic update
+    markAttendanceFromCamera(input).then(result => {
+        if (result.success) {
+            // This is now fully in the background
+            addAttendanceRecord(input);
 
-    if (result.success) {
-      await addAttendanceRecord(input);
-
-      if (isRecognized && randomStudent) {
-        toast({
-            title: "Attendance Marked",
-            description: `${randomStudent.name} (${input.studentRegister}) marked as present.`,
-        });
-      } else {
-        toast({
-            variant: "destructive",
-            title: "Face Not Recognised",
-            description: "Could not identify the student (simulated failure).",
-        });
-      }
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Failed to Mark Attendance",
-        description: result.message,
-      });
-    }
+            if (isRecognized && randomStudent) {
+                toast({
+                    title: "Attendance Marked",
+                    description: `${randomStudent.name} (${input.studentRegister}) marked as present.`,
+                });
+            } else {
+                toast({
+                    variant: "destructive",
+                    title: "Face Not Recognised",
+                    description: "Could not identify the student (simulated failure).",
+                });
+            }
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Failed to Mark Attendance",
+                description: result.message,
+            });
+        }
+    });
 
     setIsProcessing(false);
   };
