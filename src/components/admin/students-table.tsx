@@ -1,3 +1,4 @@
+
 import {
   Table,
   TableBody,
@@ -81,17 +82,10 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace }: Student
                             </TableCell>
                             <TableCell className="text-right">
                                <div className="flex justify-end gap-2">
-                                     <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button variant="outline" size="icon" onClick={() => onEnrollFace(student)}>
-                                                <Camera className="h-4 w-4" />
-                                                <span className="sr-only">{student.photoURL ? 'Re-enroll Face' : 'Enroll Face'}</span>
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>{student.photoURL ? 'Re-enroll Face' : 'Enroll Face'}</p>
-                                        </TooltipContent>
-                                    </Tooltip>
+                                     <Button variant={student.photoURL ? "outline" : "default"} size="sm" onClick={() => onEnrollFace(student)}>
+                                        <Camera className="mr-2 h-4 w-4" />
+                                        {student.photoURL ? 'Re-enroll Face' : 'Enroll Face'}
+                                    </Button>
                                      <Tooltip>
                                         <TooltipTrigger asChild>
                                              <Button variant="outline" size="icon" onClick={() => onEditStudent(student)}>
