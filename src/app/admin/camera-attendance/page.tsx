@@ -21,7 +21,7 @@ export default function CameraAttendancePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { addAttendanceRecord } = useAttendance();
+  const { attendanceRecords, addAttendanceRecord } = useAttendance();
   const { students } = useStudents();
   
   const departmentStudents = React.useMemo(() => {
@@ -91,56 +91,60 @@ export default function CameraAttendancePage() {
     const context = canvas.getContext('2d');
     context?.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    // Simulate a 25% chance of face not being recognized
-    const isRecognized = true;
-    
     const timestamp = new Date().toISOString();
-    let input: MarkAttendanceFromCameraInput;
+    const today = timestamp.split('T')[0];
     
     // Simulate recognition by picking a random student from the department
     const randomStudent = departmentStudents[Math.floor(Math.random() * departmentStudents.length)];
-
-
-    if (isRecognized && randomStudent) {
-        input = {
-            studentRegister: randomStudent.registerNumber,
-            date: timestamp.split('T')[0],
-            status: 'present',
-            markedBy: user.email,
-            method: 'face-scan',
-            timestamp: timestamp,
-            confidenceScore: Math.random() * (0.99 - 0.8) + 0.8, // Simulate high confidence
-        };
-    } else {
-        input = {
-            studentRegister: randomStudent?.registerNumber || "UNKNOWN", // Still log which student was attempted if possible
-            date: timestamp.split('T')[0],
-            status: 'unknown-face',
-            markedBy: user.email,
-            method: 'face-scan',
-            timestamp: timestamp,
-            confidenceScore: Math.random() * (0.6 - 0.2) + 0.2, // Simulate low confidence
-        };
+    if (!randomStudent) {
+      toast({ title: "Error", description: "No students found in the department.", variant: "destructive"});
+      setIsProcessing(false);
+      return;
     }
+    
+    // **Client-side check for existing attendance**
+    const todaysRecords = attendanceRecords.filter(rec => rec.date === today);
+    const alreadyMarked = todaysRecords.some(rec => rec.studentRegister === randomStudent.registerNumber);
+    
+    if (alreadyMarked) {
+        toast({
+            variant: "default",
+            title: "Attendance Already Marked",
+            description: `${randomStudent.name} (${randomStudent.registerNumber}) has already been marked present today.`,
+        });
+        setIsProcessing(false);
+        return;
+    }
+    
+    const input: MarkAttendanceFromCameraInput = {
+        studentRegister: randomStudent.registerNumber,
+        date: today,
+        status: 'present',
+        markedBy: user.email,
+        method: 'face-scan',
+        timestamp: timestamp,
+        confidenceScore: Math.random() * (0.99 - 0.8) + 0.8, // Simulate high confidence
+        existingRecords: todaysRecords,
+    };
 
     // No await here for optimistic update
     markAttendanceFromCamera(input).then(result => {
         if (result.success) {
             // This is now fully in the background
-            addAttendanceRecord(input);
-
-            if (isRecognized && randomStudent) {
-                toast({
-                    title: "Attendance Marked",
-                    description: `${randomStudent.name} (${input.studentRegister}) marked as present.`,
-                });
-            } else {
-                toast({
-                    variant: "destructive",
-                    title: "Face Not Recognised",
-                    description: "Could not identify the student (simulated failure).",
-                });
-            }
+            const newRecord = {
+              studentRegister: input.studentRegister,
+              date: input.date,
+              status: input.status,
+              markedBy: input.markedBy,
+              method: input.method,
+              timestamp: input.timestamp,
+              confidenceScore: input.confidenceScore,
+            };
+            addAttendanceRecord(newRecord);
+            toast({
+                title: "Attendance Marked",
+                description: `${randomStudent.name} (${input.studentRegister}) marked as present.`,
+            });
         } else {
             toast({
                 variant: "destructive",
@@ -157,7 +161,7 @@ export default function CameraAttendancePage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline">Live Attendance</h1>
-        <p className="text-muted-foreground">Mark student attendance using the camera.</p>
+        <p className="text-muted-foreground">Mark student attendance using the camera. A student's attendance can only be marked once per day.</p>
       </div>
 
       <Card>

@@ -12,6 +12,17 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
+const AttendanceRecordSchema = z.object({
+  id: z.string(),
+  studentRegister: z.string(),
+  studentName: z.string().optional(),
+  date: z.string(),
+  status: z.enum(['present', 'absent', 'late', 'manual', 'unknown-face']),
+  markedBy: z.string(),
+  method: z.enum(['face-scan', 'manual']),
+  timestamp: z.string(),
+});
+
 const MarkAttendanceFromCameraInputSchema = z.object({
   studentRegister: z
     .string()
@@ -32,6 +43,7 @@ const MarkAttendanceFromCameraInputSchema = z.object({
     .string()
     .describe('The timestamp of when the attendance was marked (ISO format).'),
   confidenceScore: z.number().describe('Confidence score of the face recognition match.'),
+  existingRecords: z.array(AttendanceRecordSchema).describe('List of existing attendance records for the day.'),
 });
 
 export type MarkAttendanceFromCameraInput = z.infer<
@@ -56,7 +68,7 @@ export async function markAttendanceFromCamera(
 const checkAttendanceData = ai.defineTool(
   {
     name: 'checkAttendanceData',
-    description: 'Checks the attendance data for validity.',
+    description: 'Checks the attendance data for validity, including checking for duplicates.',
     inputSchema: MarkAttendanceFromCameraInputSchema,
     outputSchema: z.object({
       isValid: z.boolean().describe('Whether the attendance data is valid.'),
@@ -64,8 +76,18 @@ const checkAttendanceData = ai.defineTool(
     }),
   },
   async (input) => {
-    // If the face is unknown, we still consider it "valid" to record,
-    // but the confidence is low.
+    // Check for existing record
+    const alreadyExists = input.existingRecords.some(
+        record => record.studentRegister === input.studentRegister && record.date === input.date
+    );
+
+    if (alreadyExists) {
+        return {
+            isValid: false,
+            reason: 'Attendance has already been marked for this student today.',
+        };
+    }
+
     if (input.status === 'unknown-face') {
         return { isValid: true };
     }
@@ -76,7 +98,6 @@ const checkAttendanceData = ai.defineTool(
         reason: 'Confidence score below threshold.',
       };
     }
-
 
     return {
       isValid: true,
@@ -113,8 +134,6 @@ const markAttendanceFromCameraFlow = ai.defineFlow(
 
     // Here, in a real implementation, you would save the attendance record to Firestore.
     // This is just a simulation.
-
-    // const {output} = await markAttendanceFromCameraPrompt(input);
 
     return {
       success: true,
