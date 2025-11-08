@@ -72,7 +72,11 @@ export async function generateReport(values: GenerateReportClientInput) {
             startDate: values.date.toISOString().split('T')[0],
             endDate: values.date.toISOString().split('T')[0], // Keeping for schema consistency
             department: values.department,
-            students: values.students.map(s => ({...s, createdAt: s.createdAt.toISOString(), dateOfBirth: s.dateOfBirth.toISOString() })),
+            students: values.students.map(s => ({
+                ...s, 
+                createdAt: s.createdAt.toISOString(), 
+                dateOfBirth: s.dateOfBirth.toISOString() 
+            })),
             attendanceRecords: values.attendanceRecords,
         };
 
@@ -96,7 +100,11 @@ export async function generateDailyReport(values: GenerateDailyReportClientInput
         
         const toolInput: DailyAttendanceReportInput = {
             department: values.department,
-            students: values.students.map(s => ({...s, createdAt: s.createdAt.toISOString(), dateOfBirth: s.dateOfBirth.toISOString() })),
+            students: values.students.map(s => ({
+                ...s, 
+                createdAt: s.createdAt.toISOString(), 
+                dateOfBirth: s.dateOfBirth.toISOString() 
+            })),
             attendanceRecords: values.attendanceRecords,
         };
 

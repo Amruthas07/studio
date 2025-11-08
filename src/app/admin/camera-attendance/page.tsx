@@ -103,6 +103,13 @@ export default function CameraAttendancePage() {
     }
     
     const todaysRecords = attendanceRecords.filter(rec => rec.date === today);
+
+    // Prepare students data for the flow by converting dates to strings
+    const studentsForFlow = students.map(s => ({
+        ...s,
+        createdAt: s.createdAt.toISOString(),
+        dateOfBirth: s.dateOfBirth.toISOString(),
+    }));
     
     const input: MarkAttendanceFromCameraInput = {
         studentRegister: randomStudent.registerNumber,
@@ -111,17 +118,16 @@ export default function CameraAttendancePage() {
         markedBy: user.email,
         method: 'face-scan',
         timestamp: timestamp,
-        confidenceScore: 1.0, // Always simulate 100% confidence to avoid validation errors
+        confidenceScore: 1.0, 
         existingRecords: todaysRecords,
-        students: students, // Pass the full student list for validation
+        students: studentsForFlow, // Pass the formatted student list
     };
 
-    // No await here for optimistic update
     markAttendanceFromCamera(input).then(result => {
         setIsProcessing(false);
         if (result.success) {
-            // If validation is successful, THEN add the record
             const newRecord = {
+              id: `manual_${Date.now()}`,
               studentRegister: input.studentRegister,
               date: input.date,
               status: input.status,
@@ -129,7 +135,7 @@ export default function CameraAttendancePage() {
               method: input.method,
               timestamp: input.timestamp,
             };
-            addAttendanceRecord(newRecord); // This will add to firestore and local state
+            addAttendanceRecord(newRecord); 
 
             toast({
                 title: "Attendance Marked",
@@ -144,6 +150,7 @@ export default function CameraAttendancePage() {
         }
     }).catch(error => {
         setIsProcessing(false);
+        console.error(error);
         toast({
             variant: "destructive",
             title: "An Error Occurred",
