@@ -4,6 +4,7 @@
 import { z } from "zod";
 import { attendanceReportingWithFiltering, type AttendanceReportingWithFilteringInput } from "@/ai/flows/attendance-reporting-with-filtering";
 import { dailyAttendanceReport, type DailyAttendanceReportInput } from "@/ai/flows/daily-attendance-report";
+import type { Student, AttendanceRecord } from "@/lib/types";
 
 const addStudentSchema = z.object({
   name: z.string(),
@@ -25,13 +26,15 @@ const editStudentSchema = addStudentSchema.omit({ photoDataUri: true }).extend({
 
 // Updated to expect a single date for daily roll call
 const reportSchema = z.object({
-  dateRange: z.object({
-    from: z.date(),
-    to: z.date(),
-  }),
+  date: z.date(),
   department: z.string(),
 });
 
+// This is the data that will be passed from the client
+type GenerateReportClientInput = z.infer<typeof reportSchema> & {
+    students: Student[];
+    attendanceRecords: AttendanceRecord[];
+}
 
 export async function updateStudent(formData: FormData) {
   try {
@@ -56,15 +59,16 @@ export async function updateStudent(formData: FormData) {
   }
 }
 
-export async function generateReport(values: z.infer<typeof reportSchema>) {
+export async function generateReport(values: GenerateReportClientInput) {
     try {
-        const validatedData = reportSchema.parse(values);
-        
         // The flow expects a start and end date. For a single-day report, they are the same.
+        // It also now expects the full data sets.
         const toolInput: AttendanceReportingWithFilteringInput = {
-            startDate: validatedData.dateRange.from.toISOString().split('T')[0],
-            endDate: validatedData.dateRange.to.toISOString().split('T')[0],
-            department: validatedData.department,
+            startDate: values.date.toISOString().split('T')[0],
+            endDate: values.date.toISOString().split('T')[0], // Keeping for schema consistency
+            department: values.department,
+            students: values.students.map(s => ({...s, createdAt: new Date(s.createdAt), dateOfBirth: new Date(s.dateOfBirth) })),
+            attendanceRecords: values.attendanceRecords,
         };
 
         const result = await attendanceReportingWithFiltering(toolInput);

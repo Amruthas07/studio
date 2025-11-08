@@ -11,7 +11,34 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { getInitialAttendance, getInitialStudents } from '@/lib/mock-data';
+import type { Student, AttendanceRecord } from '@/lib/types';
+
+
+const StudentSchema = z.object({
+  registerNumber: z.string(),
+  name: z.string(),
+  fatherName: z.string(),
+  motherName: z.string(),
+  department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
+  photoURL: z.string(),
+  email: z.string().email(),
+  contact: z.string(),
+  faceId: z.string().optional(),
+  createdAt: z.date(),
+  dateOfBirth: z.date(),
+});
+
+const AttendanceRecordSchema = z.object({
+  id: z.string(),
+  studentRegister: z.string(),
+  studentName: z.string().optional(),
+  date: z.string(),
+  status: z.enum(['present', 'absent', 'late', 'manual', 'unknown-face']),
+  markedBy: z.string(),
+  method: z.enum(['face-scan', 'manual']),
+  timestamp: z.string(),
+});
+
 
 const AttendanceReportingWithFilteringInputSchema = z.object({
   startDate: z
@@ -19,6 +46,8 @@ const AttendanceReportingWithFilteringInputSchema = z.object({
     .describe('The date for the attendance report (YYYY-MM-DD).'),
   endDate: z.string().describe('The end date for the report (will be same as start date).'),
   department: z.string().describe('The department to generate the report for (e.g., cs, ce, me).'),
+  students: z.array(StudentSchema).describe("List of all students"),
+  attendanceRecords: z.array(AttendanceRecordSchema).describe("List of all attendance records"),
 });
 
 export type AttendanceReportingWithFilteringInput = z.infer<
@@ -61,20 +90,14 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
     outputSchema: AttendanceReportingWithFilteringOutputSchema,
   },
   async input => {
-    // These functions now pull from Firestore via the contexts, but we get them here.
-    // In a real flow, you'd pass this data in or fetch it directly. For this project structure,
-    // we must re-implement the logic within the flow.
-    const mockAttendance = getInitialAttendance();
-    const mockStudents = getInitialStudents();
-    
     // 1. Filter students by department
     const departmentStudents = input.department === 'all'
-      ? mockStudents
-      : mockStudents.filter(s => s.department === input.department);
+      ? input.students
+      : input.students.filter(s => s.department === input.department);
     
     // 2. Filter attendance records for the selected date
     const reportDate = input.startDate;
-    const todaysRecords = mockAttendance.filter(record => record.date === reportDate);
+    const todaysRecords = input.attendanceRecords.filter(record => record.date === reportDate);
     const presentStudentRegisters = new Set(
         todaysRecords
             .filter(r => r.status === 'present' || r.status === 'late')
@@ -83,6 +106,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
 
     // 3. Create the roll call list
     const rollCall = departmentStudents.map(student => {
+        const isPresent = presentStudentRegisters.has(student.registerNumber);
         const attendanceRecord = todaysRecords.find(rec => rec.studentRegister === student.registerNumber);
         
         let status = 'absent';
@@ -93,6 +117,8 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
             status = attendanceRecord.status;
             timestamp = new Date(attendanceRecord.timestamp).toLocaleString();
             method = attendanceRecord.method;
+        } else if (isPresent) { // Should not happen with current logic, but as a fallback
+             status = 'present';
         }
 
         return {

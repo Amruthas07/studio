@@ -30,6 +30,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { CalendarIcon, Loader2 } from "lucide-react"
 import { Calendar } from "../ui/calendar"
 import { cn } from "@/lib/utils"
+import { useStudents } from "@/hooks/use-students"
+import { useAttendance } from "@/hooks/use-attendance"
 
 const formSchema = z.object({
   date: z.date(),
@@ -43,6 +45,8 @@ type ReportFormProps = {
 export function ReportForm({ onReportGenerated }: ReportFormProps) {
   const { toast } = useToast()
   const [isPending, startTransition] = React.useTransition()
+  const { students, loading: studentsLoading } = useStudents();
+  const { attendanceRecords, loading: attendanceLoading } = useAttendance();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -56,8 +60,10 @@ export function ReportForm({ onReportGenerated }: ReportFormProps) {
     startTransition(async () => {
       // The generateReport action now expects a single date, so we adapt the input
       const reportValues = {
-        dateRange: { from: values.date, to: values.date },
-        department: values.department
+        date: values.date,
+        department: values.department,
+        students, // Pass live data
+        attendanceRecords // Pass live data
       };
 
       const result = await generateReport(reportValues)
@@ -91,6 +97,8 @@ export function ReportForm({ onReportGenerated }: ReportFormProps) {
       }
     })
   }
+
+  const isLoading = isPending || studentsLoading || attendanceLoading;
 
   return (
     <Form {...form}>
@@ -164,11 +172,11 @@ export function ReportForm({ onReportGenerated }: ReportFormProps) {
           )}
         />
         
-        <Button type="submit" disabled={isPending}>
-          {isPending ? (
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? (
             <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
+                {isPending ? 'Generating...' : 'Loading Data...'}
             </>
           ) : 'Generate Report'}
         </Button>
