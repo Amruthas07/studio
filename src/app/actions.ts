@@ -23,13 +23,13 @@ const editStudentSchema = addStudentSchema.omit({ photoDataUri: true }).extend({
     photoDataUri: z.string().optional(),
 });
 
+// Updated to expect a single date for daily roll call
 const reportSchema = z.object({
   dateRange: z.object({
     from: z.date(),
     to: z.date(),
   }),
   department: z.string(),
-  certainty: z.number().optional(),
 });
 
 
@@ -60,11 +60,11 @@ export async function generateReport(values: z.infer<typeof reportSchema>) {
     try {
         const validatedData = reportSchema.parse(values);
         
+        // The flow expects a start and end date. For a single-day report, they are the same.
         const toolInput: AttendanceReportingWithFilteringInput = {
             startDate: validatedData.dateRange.from.toISOString().split('T')[0],
             endDate: validatedData.dateRange.to.toISOString().split('T')[0],
             department: validatedData.department,
-            certaintyThreshold: validatedData.certainty ? validatedData.certainty / 100 : undefined,
         };
 
         const result = await attendanceReportingWithFiltering(toolInput);

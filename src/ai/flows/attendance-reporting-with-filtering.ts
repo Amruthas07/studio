@@ -1,9 +1,10 @@
+
 'use server';
 
 /**
- * @fileOverview A Genkit flow for exporting attendance records with filtering based on AI-determined certainty values.
+ * @fileOverview A Genkit flow for exporting a daily attendance roll call, showing present and absent students.
  *
- * - attendanceReportingWithFiltering - A function that handles the attendance reporting process with filtering.
+ * - attendanceReportingWithFiltering - A function that handles the attendance reporting process.
  * - AttendanceReportingWithFilteringInput - The input type for the attendanceReportingWithFiltering function.
  * - AttendanceReportingWithFilteringOutput - The return type for the attendanceReportingWith-filtering function.
  */
@@ -15,17 +16,9 @@ import { getInitialAttendance, getInitialStudents } from '@/lib/mock-data';
 const AttendanceReportingWithFilteringInputSchema = z.object({
   startDate: z
     .string()
-    .describe('The start date for the attendance report (YYYY-MM-DD).'),
-  endDate: z.string().describe('The end date for the attendance report (YYYY-MM-DD).'),
+    .describe('The date for the attendance report (YYYY-MM-DD).'),
+  endDate: z.string().describe('The end date for the report (will be same as start date).'),
   department: z.string().describe('The department to generate the report for (e.g., cs, ce, me).'),
-  certaintyThreshold: z
-    .number()
-    .min(0)
-    .max(1)
-    .optional()
-    .describe(
-      'Optional: The minimum certainty value (0 to 1) for face detection matches to include in the report.'
-    ),
 });
 
 export type AttendanceReportingWithFilteringInput = z.infer<
@@ -68,6 +61,9 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
     outputSchema: AttendanceReportingWithFilteringOutputSchema,
   },
   async input => {
+    // These functions now pull from Firestore via the contexts, but we get them here.
+    // In a real flow, you'd pass this data in or fetch it directly. For this project structure,
+    // we must re-implement the logic within the flow.
     const mockAttendance = getInitialAttendance();
     const mockStudents = getInitialStudents();
     
@@ -75,53 +71,63 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
     const departmentStudents = input.department === 'all'
       ? mockStudents
       : mockStudents.filter(s => s.department === input.department);
-    const departmentStudentRegisters = new Set(departmentStudents.map(s => s.registerNumber));
     
-    // 2. Filter attendance records by date range and department
-    const startDate = new Date(input.startDate);
-    const endDate = new Date(input.endDate);
+    // 2. Filter attendance records for the selected date
+    const reportDate = input.startDate;
+    const todaysRecords = mockAttendance.filter(record => record.date === reportDate);
+    const presentStudentRegisters = new Set(
+        todaysRecords
+            .filter(r => r.status === 'present' || r.status === 'late')
+            .map(r => r.studentRegister)
+    );
 
-    let filteredRecords = mockAttendance.filter(record => {
-        const recordDate = new Date(record.date);
-        const isStudentInDepartment = departmentStudentRegisters.has(record.studentRegister);
-        const isDateInRange = recordDate >= startDate && recordDate <= endDate;
-        // Placeholder for certainty check if it was available in mock data
-        // const hasCertainty = input.certaintyThreshold ? (record.confidenceScore || 1) >= input.certaintyThreshold : true;
-        return isStudentInDepartment && isDateInRange;
+    // 3. Create the roll call list
+    const rollCall = departmentStudents.map(student => {
+        const attendanceRecord = todaysRecords.find(rec => rec.studentRegister === student.registerNumber);
+        
+        let status = 'absent';
+        let timestamp = 'N/A';
+        let method = 'N/A';
+
+        if (attendanceRecord) {
+            status = attendanceRecord.status;
+            timestamp = new Date(attendanceRecord.timestamp).toLocaleString();
+            method = attendanceRecord.method;
+        }
+
+        return {
+            "Register Number": student.registerNumber,
+            "Student Name": student.name,
+            "Department": student.department.toUpperCase(),
+            "Date": reportDate,
+            "Status": status,
+            "Timestamp": timestamp,
+            "Method": method
+        };
     });
 
-    // 3. Join student name into records
-    const studentMap = new Map(mockStudents.map(s => [s.registerNumber, s.name]));
-    const enhancedRecords = filteredRecords.map(rec => ({
-      ...rec,
-      studentName: studentMap.get(rec.studentRegister) || 'Unknown Student',
-    }));
-
-
-    // 4. Calculate summary by unique students within the date range
-    const presentStudents = new Set(filteredRecords.filter(r => r.status === 'present' || r.status === 'late').map(r => r.studentRegister));
+    // 4. Calculate summary
+    const presentCount = rollCall.filter(s => s.Status === 'present' || s.Status === 'late').length;
+    const absentCount = rollCall.length - presentCount;
     
-    const allStudentRegistersInDept = new Set(departmentStudents.map(s => s.registerNumber));
-    
-    const absentStudentRegisters = new Set([...allStudentRegistersInDept].filter(x => !presentStudents.has(x)));
-    
-    const presentCount = presentStudents.size;
-    const absentCount = absentStudentRegisters.size;
-
-    // 5. Create summary CSV string
     const summaryData = [
+      { metric: `Report for Date`, value: reportDate },
+      { metric: `Department`, value: input.department.toUpperCase() },
+      { metric: 'Total Students', value: rollCall.length },
       { metric: 'Number of Students Present', value: presentCount },
       { metric: 'Number of Students Absent', value: absentCount },
     ];
     const summaryCsv = convertToCSV(summaryData);
     
-    // 6. Convert main data to CSV
-    const recordsCsv = convertToCSV(enhancedRecords);
+    // 5. Convert main data to CSV
+    const rollCallCsv = convertToCSV(rollCall.length > 0 ? rollCall : [
+        { "Message": "No students found for this department." }
+    ]);
 
-    // 7. Combine summary and main data
-    const finalCsvData = `${summaryCsv}\r\n\r\n${recordsCsv}`;
+    // 6. Combine summary and main data
+    const finalCsvData = `${summaryCsv}\r\n\r\n${rollCallCsv}`;
 
-    // 8. Create a data URI
+    // 7. Create a data URI
     const fileUrl = `data:text/csv;charset=utf-8,${encodeURIComponent(finalCsvData)}`;
 
     return {fileUrl};
