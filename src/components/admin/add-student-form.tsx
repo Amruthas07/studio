@@ -47,7 +47,7 @@ const formSchema = z.object({
 })
 
 type AddStudentFormProps = {
-    onStudentAdded: () => void;
+    onStudentAdded: (newStudent: Student) => void;
 }
 
 export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
@@ -84,7 +84,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           title: "Student Added Successfully",
           description: `${values.name} has been enrolled. You can now enroll their face for recognition.`,
         });
-        onStudentAdded();
+        onStudentAdded(studentToSave);
         form.reset();
 
       } catch (error) {
@@ -251,7 +251,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
         <div className="flex justify-end pt-4 col-span-2">
             <Button type="submit" disabled={isPending}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isPending ? 'Enrolling...' : 'Enroll Student'}
+                {isPending ? 'Enrolling...' : 'Enroll Student & Scan Face'}
             </Button>
         </div>
       </form>

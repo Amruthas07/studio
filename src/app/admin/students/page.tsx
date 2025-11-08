@@ -35,8 +35,11 @@ export default function StudentsPage() {
   const [studentToEnroll, setStudentToEnroll] = React.useState<Student | null>(null);
 
 
-  const handleStudentAdded = () => {
+  const handleStudentAdded = (newStudent: Student) => {
     setIsAddDialogOpen(false);
+    // Automatically open the enroll dialog for the new student
+    setStudentToEnroll(newStudent);
+    setIsEnrollDialogOpen(true);
   };
   
   const handleStudentUpdated = () => {
@@ -47,10 +50,15 @@ export default function StudentsPage() {
   const handleFaceEnrolled = async (photoDataUri: string) => {
     if (!studentToEnroll) return;
     try {
+      // Optimistically update the UI
+      const studentName = studentToEnroll.name;
+      setStudentToEnroll(prev => prev ? {...prev, photoURL: photoDataUri} : null);
+
       await updateStudent(studentToEnroll.registerNumber, { photoURL: photoDataUri });
+      
       toast({
         title: "Face Enrolled Successfully",
-        description: `A new face has been captured for ${studentToEnroll.name}.`,
+        description: `A new face has been captured for ${studentName}.`,
       });
     } catch(e: any) {
        toast({
@@ -110,7 +118,7 @@ export default function StudentsPage() {
             <DialogHeader>
               <DialogTitle className="font-headline text-2xl">Add New Student</DialogTitle>
               <DialogDescription>
-                Fill in the details below to enroll a new student. Then, enroll their face for recognition.
+                Fill in the details below to enroll a new student. You will then be prompted to enroll their face.
               </DialogDescription>
             </DialogHeader>
             <AddStudentForm onStudentAdded={handleStudentAdded} />
@@ -140,7 +148,10 @@ export default function StudentsPage() {
       {/* Enroll Face Dialog */}
        <EnrollFaceDialog 
           isOpen={isEnrollDialogOpen} 
-          onOpenChange={setIsEnrollDialogOpen}
+          onOpenChange={(isOpen) => {
+            setIsEnrollDialogOpen(isOpen);
+            if (!isOpen) setStudentToEnroll(null); // Clear student when closing dialog
+          }}
           student={studentToEnroll}
           onFaceEnrolled={handleFaceEnrolled}
       />
