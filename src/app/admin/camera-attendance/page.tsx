@@ -24,7 +24,7 @@ export default function CameraAttendancePage() {
   const { user } = useAuth();
   const { addAttendanceRecord } = useAttendance();
   const { students } = useStudents();
-  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+  const [selectedStudentRegister, setSelectedStudentRegister] = useState<string | null>(null);
 
   const departmentStudents = React.useMemo(() => {
     if (!user?.department || !students) return [];
@@ -84,7 +84,7 @@ export default function CameraAttendancePage() {
         return;
     }
 
-    if (!selectedStudent) {
+    if (!selectedStudentRegister) {
         toast({ title: "No Student Selected", description: "Please select a student to simulate recognition.", variant: "destructive"});
         return;
     }
@@ -97,15 +97,6 @@ export default function CameraAttendancePage() {
     canvas.height = video.videoHeight;
     const context = canvas.getContext('2d');
     context?.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // This is a placeholder for a real face recognition API call
-    // In a real app, you would send the canvas image data to a service
-    
-    if (departmentStudents.length === 0) {
-        toast({ title: "No Students", description: `No students enrolled in the ${user.department.toUpperCase()} department.`, variant: "destructive"});
-        setIsProcessing(false);
-        return;
-    }
     
     // Simulate a 25% chance of face not being recognized
     const isRecognized = Math.random() > 0.25;
@@ -114,15 +105,12 @@ export default function CameraAttendancePage() {
     let input: MarkAttendanceFromCameraInput;
     let studentName = "";
 
-    if (isRecognized) {
-        const student = students.find(s => s.registerNumber === selectedStudent);
-        if (!student) {
-            setIsProcessing(false);
-            return toast({title: "Student not found", variant: "destructive"});
-        }
-        studentName = student.name;
+    const selectedStudent = departmentStudents.find(s => s.registerNumber === selectedStudentRegister);
+
+    if (isRecognized && selectedStudent) {
+        studentName = selectedStudent.name;
         input = {
-            studentRegister: student.registerNumber,
+            studentRegister: selectedStudent.registerNumber,
             date: timestamp.split('T')[0],
             status: 'present',
             markedBy: user.email,
@@ -132,7 +120,7 @@ export default function CameraAttendancePage() {
         };
     } else {
         input = {
-            studentRegister: 'UNKNOWN',
+            studentRegister: selectedStudentRegister, // Still log which student was attempted
             date: timestamp.split('T')[0],
             status: 'unknown-face',
             markedBy: user.email,
@@ -147,7 +135,7 @@ export default function CameraAttendancePage() {
     if (result.success) {
       await addAttendanceRecord(input);
 
-      if (isRecognized) {
+      if (isRecognized && selectedStudent) {
         toast({
             title: "Attendance Marked",
             description: `${studentName} (${input.studentRegister}) marked as present.`,
@@ -224,7 +212,7 @@ export default function CameraAttendancePage() {
           
           <div className="w-full max-w-sm space-y-2">
             <label className="text-sm font-medium">Simulate Recognition For:</label>
-             <Select onValueChange={setSelectedStudent} value={selectedStudent ?? undefined}>
+             <Select onValueChange={setSelectedStudentRegister} value={selectedStudentRegister ?? undefined}>
                 <SelectTrigger>
                     <SelectValue placeholder="Select a student..." />
                 </SelectTrigger>
@@ -243,7 +231,7 @@ export default function CameraAttendancePage() {
                 <Button 
                     size="lg"
                     onClick={captureAndMarkAttendance}
-                    disabled={!isStreaming || isProcessing || hasCameraPermission === false || !selectedStudent}
+                    disabled={!isStreaming || isProcessing || hasCameraPermission === false || !selectedStudentRegister}
                 >
                     {isProcessing ? (
                         <>
