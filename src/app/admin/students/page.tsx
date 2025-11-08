@@ -25,7 +25,7 @@ import { EnrollFaceDialog } from '@/components/admin/enroll-face-dialog';
 export default function StudentsPage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const { students, loading: studentsLoading, updateStudent } = useStudents();
+  const { students, loading: studentsLoading, updateStudent, setStudents } = useStudents();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
@@ -49,29 +49,22 @@ export default function StudentsPage() {
 
   const handleFaceEnrolled = (photoDataUri: string) => {
     if (!studentToEnroll) return;
-    try {
-      const studentName = studentToEnroll.name;
+    
+    const studentName = studentToEnroll.name;
 
-      // Optimistically update the UI
-      setStudents(prev => prev.map(s => s.registerNumber === studentToEnroll.registerNumber ? {...s, photoURL: photoDataUri} : s));
+    // Optimistically update the UI
+    setStudents(prev => prev.map(s => s.registerNumber === studentToEnroll.registerNumber ? {...s, photoURL: photoDataUri} : s));
 
-      // No await here for optimistic update
-      updateStudent(studentToEnroll.registerNumber, { photoURL: photoDataUri });
-      
-      toast({
-        title: "Face Enrolled Successfully",
-        description: `A new face has been captured for ${studentName}.`,
-      });
-    } catch(e: any) {
-       toast({
-        variant: "destructive",
-        title: "Face Enrollment Failed",
-        description: e.message || "An unexpected error occurred.",
-      });
-    } finally {
-      setIsEnrollDialogOpen(false);
-      setStudentToEnroll(null);
-    }
+    // No await here for optimistic update in background
+    updateStudent(studentToEnroll.registerNumber, { photoURL: photoDataUri });
+    
+    toast({
+      title: "Face Enrolled Successfully",
+      description: `A new face has been captured for ${studentName}.`,
+    });
+    
+    setIsEnrollDialogOpen(false);
+    setStudentToEnroll(null);
   };
 
   const openEditDialog = (student: Student) => {
