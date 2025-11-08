@@ -92,7 +92,7 @@ export default function CameraAttendancePage() {
     context?.drawImage(video, 0, 0, canvas.width, canvas.height);
     
     // Simulate a 25% chance of face not being recognized
-    const isRecognized = Math.random() > 0.25;
+    const isRecognized = true;
     
     const timestamp = new Date().toISOString();
     let input: MarkAttendanceFromCameraInput;
