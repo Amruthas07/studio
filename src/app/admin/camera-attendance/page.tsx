@@ -12,7 +12,6 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import type { AttendanceRecord, Student } from '@/lib/types';
 import { useAttendance } from '@/hooks/use-attendance';
 import { useStudents } from '@/hooks/use-students';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function CameraAttendancePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -24,8 +23,7 @@ export default function CameraAttendancePage() {
   const { user } = useAuth();
   const { addAttendanceRecord } = useAttendance();
   const { students } = useStudents();
-  const [selectedStudentRegister, setSelectedStudentRegister] = useState<string | null>(null);
-
+  
   const departmentStudents = React.useMemo(() => {
     if (!user?.department || !students) return [];
     if (user.department === 'all') return students;
@@ -79,13 +77,8 @@ export default function CameraAttendancePage() {
 
 
   const captureAndMarkAttendance = async () => {
-    if (!videoRef.current || !canvasRef.current || !user?.department || !user?.email) {
-        toast({ title: "Error", description: "Video feed, user department, or email not available.", variant: "destructive"});
-        return;
-    }
-
-    if (!selectedStudentRegister) {
-        toast({ title: "No Student Selected", description: "Please select a student to simulate recognition.", variant: "destructive"});
+    if (!videoRef.current || !canvasRef.current || !user?.department || !user?.email || departmentStudents.length === 0) {
+        toast({ title: "Error", description: "Video feed, user department, email, or student list not available.", variant: "destructive"});
         return;
     }
     
@@ -103,14 +96,14 @@ export default function CameraAttendancePage() {
     
     const timestamp = new Date().toISOString();
     let input: MarkAttendanceFromCameraInput;
-    let studentName = "";
+    
+    // Simulate recognition by picking a random student from the department
+    const randomStudent = departmentStudents[Math.floor(Math.random() * departmentStudents.length)];
 
-    const selectedStudent = departmentStudents.find(s => s.registerNumber === selectedStudentRegister);
 
-    if (isRecognized && selectedStudent) {
-        studentName = selectedStudent.name;
+    if (isRecognized && randomStudent) {
         input = {
-            studentRegister: selectedStudent.registerNumber,
+            studentRegister: randomStudent.registerNumber,
             date: timestamp.split('T')[0],
             status: 'present',
             markedBy: user.email,
@@ -120,7 +113,7 @@ export default function CameraAttendancePage() {
         };
     } else {
         input = {
-            studentRegister: selectedStudentRegister, // Still log which student was attempted
+            studentRegister: randomStudent.registerNumber, // Still log which student was attempted
             date: timestamp.split('T')[0],
             status: 'unknown-face',
             markedBy: user.email,
@@ -135,10 +128,10 @@ export default function CameraAttendancePage() {
     if (result.success) {
       await addAttendanceRecord(input);
 
-      if (isRecognized && selectedStudent) {
+      if (isRecognized && randomStudent) {
         toast({
             title: "Attendance Marked",
-            description: `${studentName} (${input.studentRegister}) marked as present.`,
+            description: `${randomStudent.name} (${input.studentRegister}) marked as present.`,
         });
       } else {
         toast({
@@ -168,7 +161,7 @@ export default function CameraAttendancePage() {
       <Card>
         <CardHeader>
           <CardTitle>Camera Feed</CardTitle>
-          <CardDescription>Select a student to simulate recognition, position their face in the frame, and capture.</CardDescription>
+          <CardDescription>Position a student's face in the frame and capture to mark their attendance.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-4">
           <div className="w-full max-w-2xl aspect-video rounded-md overflow-hidden bg-secondary border relative">
@@ -210,28 +203,11 @@ export default function CameraAttendancePage() {
               </Alert>
            )}
           
-          <div className="w-full max-w-sm space-y-2">
-            <label className="text-sm font-medium">Simulate Recognition For:</label>
-             <Select onValueChange={setSelectedStudentRegister} value={selectedStudentRegister ?? undefined}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Select a student..." />
-                </SelectTrigger>
-                <SelectContent>
-                    {departmentStudents.map(student => (
-                        <SelectItem key={student.registerNumber} value={student.registerNumber}>
-                           {student.name} ({student.registerNumber})
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-          </div>
-
-
             <div className="flex gap-4">
                 <Button 
                     size="lg"
                     onClick={captureAndMarkAttendance}
-                    disabled={!isStreaming || isProcessing || hasCameraPermission === false || !selectedStudentRegister}
+                    disabled={!isStreaming || isProcessing || hasCameraPermission === false}
                 >
                     {isProcessing ? (
                         <>
