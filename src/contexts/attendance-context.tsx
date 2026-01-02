@@ -65,12 +65,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   const addAttendanceRecord = useCallback(async (newRecord: Omit<AttendanceRecord, 'id' | 'studentName'>) => {
     if (!firestore) throw new Error("Firestore is not initialized");
     const attendanceCollection = collection(firestore, 'attendance');
-    
-    // No await here. The onSnapshot listener will update the state automatically.
-    addDoc(attendanceCollection, newRecord).catch(error => {
-        console.error("Failed to add attendance record to Firestore:", error);
-        // If it fails, the UI won't have an optimistic update, but the listener keeps it consistent
-    });
+    await addDoc(attendanceCollection, newRecord);
   }, [firestore]);
 
   const value = { attendanceRecords, addAttendanceRecord, loading };

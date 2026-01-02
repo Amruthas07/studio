@@ -69,17 +69,10 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         createdAt: new Date(newStudent.createdAt), 
         dateOfBirth: new Date(newStudent.dateOfBirth),
     };
-    // Optimistic update: add to local state immediately
-    setStudents(prevStudents => [...prevStudents, studentWithDateObjects]);
-
-    // Save to firestore in the background
+    
     const studentDocRef = doc(firestore, 'students', studentWithDateObjects.registerNumber);
-    // No await here, let it run in the background. The onSnapshot listener will handle the final state.
-    setDoc(studentDocRef, studentWithDateObjects).catch(error => {
-        console.error("Failed to add student to Firestore:", error);
-        // If it fails, remove the optimistically added student to keep UI consistent
-        setStudents(prevStudents => prevStudents.filter(s => s.registerNumber !== newStudent.registerNumber));
-    });
+    await setDoc(studentDocRef, studentWithDateObjects);
+
   }, [firestore]);
 
   const updateStudent = useCallback(async (registerNumber: string, studentUpdate: Partial<Student>) => {
@@ -92,11 +85,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         updateData.dateOfBirth = new Date(updateData.dateOfBirth);
     }
     
-    // No await here, optimistic update handled in component
-    setDoc(studentDocRef, updateData, { merge: true }).catch(error => {
-        console.error(`Failed to update student ${registerNumber} in Firestore:`, error);
-        // Optionally handle rollback or notification here
-    });
+    await setDoc(studentDocRef, updateData, { merge: true });
   }, [firestore]);
 
   const value = { students, setStudents, loading, addStudent, updateStudent };
