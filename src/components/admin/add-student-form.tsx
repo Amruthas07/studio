@@ -85,12 +85,12 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           return;
         }
         
-        const studentToSave: Student = {
+        const studentToSave = {
           ...values,
-          photoURL: "", // Initially empty, will be captured via camera
-          // Generate a simple unique placeholder for faceId on the client
+          photoURL: "",
           faceId: `face_${values.registerNumber}_${Date.now()}`,
           createdAt: new Date(),
+          dateOfBirth: values.dateOfBirth,
         };
         
         await addStudent(studentToSave);
@@ -99,7 +99,14 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           title: "Student Added Successfully",
           description: `${values.name} has been enrolled. You can now enroll their face for recognition.`,
         });
-        onStudentAdded(studentToSave);
+
+        const newStudentForDialog: Student = {
+          ...studentToSave,
+          createdAt: studentToSave.createdAt,
+          dateOfBirth: studentToSave.dateOfBirth,
+        };
+
+        onStudentAdded(newStudentForDialog);
         form.reset();
 
       } catch (error) {
