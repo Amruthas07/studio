@@ -37,6 +37,10 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  experimental: {
+    // This is the fix for the cross-origin error.
+    allowedDevOrigins: ["*.cloudworkstations.dev"],
+  },
 };
 
 export default nextConfig;
