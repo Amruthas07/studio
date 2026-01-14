@@ -11,6 +11,7 @@ import React, {
 import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { useFirestore } from '@/hooks/use-firebase';
 import type { Student } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 interface StudentsContextType {
   students: Student[];
@@ -28,6 +29,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!firestore) {
@@ -69,18 +71,29 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     
     // Perform database operation in the background
     const studentDocRef = doc(firestore, 'students', newStudent.registerNumber);
-    setDoc(studentDocRef, newStudent).catch(error => {
+    
+    // Return a promise that resolves when the UI action can proceed
+    return setDoc(studentDocRef, newStudent).catch(error => {
       console.error("Failed to save student to Firestore:", error);
       // Revert local state on error
       setStudents(prevStudents => prevStudents.filter(s => s.registerNumber !== newStudent.registerNumber));
-      // Optionally, show a toast to the user
+      toast({
+          variant: "destructive",
+          title: "Database Error",
+          description: "Could not save the new student. Please try again."
+      });
+      // Propagate the error to stop the next action (like navigation)
+      throw error;
     });
-  }, [firestore]);
+  }, [firestore, toast]);
 
   const updateStudent = useCallback(async (registerNumber: string, studentUpdate: Partial<Student>) => {
     if (!firestore) throw new Error("Firestore is not initialized");
     const studentDocRef = doc(firestore, 'students', registerNumber);
     
+    // Optimistic update
+    setStudents(prev => prev.map(s => s.registerNumber === registerNumber ? { ...s, ...studentUpdate } : s));
+
     const updateData = { ...studentUpdate };
     
     // Convert date back to a format Firestore understands if it's a JS Date object
@@ -88,8 +101,23 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         updateData.dateOfBirth = updateData.dateOfBirth;
     }
     
-    await setDoc(studentDocRef, updateData, { merge: true });
-  }, [firestore]);
+    return setDoc(studentDocRef, updateData, { merge: true }).catch(error => {
+        console.error("Failed to update student in Firestore:", error);
+        // We could revert here, but it might be jarring. For now, log and toast.
+        toast({
+            variant: "destructive",
+            title: "Update Failed",
+            description: "Could not save changes to the database."
+        });
+        // Refetch to ensure consistency
+        const studentsCollection = collection(firestore, 'students');
+        onSnapshot(studentsCollection, (snapshot) => {
+            const studentData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Student));
+            setStudents(studentData);
+        });
+        throw error;
+    });
+  }, [firestore, toast]);
 
   const value = { students, setStudents, loading, addStudent, updateStudent };
 

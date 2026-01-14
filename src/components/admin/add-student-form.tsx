@@ -85,7 +85,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           return;
         }
         
-        const studentToSave = {
+        const studentToSave: Student = {
           ...values,
           photoURL: "",
           faceId: `face_${values.registerNumber}_${Date.now()}`,
@@ -93,29 +93,23 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           dateOfBirth: values.dateOfBirth,
         };
         
+        // This will now resolve immediately due to the optimistic update,
+        // and only throw an error if the background save fails.
         await addStudent(studentToSave);
 
+        // This part now runs instantly.
         toast({
-          title: "Student Added Successfully",
-          description: `${values.name} has been enrolled. You can now enroll their face for recognition.`,
+          title: "Student Enrolled",
+          description: `Proceeding to face enrollment for ${values.name}.`,
         });
 
-        const newStudentForDialog: Student = {
-          ...studentToSave,
-          createdAt: studentToSave.createdAt,
-          dateOfBirth: studentToSave.dateOfBirth,
-        };
-
-        onStudentAdded(newStudentForDialog);
+        onStudentAdded(studentToSave);
         form.reset();
 
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-        toast({
-          variant: "destructive",
-          title: "Failed to Add Student",
-          description: errorMessage,
-        })
+        // Error will be caught here if the background save fails.
+        // The toast for this is already handled in the context.
+        console.error("Enrollment failed:", error);
       }
     });
   }
