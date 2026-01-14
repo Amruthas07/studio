@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function FaceEnrollmentPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -31,12 +31,23 @@ export default function FaceEnrollmentPage() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [capturedImages, setCapturedImages] = useState<string[]>([]);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const departmentStudents = React.useMemo(() => {
     if (!user?.department || !students) return [];
     if (user.department === 'all') return students;
     return students.filter(s => s.department === user.department);
   }, [user, students]);
+  
+  useEffect(() => {
+      const studentId = searchParams.get('studentId');
+      if (studentId) {
+          const studentToEnroll = students.find(s => s.registerNumber === studentId);
+          if (studentToEnroll) {
+              setSelectedStudent(studentToEnroll);
+          }
+      }
+  }, [searchParams, students]);
 
   useEffect(() => {
     return () => {
@@ -140,6 +151,8 @@ export default function FaceEnrollmentPage() {
     const student = students.find(s => s.registerNumber === registerNumber);
     setSelectedStudent(student || null);
     setCapturedImages([]);
+    // Update URL without navigation to keep state
+    router.replace(`/admin/face-enrollment?studentId=${registerNumber}`);
   };
 
   const guidelines = [
@@ -166,7 +179,7 @@ export default function FaceEnrollmentPage() {
           <h1 className="text-3xl font-bold tracking-tight font-headline">Face Enrollment</h1>
           <p className="text-muted-foreground">Capture and enroll student faces for AI-powered attendance.</p>
         </div>
-        <Select onValueChange={handleStudentSelect} value={selectedStudent?.registerNumber}>
+        <Select onValueChange={handleStudentSelect} value={selectedStudent?.registerNumber ?? ""}>
           <SelectTrigger className="w-[280px]">
             <SelectValue placeholder="Select a student to enroll" />
           </SelectTrigger>
