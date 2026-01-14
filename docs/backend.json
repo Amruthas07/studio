@@ -1,0 +1,123 @@
+{
+  "entities": {
+    "student": {
+      "title": "Student",
+      "description": "Represents an individual student enrolled in the institution.",
+      "type": "object",
+      "properties": {
+        "registerNumber": {
+          "type": "string",
+          "description": "The unique registration number for the student."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the student."
+        },
+        "fatherName": {
+          "type": "string",
+          "description": "The name of the student's father."
+        },
+        "motherName": {
+          "type": "string",
+          "description": "The name of the student's mother."
+        },
+        "department": {
+          "type": "string",
+          "description": "The department the student is enrolled in.",
+          "enum": ["cs", "ce", "me", "ee", "mce", "ec"]
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL of the student's profile photo, used for face recognition."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The student's email address."
+        },
+        "contact": {
+          "type": "string",
+          "description": "The student's contact phone number."
+        },
+        "faceId": {
+            "type": "string",
+            "description": "A unique identifier for the student's enrolled face data."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the student was enrolled."
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "format": "date",
+          "description": "The student's date of birth."
+        }
+      },
+      "required": [
+        "registerNumber",
+        "name",
+        "fatherName",
+        "motherName",
+        "department",
+        "email",
+        "contact",
+        "createdAt",
+        "dateOfBirth"
+      ]
+    },
+    "attendanceRecord": {
+      "title": "Attendance Record",
+      "description": "Represents a single attendance entry for a student on a specific date.",
+      "type": "object",
+      "properties": {
+        "studentRegister": {
+          "type": "string",
+          "description": "The registration number of the student."
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "The date of the attendance record (YYYY-MM-DD)."
+        },
+        "status": {
+          "type": "string",
+          "description": "The attendance status.",
+          "enum": ["present", "absent", "late", "manual", "unknown-face"]
+        },
+        "markedBy": {
+          "type": "string",
+          "description": "Identifier of who or what marked the attendance."
+        },
+        "method": {
+            "type": "string",
+            "description": "The method used to mark attendance.",
+            "enum": ["face-scan", "manual"]
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The exact timestamp when the attendance was marked."
+        }
+      },
+      "required": ["studentRegister", "date", "status", "markedBy", "method", "timestamp"]
+    }
+  },
+  "auth": {
+    "providers": ["email"]
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": {
+        "$ref": "#/entities/student"
+      },
+      "description": "Stores individual student documents, keyed by their registration number."
+    },
+    "/attendance/{attendanceId}": {
+      "schema": {
+        "$ref": "#/entities/attendanceRecord"
+      },
+      "description": "Stores individual attendance records."
+    }
+  }
+}
