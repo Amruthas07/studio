@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { LoginFormProps } from './login-form';
 
 export const LoginFormDynamic = dynamic(() => import('@/components/auth/login-form').then(mod => mod.LoginForm), {
   ssr: false,

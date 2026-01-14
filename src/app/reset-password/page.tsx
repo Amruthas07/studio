@@ -16,8 +16,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -28,7 +26,6 @@ const formSchema = z.object({
 export default function ResetPasswordPage() {
   const { toast } = useToast();
   const [loading, setLoading] = React.useState(false);
-  const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-collage');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,23 +47,13 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center p-4">
-      {heroImage && (
-        <Image
-          src={heroImage.imageUrl}
-          alt={heroImage.description}
-          fill
-          className="object-cover -z-10"
-          data-ai-hint={heroImage.imageHint}
-          priority
-        />
-      )}
-      <div className="absolute inset-0 bg-black/50 -z-10" />
+    <main className="relative flex min-h-screen flex-col items-center justify-center p-4 bg-slate-50">
+       <div className="absolute inset-0 bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:6rem_4rem] opacity-25"></div>
 
-      <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm border border-border/20 shadow-2xl">
+      <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm border border-slate-200 shadow-lg z-10">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-3xl text-primary-foreground">Reset Password</CardTitle>
-          <CardDescription className="text-primary-foreground/80">
+          <CardTitle className="font-headline text-3xl text-slate-800">Reset Password</CardTitle>
+          <CardDescription className="text-slate-600">
             Enter your email to receive a password reset link.
           </CardDescription>
         </CardHeader>
@@ -78,19 +65,19 @@ export default function ResetPasswordPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-primary-foreground/80">Email</FormLabel>
+                    <FormLabel className="text-slate-600">Email</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="name@example.com"
                         {...field}
-                        className="bg-background/70 border-border/50 text-foreground"
+                        className="bg-slate-50 border-slate-200 text-slate-800"
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -101,7 +88,7 @@ export default function ResetPasswordPage() {
                 )}
               </Button>
               <div className="text-center text-sm">
-                <Link href="/" className="text-primary-foreground/70 hover:text-primary-foreground underline">
+                <Link href="/" className="text-slate-600 hover:text-primary underline">
                   Back to Sign In
                 </Link>
               </div>

@@ -1,9 +1,22 @@
+
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { University, LayoutDashboard, Users, FileClock, FileDown, User, ShieldCheck, Building, Camera } from 'lucide-react';
+import { LayoutDashboard, Users, FileClock, FileDown, User, ShieldCheck, Building, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+
+
+function Logo() {
+  return (
+    <div className="flex items-center gap-2 text-lg font-semibold md:text-base text-foreground">
+      <div className="bg-primary p-2 rounded-md">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary-foreground))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-scan-face"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01"/><path d="M15 9h.01"/></svg>
+      </div>
+      <span className="font-headline text-slate-800">FaceAttend</span>
+    </div>
+  )
+}
 
 const adminNavItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
@@ -26,12 +39,11 @@ export function Sidebar() {
     const navItems = user?.role === 'admin' ? adminNavItems : studentNavItems;
 
     return (
-        <div className="hidden border-r bg-card md:block">
+        <div className="hidden border-r bg-white md:block">
             <div className="flex h-full max-h-screen flex-col gap-2">
                 <div className="flex h-16 items-center border-b px-4 lg:px-6">
                     <Link href="/" className="flex items-center gap-2 font-semibold">
-                        <University className="h-6 w-6 text-primary" />
-                        <span className="font-headline">SMART ATTENDANCE</span>
+                       <Logo />
                     </Link>
                 </div>
                 <div className="flex-1">
@@ -41,8 +53,8 @@ export function Sidebar() {
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
-                                    "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                                    pathname.startsWith(item.href) && item.href !== '/admin' || pathname === item.href ? "bg-secondary text-primary" : ""
+                                    "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900",
+                                    pathname.startsWith(item.href) && item.href !== '/admin' || pathname === item.href ? "bg-slate-100 text-slate-900" : ""
                                 )}
                             >
                                 <item.icon className="h-4 w-4" />
@@ -68,16 +80,15 @@ export function MobileSidebarContent() {
               href="#"
               className="flex items-center gap-2 text-lg font-semibold mb-4"
             >
-              <University className="h-6 w-6 text-primary" />
-              <span className="sr-only">SMART ATTENDANCE SYSTEM</span>
+              <Logo />
             </Link>
             {navItems.map((item) => (
                 <Link
                     key={item.href}
                     href={item.href}
                     className={cn(
-                        "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
-                        pathname.startsWith(item.href) && item.href !== '/admin' || pathname === item.href ? "bg-secondary text-foreground" : ""
+                        "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-slate-600 hover:text-slate-900",
+                        pathname.startsWith(item.href) && item.href !== '/admin' || pathname === item.href ? "bg-slate-100 text-slate-900" : ""
                     )}
                 >
                     <item.icon className="h-5 w-5" />

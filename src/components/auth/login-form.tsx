@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail, Lock, Building, Shield, Fingerprint } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -26,7 +26,11 @@ const formSchema = z.object({
   department: z.string().optional(),
 });
 
-export function LoginForm() {
+export interface LoginFormProps {
+  isAdminForm: boolean;
+}
+
+export function LoginForm({ isAdminForm }: LoginFormProps) {
   const { login, loading } = useAuth();
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
@@ -39,7 +43,9 @@ export function LoginForm() {
   });
 
   const emailValue = form.watch("email");
-  const isAdmin = emailValue.toLowerCase() === 'jsspn324@gmail.com';
+  const isPotentiallyAdmin = emailValue.toLowerCase() === 'jsspn324@gmail.com';
+  const showDepartmentSelector = isAdminForm && isPotentiallyAdmin;
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -61,12 +67,15 @@ export function LoginForm() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-primary-foreground/80">Email</FormLabel>
+              <FormLabel className="flex items-center gap-2 text-slate-600">
+                <Mail className="h-4 w-4" />
+                Email Address
+              </FormLabel>
               <FormControl>
                 <Input
-                  placeholder="name@example.com"
+                  placeholder="Enter your email address"
                   {...field}
-                  className="bg-background/70 border-border/50 text-foreground"
+                  className="bg-slate-50 border-slate-200 text-slate-800"
                 />
               </FormControl>
               <FormMessage />
@@ -78,13 +87,16 @@ export function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-primary-foreground/80">Password</FormLabel>
+               <FormLabel className="flex items-center gap-2 text-slate-600">
+                <Lock className="h-4 w-4" />
+                Password
+              </FormLabel>
               <FormControl>
                 <Input
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                   {...field}
-                  className="bg-background/70 border-border/50 text-foreground"
+                  className="bg-slate-50 border-slate-200 text-slate-800"
                 />
               </FormControl>
               <FormMessage />
@@ -92,17 +104,20 @@ export function LoginForm() {
           )}
         />
         
-        {isAdmin && (
+        {showDepartmentSelector && (
             <FormField
               control={form.control}
               name="department"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-primary-foreground/80">Department</FormLabel>
+                  <FormLabel className="flex items-center gap-2 text-slate-600">
+                    <Building className="h-4 w-4" />
+                    Department
+                  </FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="bg-background/70 border-border/50 text-foreground">
-                        <SelectValue placeholder="Select a department" />
+                      <SelectTrigger className="bg-slate-50 border-slate-200 text-slate-800">
+                        <SelectValue placeholder="Select your department" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -120,22 +135,46 @@ export function LoginForm() {
             />
         )}
 
-        <div className="flex items-center justify-between pt-2">
-            <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Signing In...
-                    </>
-                ) : (
-                    'Sign In'
-                )}
-            </Button>
-        </div>
-        <div className="text-center text-sm">
-            <Link href="/reset-password" className="text-muted-foreground hover:text-primary underline">
-                Forgot password?
-            </Link>
+        <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            {loading ? (
+                <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing In...
+                </>
+            ) : (
+                'Sign In'
+            )}
+        </Button>
+        
+        {isAdminForm && (
+            <div className="flex items-center justify-center gap-4 text-xs text-slate-500 pt-2">
+                <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4"/>
+                    <span>SSL Secured</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Fingerprint className="h-4 w-4"/>
+                    <span>256-bit Encryption</span>
+                </div>
+            </div>
+        )}
+
+        <div className="text-center text-sm text-slate-600">
+            {isAdminForm ? (
+                <>
+                Are you a student?{' '}
+                <Link href="/student-login" className="font-semibold text-primary hover:underline">
+                    Student Login
+                </Link>
+                </>
+            ) : (
+                 <>
+                Are you an administrator?{' '}
+                <Link href="/" className="font-semibold text-primary hover:underline">
+                    Admin Login
+                </Link>
+                </>
+            )}
         </div>
       </form>
     </Form>
