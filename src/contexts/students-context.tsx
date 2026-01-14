@@ -63,18 +63,8 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
   const addStudent = useCallback(async (newStudent: Student) => {
     if (!firestore) throw new Error("Firestore is not initialized");
-
-    // Optimistically update the local state
-    setStudents(prev => [...prev, newStudent]);
-    
-    // Perform the database operation in the background without awaiting
     const studentDocRef = doc(firestore, 'students', newStudent.registerNumber);
-    setDoc(studentDocRef, newStudent).catch(error => {
-      console.error("Failed to add student to Firestore:", error);
-      // Optionally, revert the optimistic update here if the write fails
-      setStudents(prev => prev.filter(s => s.registerNumber !== newStudent.registerNumber));
-    });
-
+    await setDoc(studentDocRef, newStudent);
   }, [firestore]);
 
   const updateStudent = useCallback(async (registerNumber: string, studentUpdate: Partial<Student>) => {
@@ -83,17 +73,12 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     
     const updateData = { ...studentUpdate };
     
-    if (updateData.dateOfBirth) {
-        updateData.dateOfBirth = new Date(updateData.dateOfBirth);
+    // Convert date back to a format Firestore understands if it's a JS Date object
+    if (updateData.dateOfBirth instanceof Date) {
+        updateData.dateOfBirth = updateData.dateOfBirth;
     }
     
-    // Perform the database operation and wait for it to complete
     await setDoc(studentDocRef, updateData, { merge: true });
-    
-    // Update local state after successful DB operation
-    setStudents(prev => 
-      prev.map(s => s.registerNumber === registerNumber ? {...s, ...studentUpdate} : s)
-    );
   }, [firestore]);
 
   const value = { students, setStudents, loading, addStudent, updateStudent };
