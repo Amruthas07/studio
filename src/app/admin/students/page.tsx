@@ -19,27 +19,29 @@ import type { Student } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useStudents } from '@/hooks/use-students';
-import { EnrollFaceDialog } from '@/components/admin/enroll-face-dialog';
+import { useRouter } from 'next/navigation';
 
 
 export default function StudentsPage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const { students, loading: studentsLoading, updateStudent, setStudents } = useStudents();
+  const { students, loading: studentsLoading } = useStudents();
+  const router = useRouter();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
-  const [isEnrollDialogOpen, setIsEnrollDialogOpen] = React.useState(false);
   
   const [studentToEdit, setStudentToEdit] = React.useState<Student | null>(null);
-  const [studentToEnroll, setStudentToEnroll] = React.useState<Student | null>(null);
 
 
   const handleStudentAdded = (newStudent: Student) => {
     setIsAddDialogOpen(false);
-    // Automatically open the enroll dialog for the new student
-    setStudentToEnroll(newStudent);
-    setIsEnrollDialogOpen(true);
+    toast({
+      title: "Student Added Successfully",
+      description: `${newStudent.name} has been enrolled. You can now enroll their face.`,
+    });
+    // Redirect to the new enrollment page, passing student ID as a query param
+    router.push(`/admin/face-enrollment?studentId=${newStudent.registerNumber}`);
   };
   
   const handleStudentUpdated = () => {
@@ -47,34 +49,13 @@ export default function StudentsPage() {
     setStudentToEdit(null);
   };
 
-  const handleFaceEnrolled = (photoDataUri: string) => {
-    if (!studentToEnroll) return;
-    
-    const studentName = studentToEnroll.name;
-
-    // Optimistically update the UI
-    setStudents(prev => prev.map(s => s.registerNumber === studentToEnroll.registerNumber ? {...s, photoURL: photoDataUri} : s));
-
-    // No await here for optimistic update in background
-    updateStudent(studentToEnroll.registerNumber, { photoURL: photoDataUri });
-    
-    toast({
-      title: "Face Enrolled Successfully",
-      description: `A new face has been captured for ${studentName}.`,
-    });
-    
-    setIsEnrollDialogOpen(false);
-    setStudentToEnroll(null);
-  };
-
   const openEditDialog = (student: Student) => {
     setStudentToEdit(student);
     setIsEditDialogOpen(true);
   };
 
-  const openEnrollDialog = (student: Student) => {
-    setStudentToEnroll(student);
-    setIsEnrollDialogOpen(true);
+  const openEnrollPage = (student: Student) => {
+    router.push(`/admin/face-enrollment?studentId=${student.registerNumber}`);
   };
   
   const departmentStudents = React.useMemo(() => {
@@ -124,7 +105,7 @@ export default function StudentsPage() {
       <StudentsTable 
         students={departmentStudents} 
         onEditStudent={openEditDialog}
-        onEnrollFace={openEnrollDialog}
+        onEnrollFace={openEnrollPage}
       />
 
       {/* Edit Student Dialog */}
@@ -139,17 +120,6 @@ export default function StudentsPage() {
               {studentToEdit && <EditStudentForm student={studentToEdit} onStudentUpdated={handleStudentUpdated} />}
           </DialogContent>
       </Dialog>
-      
-      {/* Enroll Face Dialog */}
-       <EnrollFaceDialog 
-          isOpen={isEnrollDialogOpen} 
-          onOpenChange={(isOpen) => {
-            setIsEnrollDialogOpen(isOpen);
-            if (!isOpen) setStudentToEnroll(null); // Clear student when closing dialog
-          }}
-          student={studentToEnroll}
-          onFaceEnrolled={handleFaceEnrolled}
-      />
     </div>
   );
 }

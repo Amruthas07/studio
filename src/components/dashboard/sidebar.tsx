@@ -1,8 +1,7 @@
-
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, FileClock, FileDown, User, ShieldCheck, Building, Camera } from 'lucide-react';
+import { LayoutDashboard, Users, FileClock, FileDown, User, ShieldCheck, Building, Camera, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -22,7 +21,8 @@ const adminNavItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/profile', icon: Building, label: 'Institution' },
     { href: '/admin/students', icon: Users, label: 'Students' },
-    { href: '/admin/camera-attendance', icon: Camera, label: 'Live Attendance' },
+    { href: '/admin/face-enrollment', icon: UserPlus, label: 'Face Enrollment' },
+    { href: '/admin/camera-attendance', icon: Camera, label: 'Mark Attendance' },
     { href: '/admin/attendance', icon: FileClock, label: 'Attendance Log' },
     { href: '/admin/reports', icon: FileDown, label: 'Reports' },
 ];
@@ -54,7 +54,7 @@ export function Sidebar() {
                                 href={item.href}
                                 className={cn(
                                     "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900",
-                                    pathname.startsWith(item.href) && item.href !== '/admin' || pathname === item.href ? "bg-slate-100 text-slate-900" : ""
+                                    pathname === item.href ? "bg-slate-100 text-slate-900" : ""
                                 )}
                             >
                                 <item.icon className="h-4 w-4" />
@@ -88,7 +88,7 @@ export function MobileSidebarContent() {
                     href={item.href}
                     className={cn(
                         "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-slate-600 hover:text-slate-900",
-                        pathname.startsWith(item.href) && item.href !== '/admin' || pathname === item.href ? "bg-slate-100 text-slate-900" : ""
+                        pathname === item.href ? "bg-slate-100 text-slate-900" : ""
                     )}
                 >
                     <item.icon className="h-5 w-5" />
