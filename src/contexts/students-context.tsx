@@ -63,8 +63,18 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
   const addStudent = useCallback(async (newStudent: Student) => {
     if (!firestore) throw new Error("Firestore is not initialized");
+    
+    // Optimistic update: add to local state immediately
+    setStudents(prevStudents => [...prevStudents, newStudent]);
+    
+    // Perform database operation in the background
     const studentDocRef = doc(firestore, 'students', newStudent.registerNumber);
-    await setDoc(studentDocRef, newStudent);
+    setDoc(studentDocRef, newStudent).catch(error => {
+      console.error("Failed to save student to Firestore:", error);
+      // Revert local state on error
+      setStudents(prevStudents => prevStudents.filter(s => s.registerNumber !== newStudent.registerNumber));
+      // Optionally, show a toast to the user
+    });
   }, [firestore]);
 
   const updateStudent = useCallback(async (registerNumber: string, studentUpdate: Partial<Student>) => {
