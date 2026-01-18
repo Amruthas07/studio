@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
@@ -116,7 +117,7 @@ export default function FaceEnrollmentPage() {
     setCapturedImages(prev => [...prev, photoDataUri]);
   };
 
- const completeEnrollment = () => {
+ const completeEnrollment = async () => {
     if (!selectedStudent || capturedImages.length === 0) {
       toast({
         title: "Enrollment Failed",
@@ -128,16 +129,20 @@ export default function FaceEnrollmentPage() {
 
     setIsProcessing(true);
 
-    // Call updateStudent but don't await it.
-    // It will run in the background and show its own toast on completion/failure.
-    updateStudent(selectedStudent.registerNumber, { photoURL: capturedImages[0] });
+    try {
+      // Await the update process to catch errors (like duplicate faces) and provide clear feedback.
+      await updateStudent(selectedStudent.registerNumber, { photoURL: capturedImages[0] });
 
-    // Show an initial toast and navigate away immediately.
-    toast({
-      title: "Enrollment Started",
-      description: `Processing ${selectedStudent.name}'s enrollment in the background.`
-    });
-    router.push('/admin/students');
+      // The success toast is handled inside updateStudent. We can navigate on success.
+      toast({ title: "Enrollment Complete", description: `Redirecting to student list...` });
+      router.push('/admin/students');
+
+    } catch (error) {
+      // Error toast is handled by updateStudent, we just need to stop the loading state here.
+      console.error("Enrollment failed:", error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
   const handleStudentSelect = (registerNumber: string) => {

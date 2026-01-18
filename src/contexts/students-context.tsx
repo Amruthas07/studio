@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -97,7 +98,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const newStudent: Student = {
       ...studentData,
       photoURL: '',
-      faceId: `face_${studentData.registerNumber}_${Date.now()}`,
+      faceId: ``, // FaceID will be set on enrollment
       createdAt: new Date(),
     };
 
@@ -120,8 +121,26 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const studentDocRef = doc(firestore, 'students', registerNumber);
     const finalUpdate = { ...studentUpdate };
 
-    // Optimistically update the UI with the local base64 image or other data
-    setStudents(prev => prev.map(s => s.registerNumber === registerNumber ? { ...s, ...finalUpdate } : s));
+    // If a new photo is being uploaded, handle uniqueness check for the face
+    if (finalUpdate.photoURL && finalUpdate.photoURL.startsWith('data:image')) {
+        // Simulate a unique signature from the image data. In a real app, this would be a face embedding.
+        const simulatedFaceId = `sim_fid_${finalUpdate.photoURL.slice(100, 200)}`;
+
+        const duplicateStudent = students.find(
+            s => s.faceId === simulatedFaceId && s.registerNumber !== registerNumber
+        );
+
+        if (duplicateStudent) {
+            const errorMessage = `This face is already enrolled for ${duplicateStudent.name} (${duplicateStudent.registerNumber}).`;
+            toast({
+                variant: 'destructive',
+                title: 'Enrollment Failed',
+                description: errorMessage,
+            });
+            throw new Error(errorMessage);
+        }
+        finalUpdate.faceId = simulatedFaceId;
+    }
 
     try {
       // If a new photo is being uploaded (as a base64 data URI), handle the upload
@@ -129,6 +148,9 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         const storage = getStorage();
         // Use .jpg for the uploaded file
         const storageRef = ref(storage, `student-photos/${registerNumber}.jpg`);
+
+        // Before uploading, update UI optimistically with the local base64 image
+        setStudents(prev => prev.map(s => s.registerNumber === registerNumber ? { ...s, ...finalUpdate } : s));
         
         const snapshot = await uploadString(storageRef, finalUpdate.photoURL, 'data_url');
         const downloadURL = await getDownloadURL(snapshot.ref);
@@ -141,7 +163,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
       // If we got a new download URL, update the optimistic state to the permanent state
       if (finalUpdate.photoURL && finalUpdate.photoURL.startsWith('https')) {
-        setStudents(prev => prev.map(s => s.registerNumber === registerNumber ? { ...s, photoURL: finalUpdate.photoURL! } : s));
+        setStudents(prev => prev.map(s => s.registerNumber === registerNumber ? { ...s, ...finalUpdate } : s));
       }
 
       toast({
@@ -155,9 +177,9 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         title: "Update Failed",
         description: `Could not save changes for ${registerNumber}.`,
       });
-      throw error;
+      throw error; // Re-throw to be caught by the calling component
     }
-  }, [firestore, toast]);
+  }, [firestore, toast, students]);
   
   const deleteStudent = useCallback(async (registerNumber: string) => {
     if (!firestore) {
@@ -179,8 +201,8 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         // 2. Delete photo from Storage if it exists
         if (studentToDelete.photoURL) {
             const storage = getStorage();
+            // The file is always a .jpg now
             const photoRef = ref(storage, `student-photos/${registerNumber}.jpg`);
-            // We can try to delete, but if it fails (e.g. file not found), we don't want to block the whole process.
             try {
                 await deleteObject(photoRef);
             } catch (storageError: any) {
@@ -191,8 +213,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             }
         }
         
-        // 3. Update local state (optimistic)
-        // Note: onSnapshot will also update this, but this makes the UI faster.
+        // 3. Update local state (onSnapshot will also update this, but this makes the UI faster)
         setStudents(prev => prev.filter(s => s.registerNumber !== registerNumber));
         
         toast({

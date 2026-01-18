@@ -24,12 +24,6 @@ export default function CameraAttendancePage() {
   const { attendanceRecords, addAttendanceRecord } = useAttendance();
   const { students } = useStudents();
   
-  const departmentStudents = React.useMemo(() => {
-    if (!user?.department || !students) return [];
-    if (user.department === 'all') return students;
-    return students.filter(s => s.department === user.department);
-  }, [user, students]);
-  
   useEffect(() => {
     return () => {
       stopCamera();
@@ -77,8 +71,8 @@ export default function CameraAttendancePage() {
 
 
   const captureAndMarkAttendance = () => {
-    if (!videoRef.current || !canvasRef.current || !user?.department || !user?.email || departmentStudents.length === 0) {
-        toast({ title: "Error", description: "Video feed, user department, email, or student list not available.", variant: "destructive"});
+    if (!videoRef.current || !canvasRef.current || !user?.email) {
+        toast({ title: "Error", description: "Video feed, user, or student list not available.", variant: "destructive"});
         return;
     }
     
@@ -91,16 +85,24 @@ export default function CameraAttendancePage() {
     const context = canvas.getContext('2d');
     context?.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    const timestamp = new Date().toISOString();
-    const today = timestamp.split('T')[0];
-    
-    // Simulate recognition by picking a random student from the department
-    const randomStudent = departmentStudents[Math.floor(Math.random() * departmentStudents.length)];
-    if (!randomStudent) {
-      toast({ title: "Error", description: "No students found in the department.", variant: "destructive"});
+    const photoDataUri = canvas.toDataURL('image/jpeg');
+
+    // Simulate face recognition by generating a signature and finding a match
+    const simulatedFaceId = `sim_fid_${photoDataUri.slice(100, 200)}`;
+    const matchedStudent = students.find(s => s.faceId === simulatedFaceId);
+
+    if (!matchedStudent) {
+      toast({ 
+          title: "Recognition Failed", 
+          description: "Face not recognized. Please ensure the student is enrolled.", 
+          variant: "destructive"
+      });
       setIsProcessing(false);
       return;
     }
+
+    const timestamp = new Date().toISOString();
+    const today = timestamp.split('T')[0];
     
     const todaysRecords = attendanceRecords.filter(rec => rec.date === today);
 
@@ -112,13 +114,13 @@ export default function CameraAttendancePage() {
     }));
     
     const input: MarkAttendanceFromCameraInput = {
-        studentRegister: randomStudent.registerNumber,
+        studentRegister: matchedStudent.registerNumber,
         date: today,
         status: 'present',
         markedBy: user.email,
         method: 'face-scan',
         timestamp: timestamp,
-        confidenceScore: 1.0, 
+        confidenceScore: 0.95, // Simulate a high confidence match
         existingRecords: todaysRecords,
         students: studentsForFlow, // Pass the formatted student list
     };
@@ -139,7 +141,7 @@ export default function CameraAttendancePage() {
 
             toast({
                 title: "Attendance Marked",
-                description: `${randomStudent.name} (${input.studentRegister}) marked as present.`,
+                description: `${matchedStudent.name} (${input.studentRegister}) marked as present.`,
             });
         } else {
             toast({
