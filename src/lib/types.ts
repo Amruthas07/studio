@@ -1,3 +1,4 @@
+
 export interface Student {
   registerNumber: string;
   name: string;
@@ -28,4 +29,12 @@ export interface RecentExport {
   generatedAt: Date;
   url: string;
   department: string;
+}
+
+export interface StudentsContextType {
+  students: Student[];
+  setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
+  loading: boolean;
+  addStudent: (student: Student) => void;
+  updateStudent: (registerNumber: string, studentUpdate: Partial<Student>) => Promise<void>;
 }

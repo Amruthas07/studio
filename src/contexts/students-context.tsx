@@ -11,16 +11,8 @@ import React, {
 import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { useFirestore } from '@/hooks/use-firebase';
-import type { Student } from '@/lib/types';
+import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-
-interface StudentsContextType {
-  students: Student[];
-  setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
-  loading: boolean;
-  addStudent: (student: Student) => void;
-  updateStudent: (registerNumber: string, studentUpdate: Partial<Student>) => Promise<void>;
-}
 
 export const StudentsContext = createContext<StudentsContextType | undefined>(
   undefined

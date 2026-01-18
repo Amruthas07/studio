@@ -71,7 +71,35 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(() => {
-      try {
+        // --- START DUPLICATE CHECKS ---
+        if (students.some(s => s.registerNumber === values.registerNumber)) {
+            toast({
+            variant: "destructive",
+            title: "Duplicate Student",
+            description: `A student with Register Number ${values.registerNumber} already exists.`,
+            });
+            return;
+        }
+
+        if (students.some(s => s.email.toLowerCase() === values.email.toLowerCase())) {
+            toast({
+            variant: "destructive",
+            title: "Duplicate Email",
+            description: `A student with the email ${values.email} already exists.`,
+            });
+            return;
+        }
+
+        if (students.some(s => s.contact === values.contact)) {
+            toast({
+            variant: "destructive",
+            title: "Duplicate Contact",
+            description: `A student with the contact number ${values.contact} already exists.`,
+            });
+            return;
+        }
+        // --- END DUPLICATE CHECKS ---
+
         const departmentStudentsCount = students.filter(
             (student) => student.department === values.department
         ).length;
@@ -93,10 +121,8 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           dateOfBirth: values.dateOfBirth,
         };
         
-        // This is now a synchronous call that kicks off a background process
         addStudent(studentToSave);
 
-        // This part now runs instantly.
         toast({
           title: "Student Enrolled",
           description: `Proceeding to face enrollment for ${values.name}.`,
@@ -104,16 +130,6 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
 
         onStudentAdded(studentToSave);
         form.reset();
-
-      } catch (error) {
-        // This catch block is unlikely to be hit unless there's a synchronous error.
-        console.error("Enrollment failed:", error);
-        toast({
-            variant: "destructive",
-            title: "Enrollment Failed",
-            description: "An unexpected error occurred."
-        });
-      }
     });
   }
 
