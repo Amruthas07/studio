@@ -4,9 +4,9 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, Loader2, Video, VideoOff, CheckCircle, XCircle, Info, Target, Sun, Smile, UserCheck } from 'lucide-react';
+import { Camera, Loader2, Video, VideoOff, CheckCircle, XCircle, Target, Sun, Smile, UserCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { Student } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
 import {
@@ -116,7 +116,7 @@ export default function FaceEnrollmentPage() {
     setCapturedImages(prev => [...prev, photoDataUri]);
   };
 
-  const completeEnrollment = async () => {
+ const completeEnrollment = () => {
     if (!selectedStudent || capturedImages.length === 0) {
       toast({
         title: "Enrollment Failed",
@@ -127,24 +127,17 @@ export default function FaceEnrollmentPage() {
     }
 
     setIsProcessing(true);
-    try {
-      // For this prototype, we'll just use the first captured image as the primary photoURL
-      await updateStudent(selectedStudent.registerNumber, { photoURL: capturedImages[0] });
-      toast({
-        title: "Enrollment Successful",
-        description: `${selectedStudent.name}'s face has been enrolled.`
-      });
-      router.push('/admin/students');
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Enrollment Failed",
-        description: "Could not save the new face enrollment data.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+
+    // Call updateStudent but don't await it.
+    // It will run in the background and show its own toast on completion/failure.
+    updateStudent(selectedStudent.registerNumber, { photoURL: capturedImages[0] });
+
+    // Show an initial toast and navigate away immediately.
+    toast({
+      title: "Enrollment Started",
+      description: `Processing ${selectedStudent.name}'s enrollment in the background.`
+    });
+    router.push('/admin/students');
   };
   
   const handleStudentSelect = (registerNumber: string) => {
