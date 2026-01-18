@@ -1,4 +1,3 @@
-
 export interface Student {
   registerNumber: string;
   name: string;
@@ -35,6 +34,7 @@ export interface StudentsContextType {
   students: Student[];
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   loading: boolean;
-  addStudent: (student: Student) => void;
+  addStudent: (student: Omit<Student, 'photoURL' | 'faceId' | 'createdAt'>) => Promise<Student>;
   updateStudent: (registerNumber: string, studentUpdate: Partial<Student>) => Promise<void>;
+  deleteStudent: (registerNumber: string) => Promise<void>;
 }

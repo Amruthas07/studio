@@ -1,4 +1,3 @@
-
 import {
   Table,
   TableBody,
@@ -13,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import type { Student } from "@/lib/types";
 import { Button } from "../ui/button";
-import { Camera, Pencil } from "lucide-react";
+import { Camera, Pencil, Trash } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 
@@ -21,9 +20,10 @@ interface StudentsTableProps {
     students: Student[];
     onEditStudent: (student: Student) => void;
     onEnrollFace: (student: Student) => void;
+    onDeleteStudent: (student: Student) => void;
 }
 
-export function StudentsTable({ students, onEditStudent, onEnrollFace }: StudentsTableProps) {
+export function StudentsTable({ students, onEditStudent, onEnrollFace, onDeleteStudent }: StudentsTableProps) {
     
     const getInitials = (name: string) => {
         const names = name.split(' ');
@@ -95,6 +95,17 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace }: Student
                                         </TooltipTrigger>
                                         <TooltipContent>
                                             <p>Edit Details</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                             <Button variant="destructive" size="icon" onClick={() => onDeleteStudent(student)}>
+                                                <Trash className="h-4 w-4" />
+                                                <span className="sr-only">Delete Student</span>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Delete Student</p>
                                         </TooltipContent>
                                     </Tooltip>
                                </div>
