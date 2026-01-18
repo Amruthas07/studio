@@ -17,7 +17,7 @@ interface StudentsContextType {
   students: Student[];
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   loading: boolean;
-  addStudent: (student: Student) => Promise<void>;
+  addStudent: (student: Student) => void;
   updateStudent: (registerNumber: string, studentUpdate: Partial<Student>) => Promise<void>;
 }
 
@@ -63,17 +63,23 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [firestore]);
 
-  const addStudent = useCallback(async (newStudent: Student) => {
-    if (!firestore) throw new Error("Firestore is not initialized");
+  const addStudent = useCallback((newStudent: Student) => {
+    if (!firestore) {
+        toast({
+            variant: "destructive",
+            title: "Database Error",
+            description: "Firestore is not initialized. Please try again later."
+        });
+        return;
+    }
     
     // Optimistic update: add to local state immediately
     setStudents(prevStudents => [...prevStudents, newStudent]);
     
-    // Perform database operation in the background
+    // Perform database operation in the background ("fire and forget")
     const studentDocRef = doc(firestore, 'students', newStudent.registerNumber);
     
-    // Return a promise that resolves when the UI action can proceed
-    return setDoc(studentDocRef, newStudent).catch(error => {
+    setDoc(studentDocRef, newStudent).catch(error => {
       console.error("Failed to save student to Firestore:", error);
       // Revert local state on error
       setStudents(prevStudents => prevStudents.filter(s => s.registerNumber !== newStudent.registerNumber));
@@ -82,8 +88,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
           title: "Database Error",
           description: "Could not save the new student. Please try again."
       });
-      // Propagate the error to stop the next action (like navigation)
-      throw error;
     });
   }, [firestore, toast]);
 

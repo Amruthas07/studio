@@ -69,8 +69,8 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    startTransition(async () => {
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    startTransition(() => {
       try {
         const departmentStudentsCount = students.filter(
             (student) => student.department === values.department
@@ -93,9 +93,8 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           dateOfBirth: values.dateOfBirth,
         };
         
-        // This will now resolve immediately due to the optimistic update,
-        // and only throw an error if the background save fails.
-        await addStudent(studentToSave);
+        // This is now a synchronous call that kicks off a background process
+        addStudent(studentToSave);
 
         // This part now runs instantly.
         toast({
@@ -107,9 +106,13 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
         form.reset();
 
       } catch (error) {
-        // Error will be caught here if the background save fails.
-        // The toast for this is already handled in the context.
+        // This catch block is unlikely to be hit unless there's a synchronous error.
         console.error("Enrollment failed:", error);
+        toast({
+            variant: "destructive",
+            title: "Enrollment Failed",
+            description: "An unexpected error occurred."
+        });
       }
     });
   }
