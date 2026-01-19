@@ -130,16 +130,17 @@ export default function FaceEnrollmentPage() {
     setIsProcessing(true);
 
     try {
-      // Await the update process to catch errors (like duplicate faces) and provide clear feedback.
-      await updateStudent(selectedStudent.registerNumber, { photoURL: capturedImages[0] });
+      // Pass all captured images to the update function
+      await updateStudent(selectedStudent.registerNumber, { newFacePhotos: capturedImages });
 
-      // The success toast is handled inside updateStudent. We can navigate on success.
-      toast({ title: "Enrollment Complete", description: `Redirecting to student list...` });
+      // Success toast is now handled within updateStudent, so we just navigate
+      toast({ title: "Enrollment Complete!", description: `Redirecting to student list...` });
       router.push('/admin/students');
 
-    } catch (error) {
-      // Error toast is handled by updateStudent, we just need to stop the loading state here.
-      console.error("Enrollment failed:", error);
+    } catch (error: any) {
+      // The error toast (e.g., duplicate face) is already shown by updateStudent.
+      // We just log it here for debugging and ensure the loading state is cleared.
+      console.error("Enrollment failed:", error.message);
     } finally {
       setIsProcessing(false);
     }
