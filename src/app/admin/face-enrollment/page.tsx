@@ -5,7 +5,7 @@ import React, { useState, useEffect, ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, CheckCircle, XCircle, Target, Sun, Smile, Upload, FileImage } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Target, Sun, Smile, FileImage } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import type { Student } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
@@ -19,13 +19,13 @@ import {
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
-import { fileToBase64 } from '@/lib/utils';
+import { resizeAndCompressImage } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function FaceEnrollmentPage() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [processedPhotoDataUri, setProcessedPhotoDataUri] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false); // For local image processing
   const { toast } = useToast();
   const { user } = useAuth();
   const { students, updateStudent, loading: studentsLoading } = useStudents();
@@ -45,7 +45,6 @@ export default function FaceEnrollmentPage() {
           const studentToEnroll = students.find(s => s.registerNumber === studentId);
           if (studentToEnroll) {
               setSelectedStudent(studentToEnroll);
-              // If student already has a photo, show it
               if(studentToEnroll.photoURL) {
                 setPreviewUrl(studentToEnroll.photoURL)
               }
@@ -53,7 +52,7 @@ export default function FaceEnrollmentPage() {
       }
   }, [searchParams, students]);
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
@@ -64,45 +63,60 @@ export default function FaceEnrollmentPage() {
           });
           return;
       }
-      setSelectedFile(file);
+
+      setIsProcessing(true);
+      setPreviewUrl(null);
+      setProcessedPhotoDataUri(null);
+
       const objectUrl = URL.createObjectURL(file);
       setPreviewUrl(objectUrl);
+      
+      try {
+        const compressedDataUri = await resizeAndCompressImage(file);
+        setProcessedPhotoDataUri(compressedDataUri);
+        toast({
+            title: "Image Ready",
+            description: "Image has been processed and is ready for enrollment.",
+        });
+      } catch (error) {
+        console.error("Image processing failed:", error);
+        toast({
+            variant: "destructive",
+            title: "Image Processing Failed",
+            description: "Could not process the selected image. Please try another one.",
+        });
+        setPreviewUrl(null);
+      } finally {
+        setIsProcessing(false);
+      }
     }
   };
 
- const completeEnrollment = async () => {
-    if (!selectedStudent || !selectedFile) {
+ const completeEnrollment = () => {
+    if (!selectedStudent || !processedPhotoDataUri) {
       toast({
         title: "Enrollment Failed",
-        description: "Please select a student and upload a photo.",
+        description: "Please select a student and upload & process a photo.",
         variant: "destructive"
       });
       return;
     }
 
-    setIsProcessing(true);
-
-    try {
-      const photoDataUri = await fileToBase64(selectedFile);
-      // The updateStudent function now handles its own toasts and errors
-      await updateStudent(selectedStudent.registerNumber, { newFacePhoto: photoDataUri });
-      
-      toast({ title: "Enrollment Complete!", description: `Redirecting to student list...` });
-      router.push('/admin/students');
-
-    } catch (error: any) {
-      // Errors (like duplicate face) are toasted inside updateStudent
-      console.error("Enrollment failed:", error.message);
-    } finally {
-      setIsProcessing(false);
-    }
+    // "Fire-and-forget" approach.
+    updateStudent(selectedStudent.registerNumber, { newFacePhoto: processedPhotoDataUri });
+    
+    toast({ 
+      title: "Enrollment in Progress", 
+      description: `Enrollment for ${selectedStudent.name} has started. You will be notified upon completion.`
+    });
+    router.push('/admin/students');
   };
   
   const handleStudentSelect = (registerNumber: string) => {
     const student = students.find(s => s.registerNumber === registerNumber);
     setSelectedStudent(student || null);
-    setSelectedFile(null);
     setPreviewUrl(student?.photoURL || null);
+    setProcessedPhotoDataUri(null);
     router.replace(`/admin/face-enrollment?studentId=${registerNumber}`);
   };
 
@@ -176,6 +190,12 @@ export default function FaceEnrollmentPage() {
                         <p className="mt-2">Image preview will appear here</p>
                     </div>
                 )}
+                 {isProcessing && (
+                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                        <p className="mt-2">Processing image...</p>
+                    </div>
+                )}
                </div>
 
                 <Input
@@ -192,11 +212,11 @@ export default function FaceEnrollmentPage() {
           </Card>
           
           <div className="flex gap-4">
-            <Button size="lg" className="w-full" onClick={completeEnrollment} disabled={isProcessing || !selectedFile || !selectedStudent}>
-              {isProcessing ? <Loader2 className="animate-spin"/> : <CheckCircle />}
+            <Button size="lg" className="w-full" onClick={completeEnrollment} disabled={isProcessing || !processedPhotoDataUri || !selectedStudent}>
+              <CheckCircle />
               Complete Enrollment
             </Button>
-            <Button size="lg" variant="outline" className="w-full" onClick={() => router.push('/admin/students')}>
+            <Button size="lg" variant="outline" className="w-full" onClick={() => router.push('/admin/students')} disabled={isProcessing}>
               <XCircle />
               Cancel
             </Button>
