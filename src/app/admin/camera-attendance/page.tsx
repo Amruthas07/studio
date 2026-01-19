@@ -88,16 +88,17 @@ export default function CameraAttendancePage() {
     
     const photoDataUri = canvas.toDataURL('image/jpeg');
 
-    // --- NEW SIMILARITY-BASED RECOGNITION LOGIC ---
+    // --- SIMILARITY-BASED RECOGNITION LOGIC ---
     const liveFaceSignature = simpleHash(photoDataUri);
 
     let bestMatch: Student | null = null;
     let minDistance = Infinity;
 
-    // 1. Find the closest match from all enrolled students
+    // 1. Find the closest match by calculating the "distance" between the live signature
+    // and all enrolled student signatures. A smaller distance means a more similar face.
     const enrolledStudents = students.filter(s => s.faceId);
     for (const student of enrolledStudents) {
-      // Use numeric difference of hashes as a pseudo-distance metric
+      // Use the numeric difference of hashes as a pseudo-distance metric.
       const distance = Math.abs(parseInt(liveFaceSignature) - parseInt(student.faceId!));
       if (distance < minDistance) {
         minDistance = distance;
@@ -105,12 +106,13 @@ export default function CameraAttendancePage() {
       }
     }
 
-    // 2. Check if the closest match is within an acceptable threshold
-    // This threshold is heuristic. A real system uses normalized distance (e.g., 0-1).
+    // 2. Define a similarity threshold. A real system uses normalized distance (e.g., 0-1).
+    // This heuristic value works for our simulated hash-based embeddings.
     const SIMILARITY_THRESHOLD = 50_000_000; 
-    const matchedStudent = (bestMatch && minDistance < SIMILARITY_THRESHOLD) ? bestMatch : null;
-    // --- END OF NEW LOGIC ---
 
+    // 3. Check if the best match is within the acceptable threshold.
+    const matchedStudent = (bestMatch && minDistance < SIMILARITY_THRESHOLD) ? bestMatch : null;
+    
     if (!matchedStudent) {
       toast({ 
           title: "Recognition Failed", 
@@ -121,9 +123,12 @@ export default function CameraAttendancePage() {
       return;
     }
 
+    const confidence = 1 - (minDistance / SIMILARITY_THRESHOLD);
+    const confidencePercentage = Math.round(confidence * 100);
+
     toast({
         title: "Face Matched!",
-        description: `Recognized ${matchedStudent.name} with high confidence.`,
+        description: `Recognized ${matchedStudent.name} with ${confidencePercentage}% confidence.`,
     });
 
     const timestamp = new Date().toISOString();
@@ -145,7 +150,7 @@ export default function CameraAttendancePage() {
         markedBy: user.email,
         method: 'face-scan',
         timestamp: timestamp,
-        confidenceScore: 1 - (minDistance / SIMILARITY_THRESHOLD), // Simulate confidence
+        confidenceScore: confidence,
         existingRecords: todaysRecords,
         students: studentsForFlow,
     };
