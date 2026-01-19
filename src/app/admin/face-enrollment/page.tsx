@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, ChangeEvent } from 'react';
@@ -26,7 +25,7 @@ export default function FaceEnrollmentPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [processedPhotoDataUri, setProcessedPhotoDataUri] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isEnrolling, setIsEnrolling] = useState(false); // New state for enrollment
+  const [isEnrolling, setIsEnrolling] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { students, updateStudent, loading: studentsLoading } = useStudents();
@@ -83,8 +82,8 @@ export default function FaceEnrollmentPage() {
         console.error("Image processing failed:", error);
         toast({
             variant: "destructive",
-            title: "Image Processing Failed",
-            description: "Could not process the selected image. Please try another one.",
+            title: "No Face Detected",
+            description: "Could not process the image. Please upload a clear, front-facing photo.",
         });
         setPreviewUrl(null);
       } finally {
@@ -105,9 +104,16 @@ export default function FaceEnrollmentPage() {
     
     setIsEnrolling(true);
     
+    const ENROLLMENT_TIMEOUT = 30000; // 30 seconds
+    const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Enrollment timed out. Please check your network and try again.")), ENROLLMENT_TIMEOUT)
+    );
+
     try {
-        // This now awaits completion to provide accurate feedback
-        await updateStudent(selectedStudent.registerNumber, { newFacePhoto: processedPhotoDataUri });
+        await Promise.race([
+            updateStudent(selectedStudent.registerNumber, { newFacePhoto: processedPhotoDataUri }),
+            timeoutPromise
+        ]);
         
         toast({ 
           title: "Enrollment Successful!", 
@@ -116,8 +122,12 @@ export default function FaceEnrollmentPage() {
         router.push('/admin/students');
 
     } catch (error: any) {
-        // Error toast is already handled inside updateStudent
         console.error("Enrollment failed:", error);
+        toast({
+            variant: "destructive",
+            title: "Enrollment Failed",
+            description: error.message || "An unexpected error occurred. Please try again.",
+        });
     } finally {
         setIsEnrolling(false);
     }
