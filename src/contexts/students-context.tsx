@@ -58,7 +58,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [firestore]);
 
- const addStudent = useCallback(async (studentData: Omit<Student, 'photoURL' | 'faceId' | 'createdAt'>) => {
+ const addStudent = useCallback(async (studentData: Omit<Student, 'photoURL' | 'faceId' | 'createdAt'>): Promise<Student> => {
     if (!firestore) {
       toast({
         variant: 'destructive',
@@ -68,33 +68,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       throw new Error('Firestore not initialized');
     }
 
-    if (students.some(s => s.registerNumber === studentData.registerNumber)) {
-        toast({
-        variant: "destructive",
-        title: "Duplicate Student",
-        description: `A student with Register Number ${studentData.registerNumber} already exists.`,
-        });
-        throw new Error("Duplicate Register Number");
-    }
-
-    if (students.some(s => s.email.toLowerCase() === studentData.email.toLowerCase())) {
-        toast({
-        variant: "destructive",
-        title: "Duplicate Email",
-        description: `A student with the email ${studentData.email} already exists.`,
-        });
-        throw new Error("Duplicate Email");
-    }
-
-    if (students.some(s => s.contact === studentData.contact)) {
-        toast({
-        variant: "destructive",
-        title: "Duplicate Contact",
-        description: `A student with the contact number ${studentData.contact} already exists.`,
-        });
-        throw new Error("Duplicate Contact");
-    }
-
     const newStudent: Student = {
       ...studentData,
       photoURL: '',
@@ -102,26 +75,37 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       createdAt: new Date(),
     };
 
-    const studentDocRef = doc(firestore, 'students', newStudent.registerNumber);
+    // Optimistically add to local state
+    setStudents(prev => [...prev, newStudent]);
 
-    await setDoc(studentDocRef, newStudent);
-    return newStudent;
-  }, [firestore, toast, students]);
+    try {
+        const studentDocRef = doc(firestore, 'students', newStudent.registerNumber);
+        await setDoc(studentDocRef, newStudent);
+        return newStudent;
+    } catch (error) {
+        // Rollback on failure
+        setStudents(prev => prev.filter(s => s.registerNumber !== newStudent.registerNumber));
+        toast({
+            variant: "destructive",
+            title: "Enrollment Failed",
+            description: "Could not save the new student to the database.",
+        });
+        throw error;
+    }
+  }, [firestore, toast]);
 
- const updateStudent = useCallback(async (registerNumber: string, studentUpdate: Partial<Student> & { newFacePhotos?: string[] }) => {
+ const updateStudent = useCallback(async (registerNumber: string, studentUpdate: Partial<Student> & { newFacePhoto?: string }) => {
     if (!firestore || !firebaseApp) {
       toast({ variant: 'destructive', title: 'Update Failed', description: 'Database not available.' });
       throw new Error("Firebase services not initialized");
     }
 
     const studentDocRef = doc(firestore, 'students', registerNumber);
-    const finalUpdate: Partial<Student> & { newFacePhotos?: string[] } = { ...studentUpdate };
+    const finalUpdate: Partial<Student> = { ...studentUpdate };
     const storage = getStorage(firebaseApp);
 
-    // If new face photos are being uploaded, handle the entire enrollment process.
-    if (finalUpdate.newFacePhotos && finalUpdate.newFacePhotos.length > 0) {
-      // 1. Check for duplicate faces using a hash of the first image as a signature.
-      const faceSignature = simpleHash(finalUpdate.newFacePhotos[0]);
+    if (finalUpdate.newFacePhoto) {
+      const faceSignature = simpleHash(finalUpdate.newFacePhoto);
       const duplicateStudent = students.find(
         s => s.faceId === faceSignature && s.registerNumber !== registerNumber
       );
@@ -138,33 +122,26 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       finalUpdate.faceId = faceSignature;
 
       try {
-        // 2. Upload all captured images to Firebase Storage in parallel.
-        const uploadPromises = finalUpdate.newFacePhotos.map((photoDataUri, index) => {
-          const photoRef = ref(storage, `student-photos/${registerNumber}-${index}.jpg`);
-          return uploadString(photoRef, photoDataUri, 'data_url').then(snapshot => getDownloadURL(snapshot.ref));
-        });
-        const downloadURLs = await Promise.all(uploadPromises);
+        const photoRef = ref(storage, `students/${registerNumber}/enrollment/profile.jpg`);
+        const snapshot = await uploadString(photoRef, finalUpdate.newFacePhoto, 'data_url');
+        const downloadURL = await getDownloadURL(snapshot.ref);
         
-        // 3. Set the URLs for Firestore update.
-        finalUpdate.photoURL = downloadURLs[0]; // Set first image as primary photoURL
-        finalUpdate.facePhotoURLs = downloadURLs; // Store all image URLs
+        finalUpdate.photoURL = downloadURL;
 
       } catch (error) {
         console.error("Firebase Storage upload failed:", error);
         toast({
             variant: "destructive",
             title: "Image Upload Failed",
-            description: "Could not save face images to cloud storage. Please check your network and try again.",
+            description: "Could not save face image to cloud storage. Please check your network and try again.",
         });
         throw error;
       }
     }
     
-    // Remove temporary photos array before writing to Firestore
-    delete finalUpdate.newFacePhotos;
+    delete (finalUpdate as any).newFacePhoto;
 
     try {
-      // 4. Save the final updates to the student document in Firestore.
       await setDoc(studentDocRef, finalUpdate, { merge: true });
       
       toast({
@@ -197,31 +174,18 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const storage = getStorage(firebaseApp);
 
     try {
-        // 1. Delete all associated photos from Storage
-        const deletePromises: Promise<void>[] = [];
-        if (studentToDelete.facePhotoURLs && studentToDelete.facePhotoURLs.length > 0) {
-          studentToDelete.facePhotoURLs.forEach(url => {
-            if(url) { // Ensure URL is not empty
-              const photoRef = ref(storage, url);
-              deletePromises.push(deleteObject(photoRef));
-            }
-          });
-        } else if (studentToDelete.photoURL) {
-          // Fallback for old single-photo structure
-          const photoRef = ref(storage, studentToDelete.photoURL);
-          deletePromises.push(deleteObject(photoRef));
-        }
-
-        // Wait for all deletions to attempt, but don't fail the whole process if one file is missing.
-        await Promise.allSettled(deletePromises).then(results => {
-            results.forEach(result => {
-                if (result.status === 'rejected' && (result.reason as any)?.code !== 'storage/object-not-found') {
-                    console.error("Could not delete a student photo:", result.reason);
+        // Delete the student's enrollment photo from Storage
+        if (studentToDelete.photoURL) {
+            const photoRef = ref(storage, `students/${registerNumber}/enrollment/profile.jpg`);
+            await deleteObject(photoRef).catch(error => {
+                // Ignore "object-not-found" errors, as the file might have been deleted manually or never existed
+                if (error.code !== 'storage/object-not-found') {
+                    throw error; // Re-throw other errors
                 }
             });
-        });
-
-        // 2. Delete the student record from Firestore
+        }
+        
+        // Delete the student record from Firestore
         const studentDocRef = doc(firestore, 'students', registerNumber);
         await deleteDoc(studentDocRef);
         
