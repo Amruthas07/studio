@@ -89,25 +89,27 @@ export default function CameraAttendancePage() {
     const photoDataUri = canvas.toDataURL('image/jpeg');
 
     // --- SIMILARITY-BASED RECOGNITION LOGIC ---
+    // This signature is generated from the LIVE camera feed.
     const liveFaceSignature = simpleHash(photoDataUri);
 
     let bestMatch: Student | null = null;
     let minDistance = Infinity;
 
     // 1. Find the closest match by calculating the "distance" between the live signature
-    // and all enrolled student signatures. A smaller distance means a more similar face.
+    // and all enrolled student signatures (faceId). A smaller distance means a more similar face.
     const enrolledStudents = students.filter(s => s.faceId);
     for (const student of enrolledStudents) {
       // Use the numeric difference of hashes as a pseudo-distance metric.
-      const distance = Math.abs(parseInt(liveFaceSignature) - parseInt(student.faceId!));
+      // A real system would use cosine similarity or Euclidean distance on real embeddings.
+      const distance = Math.abs(parseInt(liveFaceSignature, 10) - parseInt(student.faceId!, 10));
       if (distance < minDistance) {
         minDistance = distance;
         bestMatch = student;
       }
     }
 
-    // 2. Define a similarity threshold. A real system uses normalized distance (e.g., 0-1).
-    // This heuristic value works for our simulated hash-based embeddings.
+    // 2. Define a similarity threshold. This is a heuristic value that works for our simulated hash-based comparison.
+    // In a real system, this threshold would be determined experimentally.
     const SIMILARITY_THRESHOLD = 50_000_000; 
 
     // 3. Check if the best match is within the acceptable threshold.
@@ -123,12 +125,12 @@ export default function CameraAttendancePage() {
       return;
     }
 
-    const confidence = 1 - (minDistance / SIMILARITY_THRESHOLD);
+    const confidence = Math.max(0, 1 - (minDistance / SIMILARITY_THRESHOLD));
     const confidencePercentage = Math.round(confidence * 100);
 
     toast({
         title: "Face Matched!",
-        description: `Recognized ${matchedStudent.name} with ${confidencePercentage}% confidence.`,
+        description: `Recognized ${matchedStudent.name} with ${confidencePercentage}% confidence. Marking attendance...`,
     });
 
     const timestamp = new Date().toISOString();

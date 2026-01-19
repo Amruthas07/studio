@@ -13,7 +13,7 @@ import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'fir
 import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { simpleHash } from '@/lib/utils';
+import { simpleHash, resizeAndCompressImage } from '@/lib/utils';
 
 export const StudentsContext = createContext<StudentsContextType | undefined>(
   undefined
@@ -67,6 +67,35 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       });
       throw new Error('Firestore not initialized');
     }
+    
+    // --- START DUPLICATE CHECKS ---
+    if (students.some(s => s.registerNumber === studentData.registerNumber)) {
+        toast({
+        variant: "destructive",
+        title: "Duplicate Student",
+        description: `A student with Register Number ${studentData.registerNumber} already exists.`,
+        });
+        throw new Error("Duplicate Register Number");
+    }
+
+    if (students.some(s => s.email.toLowerCase() === studentData.email.toLowerCase())) {
+        toast({
+        variant: "destructive",
+        title: "Duplicate Email",
+        description: `A student with the email ${studentData.email} already exists.`,
+        });
+        throw new Error("Duplicate Email");
+    }
+
+    if (students.some(s => s.contact === studentData.contact)) {
+        toast({
+        variant: "destructive",
+        title: "Duplicate Contact",
+        description: `A student with the contact number ${studentData.contact} already exists.`,
+        });
+        throw new Error("Duplicate Contact");
+    }
+    // --- END DUPLICATE CHECKS ---
 
     const newStudent: Student = {
       ...studentData,
@@ -75,16 +104,16 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       createdAt: new Date(),
     };
 
-    // Optimistically add to local state
-    setStudents(prev => [...prev, newStudent]);
-
     try {
         const studentDocRef = doc(firestore, 'students', newStudent.registerNumber);
+        // This must be awaited to ensure data consistency before navigating
         await setDoc(studentDocRef, newStudent);
+        
+        // Optimistically add to local state AFTER successful DB write
+        setStudents(prev => [...prev, newStudent]);
         return newStudent;
+
     } catch (error) {
-        // Rollback on failure
-        setStudents(prev => prev.filter(s => s.registerNumber !== newStudent.registerNumber));
         toast({
             variant: "destructive",
             title: "Enrollment Failed",
@@ -92,7 +121,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         });
         throw error;
     }
-  }, [firestore, toast]);
+  }, [firestore, toast, students]);
 
  const updateStudent = useCallback(async (registerNumber: string, studentUpdate: Partial<Student> & { newFacePhoto?: string }) => {
     if (!firestore || !firebaseApp) {
