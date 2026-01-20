@@ -22,7 +22,7 @@ const adminNavItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/profile', icon: Building, label: 'Institution' },
     { href: '/admin/students', icon: Users, label: 'Students' },
-    { href: '/admin/camera-attendance', icon: Camera, label: 'Mark Attendance' },
+    { href: '/admin/live-attendance', icon: Camera, label: 'Live Attendance' },
     { href: '/admin/attendance', icon: FileClock, label: 'Attendance Log' },
     { href: '/admin/reports', icon: FileDown, label: 'Reports' },
 ];

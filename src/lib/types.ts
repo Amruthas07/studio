@@ -22,8 +22,9 @@ export interface AttendanceRecord {
   date: string; // YYYY-MM-DD
   matched: boolean;
   timestamp: string; // Storing as ISO string for localStorage compatibility
-  method: 'face-scan' | 'manual' | 'live-photo';
+  method: 'face-scan' | 'manual' | 'live-photo' | 'live-camera';
   photoUrl?: string;
+  confidence?: number;
 }
 
 export interface RecentExport {
@@ -37,10 +38,10 @@ export interface StudentsContextType {
   students: Student[];
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   loading: boolean;
-  addStudent: (student: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoEnrolled'> & { photoFile: File }) => Promise<Student>;
+  addStudent: (student: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoEnrolled' | 'updatedAt'> & { photoFile: File }) => Promise<Student>;
   updateStudent: (
     registerNumber: string,
-    studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email'>> & { newPhotoFile?: File }
+    studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt'>> & { newPhotoFile?: File }
   ) => void;
   deleteStudent: (registerNumber: string) => Promise<void>;
 }
