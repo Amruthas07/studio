@@ -49,7 +49,6 @@ export function StudentsTable({ students, onEditStudent, onDeleteStudent }: Stud
                             <TableHead>Register No.</TableHead>
                             <TableHead>Department</TableHead>
                             <TableHead>Contact</TableHead>
-                            <TableHead>Photo Enrolled</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -73,17 +72,6 @@ export function StudentsTable({ students, onEditStudent, onDeleteStudent }: Stud
                                 <Badge variant="secondary" className="uppercase">{student.department}</Badge>
                             </TableCell>
                             <TableCell>{student.contact}</TableCell>
-                            <TableCell>
-                                {student.photoStatus === 'enrolled' ? (
-                                    <Badge variant="default">Yes</Badge>
-                                ) : student.photoStatus === 'processing' ? (
-                                    <Badge variant="secondary">Processing...</Badge>
-                                ) : student.photoStatus === 'failed' ? (
-                                    <Badge variant="destructive">Failed</Badge>
-                                ) : (
-                                    <Badge variant="destructive">No</Badge>
-                                )}
-                            </TableCell>
                             <TableCell className="text-right">
                                <div className="flex justify-end gap-2">
                                      <Tooltip>

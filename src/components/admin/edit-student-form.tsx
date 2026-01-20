@@ -6,7 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2 } from "lucide-react"
+import { CalendarIcon, Loader2, FileImage } from "lucide-react"
+import Image from 'next/image';
 
 import { Button } from "@/components/ui/button"
 import {
@@ -43,6 +44,8 @@ const formSchema = z.object({
   dateOfBirth: z.date({
     required_error: "A date of birth is required.",
   }),
+  photo: z.instanceof(File).optional()
+    .refine(file => !file || file.size < 5 * 1024 * 1024, "Photo must be less than 5MB."),
 })
 
 type EditStudentFormProps = {
@@ -54,6 +57,8 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
   const { toast } = useToast()
   const [isPending, startTransition] = React.useTransition()
   const { updateStudent } = useStudents();
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(student.profilePhotoUrl);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,54 +75,87 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
-        try {
-            const updatedStudentData: Partial<Student> = {
-                ...values,
-                dateOfBirth: values.dateOfBirth,
-            };
+        const { photo, ...studentDetails } = values;
 
-            await updateStudent(student.registerNumber, updatedStudentData);
-            
-            toast({
-                title: "Student Updated Successfully",
-                description: `${values.name}'s details have been saved.`,
-            });
-            onStudentUpdated();
-        } catch (e: any) {
-             toast({
-                variant: "destructive",
-                title: "Failed to Update Student",
-                description: e.message || "Could not save changes to the database.",
-            });
-        }
+        await updateStudent(student.registerNumber, {
+            ...studentDetails,
+            dateOfBirth: values.dateOfBirth,
+            newPhotoFile: photo,
+        });
+        
+        onStudentUpdated();
     });
+  }
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      form.setValue('photo', file, { shouldValidate: true });
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
+    }
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
+            <div className="space-y-4">
+                <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Student Name</FormLabel>
+                    <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
                 <FormItem>
-                  <FormLabel>Student Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
+                    <FormLabel>Register Number</FormLabel>
+                    <FormControl>
+                    <Input value={student.registerNumber} disabled />
+                    </FormControl>
+                    <FormDescription>Register number cannot be changed.</FormDescription>
                 </FormItem>
-              )}
-            />
-            <FormItem>
-                <FormLabel>Register Number</FormLabel>
-                <FormControl>
-                <Input value={student.registerNumber} disabled />
-                </FormControl>
-                <FormDescription>Register number cannot be changed.</FormDescription>
-            </FormItem>
-
+            </div>
+             <div className="space-y-2">
+                <FormLabel>Profile Photo</FormLabel>
+                <div className="w-full aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
+                    {previewUrl ? (
+                        <Image src={previewUrl} alt="Student preview" layout="fill" objectFit="contain" />
+                    ) : (
+                        <div className="text-center text-muted-foreground p-4">
+                            <FileImage className="mx-auto h-12 w-12" />
+                            <p className="mt-2 text-xs">Upload new photo (optional)</p>
+                        </div>
+                    )}
+                </div>
+                 <FormField
+                    control={form.control}
+                    name="photo"
+                    render={() => (
+                       <FormItem>
+                            <FormControl>
+                                <Input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/png, image/jpeg"
+                                    onChange={handlePhotoChange}
+                                    className="hidden"
+                                />
+                            </FormControl>
+                            <FormMessage />
+                       </FormItem>
+                    )}
+                />
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
+                    <FileImage className="mr-2 h-4 w-4" /> Change Photo
+                </Button>
+            </div>
              <FormField
               control={form.control}
               name="fatherName"

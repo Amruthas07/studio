@@ -11,7 +11,6 @@ export interface Student {
   photoHash?: string;
   createdAt: Date;
   dateOfBirth: Date;
-  photoStatus?: 'enrolled' | 'processing' | 'failed' | 'none';
   updatedAt?: Date;
 }
 
@@ -38,10 +37,10 @@ export interface StudentsContextType {
   students: Student[];
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   loading: boolean;
-  addStudent: (studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoStatus' | 'updatedAt'> & { photoFile: File }) => Promise<void>;
+  addStudent: (studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt'> & { photoFile: File }) => Promise<void>;
   updateStudent: (
     registerNumber: string,
-    studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'profilePhotoUrl' | 'photoHash'>>
+    studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'profilePhotoUrl' | 'photoHash' | 'updatedAt'>> & { newPhotoFile?: File }
   ) => Promise<void>;
   deleteStudent: (registerNumber: string) => Promise<void>;
 }

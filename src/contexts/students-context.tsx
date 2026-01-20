@@ -46,7 +46,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
                 dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : new Date(data.dateOfBirth),
                 updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)),
-                 photoStatus: data.photoStatus || (data.photoEnrolled ? 'enrolled' : 'none'),
             } as Student;
         });
         setStudents(studentData);
@@ -62,7 +61,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   }, [firestore]);
 
   const addStudent = useCallback(async (
-    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoStatus' | 'updatedAt'> & { photoFile: File }
+    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt'> & { photoFile: File }
   ) => {
     if (!firestore || !firebaseApp) {
         throw new Error('Database not initialized.');
@@ -85,7 +84,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         photoHash: '', 
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        photoStatus: 'processing', 
     };
 
     await setDoc(studentDocRef, initialStudentData);
@@ -114,13 +112,11 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             await updateDoc(studentDocRef, {
                 profilePhotoUrl: downloadURL,
                 photoHash: photoHash,
-                photoStatus: 'enrolled',
                 updatedAt: serverTimestamp(),
             });
             // No success toast needed, UI updates via snapshot listener.
         } catch (error: any) {
              await updateDoc(studentDocRef, {
-                photoStatus: 'failed',
                 updatedAt: serverTimestamp(),
             });
             // If background task fails, inform the user.
@@ -137,17 +133,55 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
   const updateStudent = useCallback(async (
     registerNumber: string,
-    studentUpdate: Partial<Student>
+    studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'profilePhotoUrl' | 'photoHash' | 'updatedAt'>> & { newPhotoFile?: File }
   ) => {
-    if (!firestore) {
+    if (!firestore || !firebaseApp) {
       toast({ variant: "destructive", title: "Update Failed", description: "Database is not available." });
       return;
     }
-
+    
+    const { newPhotoFile, ...otherUpdates } = studentUpdate;
     const studentDocRef = doc(firestore, 'students', registerNumber);
     
+    const updatesToApply: any = { ...otherUpdates, updatedAt: serverTimestamp() };
+
+    // Handle photo update if a new file is provided
+    if (newPhotoFile) {
+        try {
+            const storage = getStorage(firebaseApp);
+            const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
+
+            const processedPhoto = await resizeAndCompressImage(newPhotoFile);
+            const photoHash = await getImageHash(processedPhoto);
+            
+            // Check for duplicate photo
+            const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
+            const duplicateSnap = await getDocs(duplicateQuery);
+            if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== registerNumber) {
+                const duplicateStudent = duplicateSnap.docs[0].data();
+                throw new Error(`This photo is already in use for ${duplicateStudent.name}.`);
+            }
+            
+            await uploadBytes(photoRef, processedPhoto);
+            const downloadURL = await getDownloadURL(photoRef);
+            
+            updatesToApply.profilePhotoUrl = downloadURL;
+            updatesToApply.photoHash = photoHash;
+
+        } catch (error: any) {
+            console.error("Failed to update student photo:", error);
+            toast({
+                variant: "destructive",
+                title: "Photo Update Failed",
+                description: error.message || "Could not save the new photo.",
+            });
+            // We don't want to update other details if photo upload fails
+            return;
+        }
+    }
+
     try {
-        await updateDoc(studentDocRef, { ...studentUpdate, updatedAt: serverTimestamp() });
+        await updateDoc(studentDocRef, updatesToApply);
         toast({
             title: "Student Updated",
             description: `Details for ${registerNumber} have been saved.`,
@@ -160,7 +194,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             description: error.message || "Could not save changes.",
         });
     }
-  }, [firestore, toast]);
+  }, [firestore, firebaseApp, toast]);
   
   const deleteStudent = useCallback(async (registerNumber: string) => {
     if (!firestore || !firebaseApp) {
