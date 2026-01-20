@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "student": {
@@ -92,7 +93,7 @@
         "method": {
             "type": "string",
             "description": "The method used to mark attendance.",
-            "enum": ["face-scan", "manual"]
+            "enum": ["face-scan", "manual", "live-photo"]
         },
         "timestamp": {
           "type": "string",

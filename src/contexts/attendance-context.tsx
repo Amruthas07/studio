@@ -9,7 +9,7 @@ import React, {
   useCallback,
 } from 'react';
 import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { AttendanceRecord } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
 import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
@@ -68,53 +68,42 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   const addAttendanceRecord = useCallback(async (
     record: Omit<AttendanceRecord, 'id' | 'studentName' | 'timestamp' | 'photoUrl'> & { photoFile?: File }
   ) => {
-    return new Promise<void>(async (resolve, reject) => {
-        if (!firestore || !firebaseApp) {
-            return reject(new Error("Firebase is not initialized"));
-        }
+    if (!firestore || !firebaseApp) {
+        throw new Error("Firebase is not initialized");
+    }
+    
+    const { photoFile, ...newRecord } = record;
+    const attendanceCollection = collection(firestore, 'attendance');
+
+    let photoUrl: string | undefined = undefined;
+
+    if (photoFile) {
+        const storage = getStorage(firebaseApp);
+        const filePath = `attendance/${newRecord.date}/live_${newRecord.studentRegister}_${Date.now()}.jpg`;
+        const storageRef = ref(storage, filePath);
         
-        const { photoFile, ...newRecord } = record;
-        const attendanceCollection = collection(firestore, 'attendance');
-
-        if (photoFile && newRecord.method === 'face-scan') {
-            const storage = getStorage(firebaseApp);
-            const filePath = `attendance/${newRecord.date}/${newRecord.studentRegister}_${Date.now()}.jpg`;
-            const storageRef = ref(storage, filePath);
-            
-            const uploadTask = uploadBytesResumable(storageRef, photoFile);
-            
-            uploadTask.on('state_changed',
-                null, // No progress reporting needed for now
-                (error) => {
-                    console.error("Attendance photo upload error:", error);
-                    reject(new Error("Photo upload failed for attendance."));
-                },
-                async () => {
-                    try {
-                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                        await addDoc(attendanceCollection, { 
-                            ...newRecord, 
-                            photoUrl: downloadURL,
-                            timestamp: serverTimestamp() 
-                        });
-                        resolve();
-                    } catch (error) {
-                        console.error("Firestore write error after upload:", error);
-                        reject(new Error("Failed to save attendance record after photo upload."));
-                    }
-                }
-            );
-
-        } else {
-            try {
-                await addDoc(attendanceCollection, { ...newRecord, timestamp: serverTimestamp() });
-                resolve();
-            } catch (error) {
-                console.error("Firestore write error:", error);
-                reject(new Error("Failed to save attendance record."));
-            }
+        try {
+            console.log(`Uploading attendance photo to: ${filePath}`);
+            const snapshot = await uploadBytes(storageRef, photoFile);
+            photoUrl = await getDownloadURL(snapshot.ref);
+            console.log("Attendance photo uploaded successfully.");
+        } catch (error) {
+            console.error("Attendance photo upload error:", error);
+            // We can choose to still mark attendance even if photo upload fails
+            // Or throw an error to indicate failure. For now, we'll log and continue.
         }
-    });
+    }
+
+    try {
+        await addDoc(attendanceCollection, { 
+            ...newRecord, 
+            photoUrl,
+            timestamp: serverTimestamp() 
+        });
+    } catch (error) {
+        console.error("Firestore write error for attendance:", error);
+        throw new Error("Failed to save attendance record.");
+    }
   }, [firestore, firebaseApp]);
 
   const value = { attendanceRecords, addAttendanceRecord, loading };

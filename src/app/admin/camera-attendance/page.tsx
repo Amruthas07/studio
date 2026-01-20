@@ -74,7 +74,7 @@ export default function CameraAttendancePage() {
     // Convert canvas to a Blob, then to a File
     canvas.toBlob((blob) => {
         if (blob) {
-            const file = new File([blob], "attendance_capture.jpg", { type: "image/jpeg" });
+            const file = new File([blob], "live_capture.jpg", { type: "image/jpeg" });
             setPhotoFile(file);
             setPreviewUrl(URL.createObjectURL(file));
         }
@@ -125,7 +125,7 @@ export default function CameraAttendancePage() {
             studentRegister: matchedStudent.registerNumber,
             date: today,
             matched: true,
-            method: 'face-scan',
+            method: 'live-photo',
             photoFile: photoFile,
         });
 

@@ -22,7 +22,7 @@ export interface AttendanceRecord {
   date: string; // YYYY-MM-DD
   matched: boolean;
   timestamp: string; // Storing as ISO string for localStorage compatibility
-  method: 'face-scan' | 'manual';
+  method: 'face-scan' | 'manual' | 'live-photo';
   photoUrl?: string;
 }
 
@@ -40,7 +40,7 @@ export interface StudentsContextType {
   addStudent: (student: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoEnrolled'> & { photoFile: File }) => Promise<Student>;
   updateStudent: (
     registerNumber: string,
-    studentUpdate: Partial<Student> & { newPhotoFile?: File }
-  ) => Promise<void>;
+    studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email'>> & { newPhotoFile?: File }
+  ) => void;
   deleteStudent: (registerNumber: string) => Promise<void>;
 }
