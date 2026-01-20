@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, {
@@ -64,26 +63,9 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       throw new Error('Firestore not initialized. Please try again later.');
     }
     
-    console.log("Starting student enrollment: Checking for duplicates...");
-    const studentsRef = collection(firestore, 'students');
+    // The prompt requires removing blocking reads. This resolves the "client is offline" error.
+    // Duplicate checks can be handled by Firestore Security Rules for a production-ready app.
     const studentDocRef = doc(firestore, 'students', studentData.registerNumber);
-
-    const [regNumSnap, emailSnap, contactSnap] = await Promise.all([
-        getDoc(studentDocRef),
-        getDocs(query(studentsRef, where('email', '==', studentData.email.toLowerCase()))),
-        getDocs(query(studentsRef, where('contact', '==', studentData.contact))),
-    ]);
-
-    if (regNumSnap.exists()) {
-        throw new Error(`A student with Register Number ${studentData.registerNumber} already exists.`);
-    }
-    if (!emailSnap.empty) {
-        throw new Error(`A student with the email ${studentData.email} already exists.`);
-    }
-    if (!contactSnap.empty) {
-        throw new Error(`A student with the contact number ${studentData.contact} already exists.`);
-    }
-    console.log("Duplicate checks passed.");
 
     const newStudent: Student = {
       ...studentData,
@@ -93,15 +75,17 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     };
 
     try {
-        console.log(`Enrolling student ${newStudent.registerNumber}...`);
+        console.log(`Enrolling student ${newStudent.registerNumber} by queuing a write operation...`);
+        // This write will be queued by Firestore if the client is offline (since persistence is now enabled).
         await setDoc(studentDocRef, newStudent);
-        console.log("Student enrolled successfully in Firestore.");
+        console.log("Student enrollment write operation was successfully queued.");
         
         return newStudent;
 
     } catch (error) {
         console.error("Firestore add failed:", error);
-        throw new Error("Could not save the new student to the database.");
+        // This error could be due to permissions or other Firestore issues.
+        throw new Error("Could not save the new student. Please check your permissions or network.");
     }
   }, [firestore]);
 
