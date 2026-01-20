@@ -46,6 +46,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
                 dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : new Date(data.dateOfBirth),
                 updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)),
+                 photoStatus: data.photoStatus || (data.photoEnrolled ? 'enrolled' : 'none'),
             } as Student;
         });
         setStudents(studentData);
@@ -61,7 +62,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   }, [firestore]);
 
   const addStudent = useCallback(async (
-    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoEnrolled' | 'updatedAt'> & { photoFile: File }
+    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoStatus' | 'updatedAt'> & { photoFile: File }
   ) => {
     if (!firestore || !firebaseApp) {
         throw new Error('Database not initialized.');
@@ -84,7 +85,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         photoHash: '', 
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        photoEnrolled: false, 
+        photoStatus: 'processing', 
     };
 
     await setDoc(studentDocRef, initialStudentData);
@@ -113,11 +114,15 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             await updateDoc(studentDocRef, {
                 profilePhotoUrl: downloadURL,
                 photoHash: photoHash,
-                photoEnrolled: true,
+                photoStatus: 'enrolled',
                 updatedAt: serverTimestamp(),
             });
             // No success toast needed, UI updates via snapshot listener.
         } catch (error: any) {
+             await updateDoc(studentDocRef, {
+                photoStatus: 'failed',
+                updatedAt: serverTimestamp(),
+            });
             // If background task fails, inform the user.
             toast({
                 variant: "destructive",

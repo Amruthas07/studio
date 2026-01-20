@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             contact: 'N/A',
             createdAt: new Date(),
             dateOfBirth: new Date(),
-            photoEnrolled: true,
+            photoStatus: 'enrolled',
           };
           setUser(adminUser);
           localStorage.setItem('faceattend_user', JSON.stringify(adminUser));
@@ -114,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Firestore timestamps need to be converted to serializable format for localStorage
             createdAt: foundStudent.createdAt?.toDate ? foundStudent.createdAt.toDate() : new Date(foundStudent.createdAt),
             dateOfBirth: foundStudent.dateOfBirth?.toDate ? foundStudent.dateOfBirth.toDate() : new Date(foundStudent.dateOfBirth),
+            photoStatus: foundStudent.photoStatus || 'none',
         };
         setUser(studentUser);
         localStorage.setItem('faceattend_user', JSON.stringify(studentUser));

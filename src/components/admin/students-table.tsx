@@ -74,8 +74,12 @@ export function StudentsTable({ students, onEditStudent, onDeleteStudent }: Stud
                             </TableCell>
                             <TableCell>{student.contact}</TableCell>
                             <TableCell>
-                                {student.photoEnrolled ? (
+                                {student.photoStatus === 'enrolled' ? (
                                     <Badge variant="default">Yes</Badge>
+                                ) : student.photoStatus === 'processing' ? (
+                                    <Badge variant="secondary">Processing...</Badge>
+                                ) : student.photoStatus === 'failed' ? (
+                                    <Badge variant="destructive">Failed</Badge>
                                 ) : (
                                     <Badge variant="destructive">No</Badge>
                                 )}
