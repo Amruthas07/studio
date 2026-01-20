@@ -1,3 +1,4 @@
+
 'use client';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -46,7 +47,7 @@ export default function StudentProfilePage() {
         <CardHeader>
           <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
             <Avatar className="h-24 w-24 border-2 border-primary">
-              <AvatarImage src={user.photoURL} alt={user.name} />
+              <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
               <AvatarFallback className="text-3xl">{getInitials(user.name)}</AvatarFallback>
             </Avatar>
             <div>

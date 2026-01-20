@@ -70,11 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             registerNumber: 'ADMIN_001',
             fatherName: 'N/A',
             motherName: 'N/A',
-            photoURL:
+            profilePhotoUrl:
               'https://jssonline.org/wp-content/uploads/2023/11/JSS_Polytechnic-Nanjangud.jpg',
             contact: 'N/A',
             createdAt: new Date(),
             dateOfBirth: new Date(),
+            photoEnrolled: true,
           };
           setUser(adminUser);
           localStorage.setItem('faceattend_user', JSON.stringify(adminUser));

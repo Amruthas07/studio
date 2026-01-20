@@ -5,13 +5,14 @@ export interface Student {
   fatherName: string;
   motherName: string;
   department: 'cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec';
-  photoURL: string;
+  profilePhotoUrl: string;
   email: string;
   contact: string;
   photoHash?: string;
   createdAt: Date;
   dateOfBirth: Date;
-  photoEnrolled?: boolean;
+  photoEnrolled: boolean;
+  updatedAt?: Date;
 }
 
 export interface AttendanceRecord {
@@ -36,7 +37,7 @@ export interface StudentsContextType {
   students: Student[];
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   loading: boolean;
-  addStudent: (student: Omit<Student, 'photoURL' | 'photoHash' | 'createdAt' | 'photoEnrolled'> & { photoFile: File }) => Promise<Student>;
+  addStudent: (student: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoEnrolled'> & { photoFile: File }) => Promise<Student>;
   updateStudent: (
     registerNumber: string,
     studentUpdate: Partial<Student> & { newPhotoFile?: File }

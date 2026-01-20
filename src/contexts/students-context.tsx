@@ -8,7 +8,7 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
 import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 import type { Student, StudentsContextType } from '@/lib/types';
@@ -45,6 +45,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                 registerNumber: doc.id,
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
                 dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : new Date(data.dateOfBirth),
+                updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)),
             } as Student;
         });
         setStudents(studentData);
@@ -60,7 +61,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   }, [firestore]);
 
   const addStudent = useCallback(async (
-    studentData: Omit<Student, 'photoURL' | 'photoHash' | 'createdAt' | 'photoEnrolled'> & { photoFile: File }
+    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoEnrolled'> & { photoFile: File }
   ): Promise<Student> => {
     if (!firestore || !firebaseApp) {
       throw new Error('Database not initialized. Please try again later.');
@@ -69,30 +70,15 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const { photoFile, ...details } = studentData;
     const studentDocRef = doc(firestore, 'students', details.registerNumber);
 
-    // --- Start: Fast Pre-checks ---
-    const checks = [
-      { field: 'registerNumber', value: details.registerNumber },
-      { field: 'email', value: details.email },
-      { field: 'contact', value: details.contact },
-    ];
-
-    for (const check of checks) {
-        const q = query(collection(firestore, 'students'), where(check.field, '==', check.value));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-            throw new Error(`A student with this ${check.field} already exists.`);
-        }
-    }
-    // --- End: Fast Pre-checks ---
-
     // Stage 1: Create student document immediately so UI can update
     const newStudent: Student = {
       ...details,
-      photoURL: '',
+      profilePhotoUrl: '',
       photoHash: '', 
       createdAt: new Date(),
       photoEnrolled: false,
     };
+    // This is an optimistic update. We create the student record right away.
     await setDoc(studentDocRef, newStudent);
 
     // Stage 2: Handle photo processing in the background
@@ -115,7 +101,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             console.log(`Uploading photo for ${details.registerNumber}...`);
             const uploadTask = uploadBytesResumable(photoRef, processedPhoto);
             
-            // This is a fire-and-forget upload with listeners for completion
             uploadTask.on('state_changed', 
                 (snapshot) => { /* Progress can be logged here */ },
                 (error) => {
@@ -130,9 +115,10 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                     try {
                         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                         const finalUpdate = {
-                            photoURL: downloadURL,
+                            profilePhotoUrl: downloadURL,
                             photoHash: photoHash,
                             photoEnrolled: true,
+                            updatedAt: serverTimestamp(),
                         };
                         await updateDoc(studentDocRef, finalUpdate);
                         toast({
@@ -149,15 +135,12 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                 }
             );
         } catch (error: any) {
-            // This catches errors from image processing or duplicate checks
             console.error("Background enrollment failed:", error);
             toast({
                 variant: "destructive",
                 title: `Photo Enrollment Failed for ${details.name}`,
                 description: error.message || "An unexpected error occurred.",
             });
-            // Optional: Revert student creation if photo fails
-            // await deleteDoc(studentDocRef);
         }
     })();
     
@@ -184,7 +167,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     // Handle just text updates
     if (!newPhotoFile) {
       try {
-        await updateDoc(studentDocRef, otherUpdates);
+        await updateDoc(studentDocRef, {...otherUpdates, updatedAt: serverTimestamp()});
         toast({
           title: "Student Updated",
           description: `Details for ${registerNumber} have been saved.`,
@@ -226,9 +209,10 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     const finalUpdate = {
                         ...otherUpdates,
-                        photoURL: downloadURL,
+                        profilePhotoUrl: downloadURL,
                         photoHash: photoHash,
                         photoEnrolled: true,
+                        updatedAt: serverTimestamp(),
                     };
                     await updateDoc(studentDocRef, finalUpdate);
                     toast({ title: "Photo Re-enrolled", description: `New photo saved for ${registerNumber}.` });

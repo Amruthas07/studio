@@ -26,7 +26,7 @@
           "description": "The department the student is enrolled in.",
           "enum": ["cs", "ce", "me", "ee", "mce", "ec"]
         },
-        "photoURL": {
+        "profilePhotoUrl": {
           "type": "string",
           "description": "URL of the student's profile photo, used for face recognition."
         },

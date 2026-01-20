@@ -60,7 +60,7 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace, onDeleteS
                             <TableCell>
                                 <div className="flex items-center gap-3">
                                     <Avatar className="h-9 w-9">
-                                        <AvatarImage src={student.photoURL} alt={student.name} />
+                                        <AvatarImage src={student.profilePhotoUrl} alt={student.name} />
                                         <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
                                     </Avatar>
                                     <div className="grid gap-0.5">
