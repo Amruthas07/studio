@@ -64,49 +64,77 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoEnrolled' | 'updatedAt'> & { photoFile: File }
   ) => {
     if (!firestore || !firebaseApp) {
-      throw new Error('Database not initialized.');
+        throw new Error('Database not initialized.');
     }
 
     const { photoFile, ...details } = studentData;
     const studentDocRef = doc(firestore, 'students', details.registerNumber);
-    
-    const storage = getStorage(firebaseApp);
-    const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
 
-    const processedPhoto = await resizeAndCompressImage(photoFile);
-    const photoHash = await getImageHash(processedPhoto);
-
-    const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
-    const duplicateSnap = await getDocs(duplicateQuery);
-    if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== details.registerNumber) {
-          const duplicateStudent = duplicateSnap.docs[0].data();
-          throw new Error(`This photo is already enrolled for ${duplicateStudent.name}.`);
-    }
-
-    await uploadBytes(photoRef, processedPhoto);
-    const downloadURL = await getDownloadURL(photoRef);
-
-    const studentToSave = {
-      ...details,
-      profilePhotoUrl: downloadURL,
-      photoHash: photoHash, 
-      createdAt: serverTimestamp(),
-      photoEnrolled: true,
-      updatedAt: serverTimestamp(),
+    // --- Part 1: Immediate write to Firestore ---
+    // This part is fast and is awaited by the UI.
+    const initialStudentData = {
+        ...details,
+        profilePhotoUrl: '', // Placeholder
+        photoHash: '', // Placeholder
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        photoEnrolled: false, // Mark as not enrolled yet
     };
 
-    await setDoc(studentDocRef, studentToSave);
-    
-    // Return the newly created student data for the UI
+    await setDoc(studentDocRef, initialStudentData);
+
+    // --- Part 2: Background photo processing and upload ---
+    // This part runs in the background. The UI does not wait for it.
+    (async () => {
+        try {
+            const storage = getStorage(firebaseApp);
+            const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
+
+            const processedPhoto = await resizeAndCompressImage(photoFile);
+            const photoHash = await getImageHash(processedPhoto);
+
+            const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
+            const duplicateSnap = await getDocs(duplicateQuery);
+
+            if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== details.registerNumber) {
+                const duplicateStudent = duplicateSnap.docs[0].data();
+                throw new Error(`This photo is already enrolled for ${duplicateStudent.name}.`);
+            }
+
+            await uploadBytes(photoRef, processedPhoto);
+            const downloadURL = await getDownloadURL(photoRef);
+
+            // Update the document with photo info
+            await updateDoc(studentDocRef, {
+                profilePhotoUrl: downloadURL,
+                photoHash: photoHash,
+                photoEnrolled: true,
+                updatedAt: serverTimestamp(),
+            });
+            // No success toast needed, UI updates via snapshot listener.
+        } catch (error: any) {
+            // If background task fails, inform the user.
+            toast({
+                variant: "destructive",
+                title: "Background Enrollment Failed",
+                description: `Could not enroll photo for ${details.name}. Please try again from the student list. Reason: ${error.message}`,
+                duration: 9000,
+            });
+            // The student record remains with photoEnrolled: false
+        }
+    })();
+
+    // --- Return immediately for a responsive UI ---
+    // The UI will get the full student object from the snapshot listener.
+    // We can return a representation of what was just saved.
     return {
       ...details,
-      profilePhotoUrl: downloadURL,
-      photoHash: photoHash,
+      profilePhotoUrl: '',
       createdAt: new Date(),
-      photoEnrolled: true,
-      updatedAt: new Date(),
+      dateOfBirth: studentData.dateOfBirth,
+      photoEnrolled: false,
     } as Student;
-  }, [firestore, firebaseApp]);
+  }, [firestore, firebaseApp, toast]);
 
 
   const updateStudent = useCallback(async (

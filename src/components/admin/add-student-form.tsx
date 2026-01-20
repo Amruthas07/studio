@@ -98,8 +98,8 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           });
 
           toast({
-              title: "Student Enrolled",
-              description: `${newStudent.name} has been successfully added.`,
+              title: "Student Added",
+              description: `${newStudent.name} has been added. Photo enrollment is in progress.`,
           });
 
           onStudentAdded(newStudent);
