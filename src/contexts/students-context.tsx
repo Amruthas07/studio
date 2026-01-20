@@ -200,7 +200,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
           console.error("Photo re-enrollment failed:", error);
           toast({ variant: "destructive", title: 'Re-enrollment Failed', description: error.message });
-          throw error; // Re-throw to let the caller know it failed
     }
   }, [firestore, firebaseApp, toast]);
   
@@ -219,39 +218,40 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const storage = getStorage(firebaseApp);
     const studentDocRef = doc(firestore, 'students', registerNumber);
     
-    // First, try to delete the firestore document
+    // Step 1: Try to delete the photo from Storage first.
+    if (studentToDelete.profilePhotoUrl) {
+        try {
+            const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
+            await deleteObject(photoRef);
+        } catch (storageError: any) {
+            // If the photo doesn't exist, it's fine. We can continue.
+            // If any other error occurs, we stop and notify the user.
+            if (storageError.code !== 'storage/object-not-found') {
+                console.error("Failed to delete student photo from storage:", storageError);
+                toast({
+                    variant: "destructive",
+                    title: "Delete Failed",
+                    description: `Could not delete the student's photo. The student record was not deleted. Error: ${storageError.message}`,
+                });
+                return; // Stop the process if photo deletion fails.
+            }
+        }
+    }
+
+    // Step 2: If photo deletion was successful (or not needed), delete the Firestore document.
     try {
       await deleteDoc(studentDocRef);
       toast({
           title: "Student Deleted",
           description: `Successfully removed ${studentToDelete.name}.`,
       });
-
     } catch (error: any) {
         console.error("Failed to delete student document:", error);
         toast({
             variant: "destructive",
             title: "Delete Failed",
-            description: `Could not delete ${studentToDelete.name}. ${error.message}`,
+            description: `Could not delete the student record for ${studentToDelete.name}. Error: ${error.message}`,
         });
-        // If document deletion fails, don't proceed to delete the photo
-        return;
-    }
-
-    // If document deletion is successful, then try to delete the photo
-    try {
-      const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
-      await deleteObject(photoRef);
-    } catch (storageError: any) {
-      // If photo doesn't exist, it's not a critical error.
-      if (storageError.code !== 'storage/object-not-found') {
-        console.warn("Background photo deletion failed, but document was deleted:", storageError);
-         toast({
-            variant: "destructive",
-            title: "Partial Deletion",
-            description: `Student record was deleted, but the photo could not be removed from storage.`,
-        });
-      }
     }
   }, [firestore, firebaseApp, toast, students]);
 
