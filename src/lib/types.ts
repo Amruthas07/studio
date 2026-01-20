@@ -36,8 +36,7 @@ export interface StudentsContextType {
   addStudent: (student: Omit<Student, 'photoURL' | 'photoHash' | 'createdAt'>) => Promise<Student>;
   updateStudent: (
     registerNumber: string,
-    studentUpdate: Partial<Student> & { newPhotoFile?: File },
-    onProgress?: (progress: number) => void
+    studentUpdate: Partial<Student> & { newPhotoFile?: File }
   ) => Promise<void>;
   deleteStudent: (registerNumber: string) => Promise<void>;
 }

@@ -21,15 +21,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { resizeAndCompressImage } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
 
 export default function FaceEnrollmentPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [processedPhotoFile, setProcessedPhotoFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isEnrolling, setIsEnrolling] = useState(false);
-  const [enrollmentStep, setEnrollmentStep] = useState('');
-  const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
   const { user } = useAuth();
   const { students, updateStudent, loading: studentsLoading } = useStudents();
@@ -95,7 +91,7 @@ export default function FaceEnrollmentPage() {
     }
   };
 
- const completeEnrollment = async () => {
+ const completeEnrollment = () => {
     if (!selectedStudent || !processedPhotoFile) {
       toast({
         title: "Enrollment Failed",
@@ -105,42 +101,17 @@ export default function FaceEnrollmentPage() {
       return;
     }
     
-    setIsEnrolling(true);
-    setUploadProgress(0);
-    setEnrollmentStep('Starting enrollment...');
+    // Fire and forget. The context will handle the final success/error toast.
+    updateStudent(
+        selectedStudent.registerNumber,
+        { newPhotoFile: processedPhotoFile }
+    );
     
-    try {
-        await updateStudent(
-            selectedStudent.registerNumber,
-            { newPhotoFile: processedPhotoFile },
-            (progress) => {
-            setUploadProgress(progress);
-            if (progress < 100) {
-                setEnrollmentStep(`Uploading image: ${Math.round(progress)}%`);
-            } else {
-                setEnrollmentStep('Finalizing...');
-            }
-            }
-        );
-        
-        toast({ 
-          title: "Enrollment Successful!", 
-          description: `${selectedStudent.name} has been successfully enrolled with the new photo.`
-        });
-        router.push('/admin/students');
-
-    } catch (error: any) {
-        console.error("Enrollment failed:", error);
-        toast({
-            variant: "destructive",
-            title: "Enrollment Failed",
-            description: error.message || "An unexpected error occurred. Please try again.",
-        });
-    } finally {
-        setIsEnrolling(false);
-        setEnrollmentStep('');
-        setUploadProgress(0);
-    }
+    toast({ 
+      title: "Enrollment Started", 
+      description: `Enrolling photo for ${selectedStudent.name}. You'll be notified on completion.`
+    });
+    router.push('/admin/students');
   };
   
   const handleStudentSelect = (registerNumber: string) => {
@@ -221,14 +192,7 @@ export default function FaceEnrollmentPage() {
                         <p className="mt-2">Image preview will appear here</p>
                     </div>
                 )}
-                 {isEnrolling && (
-                    <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white p-4">
-                        <Loader2 className="h-8 w-8 animate-spin" />
-                        <p className="mt-4 font-semibold">{enrollmentStep}</p>
-                        {uploadProgress > 0 && uploadProgress < 100 && <Progress value={uploadProgress} className="w-3/4 mt-2 h-2" />}
-                    </div>
-                 )}
-                 {isProcessing && !isEnrolling && (
+                 {isProcessing && (
                     <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white">
                         <Loader2 className="h-8 w-8 animate-spin" />
                         <p className="mt-2">Processing image...</p>
@@ -241,7 +205,7 @@ export default function FaceEnrollmentPage() {
                     type="file"
                     accept="image/png, image/jpeg"
                     onChange={handleFileChange}
-                    disabled={!selectedStudent || isProcessing || isEnrolling}
+                    disabled={!selectedStudent || isProcessing}
                     className="w-full max-w-sm file:text-primary file:font-semibold"
                 />
                  {!selectedStudent && <Alert variant="destructive"><AlertDescription>Please select a student before uploading a photo.</AlertDescription></Alert>}
@@ -250,11 +214,11 @@ export default function FaceEnrollmentPage() {
           </Card>
           
           <div className="flex gap-4">
-            <Button size="lg" className="w-full" onClick={completeEnrollment} disabled={isProcessing || isEnrolling || !processedPhotoFile || !selectedStudent}>
-              {isEnrolling ? <Loader2 className="animate-spin" /> : <CheckCircle />}
-              {isEnrolling ? enrollmentStep || 'Enrolling...' : 'Complete Enrollment'}
+            <Button size="lg" className="w-full" onClick={completeEnrollment} disabled={isProcessing || !processedPhotoFile || !selectedStudent}>
+              <CheckCircle />
+              Complete Enrollment
             </Button>
-            <Button size="lg" variant="outline" className="w-full" onClick={() => router.push('/admin/students')} disabled={isProcessing || isEnrolling}>
+            <Button size="lg" variant="outline" className="w-full" onClick={() => router.push('/admin/students')} disabled={isProcessing}>
               <XCircle />
               Cancel
             </Button>
