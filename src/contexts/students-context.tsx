@@ -220,27 +220,28 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     }
 
     const storage = getStorage(firebaseApp);
+    const studentDocRef = doc(firestore, 'students', registerNumber);
     
     try {
-      // Attempt to delete photo, but don't let it block document deletion.
+      // Delete the Firestore document first. UI will update instantly.
+      await deleteDoc(studentDocRef);
+      
+      toast({
+          title: "Student Deleted",
+          description: `Successfully removed ${studentToDelete.name}. Cleanup in background.`,
+      });
+
+      // Then, attempt to delete photo in the background. Don't block UI.
       try {
         const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
         await deleteObject(photoRef);
       } catch (storageError: any) {
         // A "not-found" error is okay, it means there was no photo to delete.
+        // We don't need to notify the user if background cleanup of a non-existent photo fails.
         if (storageError.code !== 'storage/object-not-found') {
-          console.error("Photo deletion failed, but proceeding to delete document:", storageError);
+          console.error("Background photo deletion failed:", storageError);
         }
       }
-      
-      // Delete the Firestore document.
-      const studentDocRef = doc(firestore, 'students', registerNumber);
-      await deleteDoc(studentDocRef);
-      
-      toast({
-          title: "Student Deleted",
-          description: `Successfully removed ${studentToDelete.name}.`,
-      });
 
     } catch (error: any) {
         console.error("Failed to delete student document:", error);

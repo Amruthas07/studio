@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from "react"
@@ -6,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2, FileImage } from "lucide-react"
+import { CalendarIcon, Loader2, FileImage, Camera } from "lucide-react"
 import Image from 'next/image';
 
 import { Button } from "@/components/ui/button"
@@ -61,6 +60,10 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const [isPending, startTransition] = React.useTransition()
   const { addStudent, students } = useStudents();
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  
+  const [isCameraOpen, setIsCameraOpen] = React.useState(false);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -73,6 +76,23 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       motherName: "",
     },
   })
+  
+  const closeCamera = React.useCallback(() => {
+    if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+    }
+    setIsCameraOpen(false);
+  }, []);
+
+  React.useEffect(() => {
+    // Ensure camera is closed on unmount
+    return () => {
+        closeCamera();
+    };
+  }, [closeCamera]);
+
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(() => {
@@ -107,15 +127,65 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      form.setValue('photo', file);
+      form.setValue('photo', file, { shouldValidate: true });
       const objectUrl = URL.createObjectURL(file);
       setPreviewUrl(objectUrl);
+      if (isCameraOpen) {
+          closeCamera();
+      }
     }
   }
+  
+  const openCamera = async () => {
+    form.setValue('photo', new File([], ""), { shouldValidate: false });
+    setPreviewUrl(null);
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+        }
+        setIsCameraOpen(true);
+    } catch (error) {
+        console.error("Error accessing camera:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Camera Access Denied',
+            description: 'Please enable camera permissions in your browser settings.',
+        });
+    }
+  };
+
+  const handleCapture = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+        toast({ title: "Error", description: "Could not capture photo.", variant: "destructive"});
+        return;
+    }
+    context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+
+    canvas.toBlob((blob) => {
+        if (blob) {
+            const file = new File([blob], "live_capture.jpg", { type: "image/jpeg" });
+            form.setValue('photo', file, { shouldValidate: true });
+            setPreviewUrl(URL.createObjectURL(file));
+            closeCamera();
+        }
+    }, 'image/jpeg');
+  };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <canvas ref={canvasRef} className="hidden" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-4">
                      <FormField
@@ -148,8 +218,10 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                 <div className="space-y-2">
                     <FormLabel>Profile Photo</FormLabel>
                     <div className="w-full aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
-                        {previewUrl ? (
+                        {previewUrl && !isCameraOpen ? (
                             <Image src={previewUrl} alt="Student preview" layout="fill" objectFit="contain" />
+                        ) : isCameraOpen ? (
+                            <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
                         ) : (
                             <div className="text-center text-muted-foreground p-4">
                                 <FileImage className="mx-auto h-12 w-12" />
@@ -157,23 +229,45 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                             </div>
                         )}
                     </div>
-                     <FormField
-                        control={form.control}
-                        name="photo"
-                        render={({ field }) => (
-                           <FormItem>
-                                <FormControl>
-                                    <Input
-                                        type="file"
-                                        accept="image/png, image/jpeg"
-                                        onChange={handlePhotoChange}
-                                        className="w-full file:text-primary file:font-semibold"
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                           </FormItem>
-                        )}
-                    />
+                     
+                    {isCameraOpen ? (
+                         <div className="flex gap-2">
+                            <Button type="button" onClick={handleCapture} className="w-full">
+                                <Camera className="mr-2 h-4 w-4" /> Capture
+                            </Button>
+                            <Button type="button" variant="outline" onClick={closeCamera} className="w-full">
+                                Cancel
+                            </Button>
+                        </div>
+                    ) : (
+                        <div>
+                             <FormField
+                                control={form.control}
+                                name="photo"
+                                render={() => (
+                                   <FormItem>
+                                        <FormControl>
+                                            <Input
+                                                type="file"
+                                                accept="image/png, image/jpeg"
+                                                onChange={handlePhotoChange}
+                                                className="w-full file:text-primary file:font-semibold"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                   </FormItem>
+                                )}
+                            />
+                             <div className="relative flex py-2 items-center">
+                                <div className="flex-grow border-t border-muted"></div>
+                                <span className="flex-shrink mx-4 text-muted-foreground text-xs">OR</span>
+                                <div className="flex-grow border-t border-muted"></div>
+                            </div>
+                            <Button type="button" variant="secondary" onClick={openCamera} className="w-full">
+                                <Camera className="mr-2 h-4 w-4" /> Use Camera
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -221,7 +315,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                         <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
                         <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
                         <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
-                        <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
+                        <SelectItem value="ec">Electronics &amp; Comm. (EC)</SelectItem>
                         </SelectContent>
                     </Select>
                     <FormMessage />
