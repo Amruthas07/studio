@@ -11,6 +11,7 @@ export interface Student {
   photoHash?: string;
   createdAt: Date;
   dateOfBirth: Date;
+  photoEnrolled?: boolean;
 }
 
 export interface AttendanceRecord {
@@ -33,7 +34,7 @@ export interface StudentsContextType {
   students: Student[];
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   loading: boolean;
-  addStudent: (student: Omit<Student, 'photoURL' | 'photoHash' | 'createdAt'>) => Promise<Student>;
+  addStudent: (student: Omit<Student, 'photoURL' | 'photoHash' | 'createdAt' | 'photoEnrolled'>) => Promise<Student>;
   updateStudent: (
     registerNumber: string,
     studentUpdate: Partial<Student> & { newPhotoFile?: File }

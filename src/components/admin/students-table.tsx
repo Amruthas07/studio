@@ -75,7 +75,7 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace, onDeleteS
                             </TableCell>
                             <TableCell>{student.contact}</TableCell>
                             <TableCell>
-                                {student.photoURL ? (
+                                {student.photoEnrolled ? (
                                     <Badge variant="default">Yes</Badge>
                                 ) : (
                                     <Badge variant="destructive">No</Badge>
@@ -83,9 +83,9 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace, onDeleteS
                             </TableCell>
                             <TableCell className="text-right">
                                <div className="flex justify-end gap-2">
-                                     <Button variant={student.photoURL ? "outline" : "default"} size="sm" onClick={() => onEnrollFace(student)}>
+                                     <Button variant={student.photoEnrolled ? "outline" : "default"} size="sm" onClick={() => onEnrollFace(student)}>
                                         <Camera className="mr-2 h-4 w-4" />
-                                        {student.photoURL ? 'Re-enroll Photo' : 'Enroll Photo'}
+                                        {student.photoEnrolled ? 'Re-enroll Photo' : 'Enroll Photo'}
                                     </Button>
                                      <Tooltip>
                                         <TooltipTrigger asChild>

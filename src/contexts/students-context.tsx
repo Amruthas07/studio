@@ -59,7 +59,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [firestore]);
 
- const addStudent = useCallback(async (studentData: Omit<Student, 'photoURL' | 'photoHash' | 'createdAt'>): Promise<Student> => {
+ const addStudent = useCallback(async (studentData: Omit<Student, 'photoURL' | 'photoHash' | 'createdAt' | 'photoEnrolled'>): Promise<Student> => {
     if (!firestore) {
       throw new Error('Firestore not initialized. Please try again later.');
     }
@@ -71,6 +71,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       photoURL: '',
       photoHash: '', 
       createdAt: new Date(),
+      photoEnrolled: false,
     };
 
     try {
@@ -169,6 +170,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
               ...otherUpdates,
               photoURL: downloadURL,
               photoHash: photoHash,
+              photoEnrolled: true,
             };
 
             console.log('Saving metadata to Firestore...');
