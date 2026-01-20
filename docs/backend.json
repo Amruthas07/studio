@@ -120,6 +120,36 @@
         "method",
         "timestamp"
       ]
+    },
+    "liveCaptureRecord": {
+      "title": "Live Capture Record",
+      "description": "Represents a single photo captured during a live attendance attempt.",
+      "type": "object",
+      "properties": {
+        "studentRegister": {
+          "type": "string",
+          "description": "The register number of the student who was matched, if any."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The exact timestamp when the photo was captured."
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "URL to the snapshot photo captured for identification."
+        },
+        "confidence": {
+          "type": "number",
+          "description": "The confidence score of the face match (0-1)."
+        },
+        "matchResult": {
+          "type": "string",
+          "description": "The outcome of the identification attempt.",
+          "enum": ["success", "no_match", "already_marked", "error"]
+        }
+      },
+      "required": ["timestamp", "photoUrl", "matchResult"]
     }
   },
   "auth": {
@@ -137,6 +167,12 @@
         "$ref": "#/entities/attendanceRecord"
       },
       "description": "Stores individual attendance records."
+    },
+    "/liveCaptures/{captureId}": {
+      "schema": {
+        "$ref": "#/entities/liveCaptureRecord"
+      },
+      "description": "Stores a log of all photos captured during live attendance sessions."
     }
   }
 }

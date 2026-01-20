@@ -23,7 +23,7 @@ export default function LiveAttendancePage() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [matchedStudent, setMatchedStudent] = useState<Student | null>(null);
   const { toast } = useToast();
-  const { attendanceRecords, addAttendanceRecord } = useAttendance();
+  const { attendanceRecords, addAttendanceRecord, logLiveCapture } = useAttendance();
   const { students } = useStudents();
   
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -92,6 +92,7 @@ export default function LiveAttendancePage() {
     if (!context) {
         setStatus('error');
         setMessage('Could not capture photo from camera.');
+        logLiveCapture({ photoFile: new File([], ""), status: 'error' });
         return;
     };
     context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
@@ -101,6 +102,10 @@ export default function LiveAttendancePage() {
             const file = new File([blob], "live_capture.jpg", { type: "image/jpeg" });
             setPhotoFile(file);
             setPreviewUrl(URL.createObjectURL(file));
+        } else {
+             setStatus('error');
+             setMessage('Could not process captured image.');
+             logLiveCapture({ photoFile: new File([], ""), status: 'error' });
         }
     }, 'image/jpeg');
   };
@@ -123,6 +128,7 @@ export default function LiveAttendancePage() {
         if (enrolledStudentsForCheck.length === 0) {
             setStatus('error');
             setMessage('No students are enrolled for face identification.');
+            logLiveCapture({ photoFile, status: 'error' });
             return;
         }
 
@@ -139,6 +145,7 @@ export default function LiveAttendancePage() {
         if (!matchedStudentRegister || confidence < CONFIDENCE_THRESHOLD) {
             setStatus('no_match');
             setMessage('Please look at the camera clearly.');
+            logLiveCapture({ photoFile, status: 'no_match', confidence });
             return;
         }
         
@@ -147,6 +154,7 @@ export default function LiveAttendancePage() {
         if (!student) {
             setStatus('no_match');
             setMessage('Could not find matched student details.');
+            logLiveCapture({ photoFile, status: 'no_match', confidence, studentRegister: matchedStudentRegister });
             return;
         }
 
@@ -160,6 +168,7 @@ export default function LiveAttendancePage() {
         if (alreadyMarked) {
             setStatus('already_marked');
             setMessage(`Attendance has already been marked for ${student.name} today.`);
+            logLiveCapture({ photoFile, status: 'already_marked', confidence, studentRegister: student.registerNumber });
             return;
         }
 
@@ -175,6 +184,7 @@ export default function LiveAttendancePage() {
 
         setStatus('success');
         setMessage(`${student.name} (${student.registerNumber}) has been marked as present.`);
+        logLiveCapture({ photoFile, status: 'success', confidence, studentRegister: student.registerNumber });
         toast({
             title: "Attendance Marked!",
             description: `${student.name} has been marked present.`,
@@ -183,6 +193,7 @@ export default function LiveAttendancePage() {
     } catch (error: any) {
         setStatus('error');
         setMessage(error.message || "An unexpected error occurred during identification.");
+        logLiveCapture({ photoFile, status: 'error' });
         setMatchedStudent(null);
         toast({
             variant: "destructive",
