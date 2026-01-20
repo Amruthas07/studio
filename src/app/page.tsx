@@ -8,7 +8,7 @@ import Link from 'next/link';
 export default function Home() {
   return (
     <main className="relative min-h-screen bg-background p-4 lg:p-8 flex items-center justify-center">
-       <div className="absolute inset-0 bg-gradient-to-br from-background to-accent/20"></div>
+       <div className="absolute inset-0 bg-gradient-to-br from-background via-muted/50 to-background"></div>
 
       <div className="relative w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 z-10">
         

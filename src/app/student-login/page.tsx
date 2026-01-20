@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export default function StudentLoginPage() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center p-4 bg-background">
-       <div className="absolute inset-0 bg-gradient-to-br from-background to-accent/20"></div>
+       <div className="absolute inset-0 bg-gradient-to-br from-background via-muted/50 to-background"></div>
 
       <div className="w-full max-w-md z-10">
         <div className="flex items-center justify-center gap-4 mb-8">
