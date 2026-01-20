@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +25,13 @@ export default function LiveAttendancePage() {
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const handleRetake = useCallback(() => {
+    setPhotoFile(null);
+    setPreviewUrl(null);
+    setStatus('idle');
+    setMessage('');
+  }, []);
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -55,6 +61,17 @@ export default function LiveAttendancePage() {
       }
     };
   }, [toast]);
+  
+  useEffect(() => {
+    if (['success', 'no_match', 'already_marked'].includes(status)) {
+      const timer = setTimeout(() => {
+        handleRetake();
+      }, 3000); // Automatically resets after 3 seconds for a new capture
+
+      return () => clearTimeout(timer);
+    }
+  }, [status, handleRetake]);
+
 
   const handleCapturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -84,13 +101,6 @@ export default function LiveAttendancePage() {
     }, 'image/jpeg');
   };
 
-  const handleRetake = () => {
-    setPhotoFile(null);
-    setPreviewUrl(null);
-    setStatus('idle');
-    setMessage('');
-  };
-
   const handleIdentifyAndMark = async () => {
     if (!photoFile) return;
     
@@ -104,7 +114,7 @@ export default function LiveAttendancePage() {
         
         if (!matchedStudent) {
             setStatus('no_match');
-            setMessage('No match found. Please try again with a clear, forward-facing photo.');
+            setMessage('Could not identify student. Please try another photo.');
             return;
         }
         
@@ -123,7 +133,7 @@ export default function LiveAttendancePage() {
             studentRegister: matchedStudent.registerNumber,
             date: today,
             matched: true,
-            method: 'live-camera',
+            method: 'live-photo',
             confidence: 100, // Hash match is 100% confidence
             photoFile: photoFile,
         });
