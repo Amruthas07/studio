@@ -8,12 +8,12 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
-import { getStorage, ref, getDownloadURL, deleteObject, uploadBytesResumable, UploadTask } from 'firebase/storage';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { getStorage, ref, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
 import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { getImageHash } from '@/lib/utils';
+import { getImageHash, resizeAndCompressImage } from '@/lib/utils';
 
 export const StudentsContext = createContext<StudentsContextType | undefined>(
   undefined
@@ -42,7 +42,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             return {
                 ...data,
                 id: doc.id,
-                registerNumber: doc.id, // Ensure registerNumber is consistent with doc ID
+                registerNumber: doc.id,
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
                 dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : new Date(data.dateOfBirth),
             } as Student;
@@ -59,33 +59,111 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [firestore]);
 
- const addStudent = useCallback(async (studentData: Omit<Student, 'photoURL' | 'photoHash' | 'createdAt' | 'photoEnrolled'>): Promise<Student> => {
-    if (!firestore) {
-      throw new Error('Firestore not initialized. Please try again later.');
+  const addStudent = useCallback(async (
+    studentData: Omit<Student, 'photoURL' | 'photoHash' | 'createdAt' | 'photoEnrolled'> & { photoFile: File }
+  ): Promise<Student> => {
+    if (!firestore || !firebaseApp) {
+      throw new Error('Database not initialized. Please try again later.');
     }
     
-    const studentDocRef = doc(firestore, 'students', studentData.registerNumber);
+    const { photoFile, ...details } = studentData;
+    const studentDocRef = doc(firestore, 'students', details.registerNumber);
 
+    // --- Start: Fast Pre-checks ---
+    const checks = [
+      { field: 'registerNumber', value: details.registerNumber },
+      { field: 'email', value: details.email },
+      { field: 'contact', value: details.contact },
+    ];
+
+    for (const check of checks) {
+        const q = query(collection(firestore, 'students'), where(check.field, '==', check.value));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+            throw new Error(`A student with this ${check.field} already exists.`);
+        }
+    }
+    // --- End: Fast Pre-checks ---
+
+    // Stage 1: Create student document immediately so UI can update
     const newStudent: Student = {
-      ...studentData,
+      ...details,
       photoURL: '',
       photoHash: '', 
       createdAt: new Date(),
       photoEnrolled: false,
     };
+    await setDoc(studentDocRef, newStudent);
 
-    try {
-        console.log(`Enrolling student ${newStudent.registerNumber} by queuing a write operation...`);
-        await setDoc(studentDocRef, newStudent);
-        console.log("Student enrollment write operation was successfully queued.");
-        
-        return newStudent;
+    // Stage 2: Handle photo processing in the background
+    (async () => {
+        const storage = getStorage(firebaseApp);
+        const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
 
-    } catch (error) {
-        console.error("Firestore add failed:", error);
-        throw new Error("Could not save the new student. Please check your permissions or network.");
-    }
-  }, [firestore]);
+        try {
+            console.log("Starting background enrollment: Processing image...");
+            const processedPhoto = await resizeAndCompressImage(photoFile);
+            const photoHash = await getImageHash(processedPhoto);
+
+            const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
+            const duplicateSnap = await getDocs(duplicateQuery);
+            if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== details.registerNumber) {
+                 const duplicateStudent = duplicateSnap.docs[0].data();
+                 throw new Error(`This photo is already enrolled for ${duplicateStudent.name}.`);
+            }
+
+            console.log(`Uploading photo for ${details.registerNumber}...`);
+            const uploadTask = uploadBytesResumable(photoRef, processedPhoto);
+            
+            // This is a fire-and-forget upload with listeners for completion
+            uploadTask.on('state_changed', 
+                (snapshot) => { /* Progress can be logged here */ },
+                (error) => {
+                    console.error("Firebase Storage upload failed:", error);
+                    toast({
+                        variant: "destructive",
+                        title: `Photo Upload Failed for ${details.name}`,
+                        description: "Could not save photo to cloud storage.",
+                    });
+                },
+                async () => { // On success
+                    try {
+                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                        const finalUpdate = {
+                            photoURL: downloadURL,
+                            photoHash: photoHash,
+                            photoEnrolled: true,
+                        };
+                        await updateDoc(studentDocRef, finalUpdate);
+                        toast({
+                            title: "Photo Enrolled",
+                            description: `Photo for ${details.name} has been processed.`,
+                        });
+                    } catch (finalError: any) {
+                         toast({
+                            variant: "destructive",
+                            title: `Enrollment Failed for ${details.name}`,
+                            description: finalError.message || "Could not save photo details.",
+                        });
+                    }
+                }
+            );
+        } catch (error: any) {
+            // This catches errors from image processing or duplicate checks
+            console.error("Background enrollment failed:", error);
+            toast({
+                variant: "destructive",
+                title: `Photo Enrollment Failed for ${details.name}`,
+                description: error.message || "An unexpected error occurred.",
+            });
+            // Optional: Revert student creation if photo fails
+            // await deleteDoc(studentDocRef);
+        }
+    })();
+    
+    return newStudent; // Return immediately after Stage 1
+  }, [firestore, firebaseApp, toast]);
+
 
   const updateStudent = useCallback(async (
     registerNumber: string,
@@ -94,7 +172,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     if (!firestore || !firebaseApp) {
       toast({
         variant: "destructive",
-        title: "Enrollment Failed",
+        title: "Update Failed",
         description: "Database is not available. Please try again later.",
       });
       return;
@@ -103,10 +181,10 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const studentDocRef = doc(firestore, 'students', registerNumber);
     const { newPhotoFile, ...otherUpdates } = studentUpdate;
 
+    // Handle just text updates
     if (!newPhotoFile) {
-      // This is for updating student details without changing the photo.
       try {
-        await setDoc(studentDocRef, otherUpdates, { merge: true });
+        await updateDoc(studentDocRef, otherUpdates);
         toast({
           title: "Student Updated",
           description: `Details for ${registerNumber} have been saved.`,
@@ -122,83 +200,44 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Logic for photo enrollment
-    const storage = getStorage(firebaseApp);
-    const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
+    // Handle photo re-enrollment
+    toast({ title: 'Re-enrolling Photo', description: 'Starting background photo update...' });
+     (async () => {
+        const storage = getStorage(firebaseApp);
+        const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
 
-    try {
-      console.log("Starting enrollment: Hashing photo...");
-      const photoHash = await getImageHash(newPhotoFile);
+        try {
+            const processedPhoto = await resizeAndCompressImage(newPhotoFile);
+            const photoHash = await getImageHash(processedPhoto);
 
-      console.log("Checking for duplicate photo hash...");
-      const q = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
-      const duplicateSnap = await getDocs(q);
+            const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
+            const duplicateSnap = await getDocs(duplicateQuery);
+            if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== registerNumber) {
+                 throw new Error(`This photo is already in use by ${duplicateSnap.docs[0].data().name}.`);
+            }
 
-      if (!duplicateSnap.empty) {
-        const duplicateStudent = duplicateSnap.docs[0].data();
-        if (duplicateStudent.registerNumber !== registerNumber) {
-          throw new Error(`This photo is already enrolled for ${duplicateStudent.name} (${duplicateStudent.registerNumber}).`);
-        }
-      }
-
-      console.log(`Starting photo upload for ${registerNumber}...`);
-      const uploadTask = uploadBytesResumable(photoRef, newPhotoFile, { contentType: newPhotoFile.type });
-
-      // This is a fire-and-forget upload. We listen to the final state.
-      uploadTask.on('state_changed',
-        (snapshot) => {
-          // Can be used for progress, but we are navigating away.
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log('Upload is ' + progress + '% done');
-        },
-        (error) => {
-          // Handle upload failure
-          console.error("Firebase Storage upload failed:", error);
-          toast({
-            variant: "destructive",
-            title: "Image Upload Failed",
-            description: "Could not save face image to cloud storage. Please check your network.",
-          });
-        },
-        async () => {
-          // Handle successful upload
-          try {
-            console.log("Upload complete. Getting download URL...");
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-
-            const finalUpdate: Partial<Student> = {
-              ...otherUpdates,
-              photoURL: downloadURL,
-              photoHash: photoHash,
-              photoEnrolled: true,
-            };
-
-            console.log('Saving metadata to Firestore...');
-            await setDoc(studentDocRef, finalUpdate, { merge: true });
-            console.log('Firestore write complete.');
+            const uploadTask = uploadBytesResumable(photoRef, processedPhoto);
             
-            toast({
-              title: "Enrollment Successful!",
-              description: `Photo has been successfully enrolled for student ${registerNumber}.`,
-            });
-          } catch (error: any) {
-            console.error("Failed post-upload:", error);
-            toast({
-              variant: "destructive",
-              title: "Enrollment Finalization Failed",
-              description: error.message || "Could not save photo details to database.",
-            });
-          }
+            uploadTask.on('state_changed', null, 
+                (error) => {
+                    toast({ variant: "destructive", title: 'Photo Upload Failed', description: 'Please check your connection and try again.'});
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    const finalUpdate = {
+                        ...otherUpdates,
+                        photoURL: downloadURL,
+                        photoHash: photoHash,
+                        photoEnrolled: true,
+                    };
+                    await updateDoc(studentDocRef, finalUpdate);
+                    toast({ title: "Photo Re-enrolled", description: `New photo saved for ${registerNumber}.` });
+                }
+            );
+        } catch (error: any) {
+            toast({ variant: "destructive", title: 'Re-enrollment Failed', description: error.message });
         }
-      );
-    } catch (error: any) {
-      console.error("Pre-upload enrollment step failed:", error);
-      toast({
-        variant: "destructive",
-        title: "Enrollment Failed",
-        description: error.message || "An unexpected error occurred before upload.",
-      });
-    }
+    })();
   }, [firestore, firebaseApp, toast]);
   
   const deleteStudent = useCallback(async (registerNumber: string) => {

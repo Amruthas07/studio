@@ -13,14 +13,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import type { Student } from "@/lib/types";
 import { Button } from "../ui/button";
-import { Camera, Pencil, Trash } from "lucide-react";
+import { Pencil, Trash, Camera } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 
 interface StudentsTableProps {
     students: Student[];
     onEditStudent: (student: Student) => void;
-    onEnrollFace: (student: Student) => void;
+    onEnrollFace: (student: Student) => void; // This can now be repurposed or removed
     onDeleteStudent: (student: Student) => void;
 }
 
@@ -38,7 +38,7 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace, onDeleteS
         <Card>
             <CardHeader>
                 <CardTitle>All Students</CardTitle>
-                <CardDescription>A list of all registered students. Enroll their photo for attendance matching.</CardDescription>
+                <CardDescription>A list of all registered students in the system.</CardDescription>
             </CardHeader>
             <CardContent>
                 <TooltipProvider>
@@ -55,7 +55,7 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace, onDeleteS
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {students.map((student) => (
+                        {students.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((student) => (
                         <TableRow key={student.registerNumber}>
                             <TableCell>
                                 <div className="flex items-center gap-3">
@@ -83,10 +83,6 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace, onDeleteS
                             </TableCell>
                             <TableCell className="text-right">
                                <div className="flex justify-end gap-2">
-                                     <Button variant={student.photoEnrolled ? "outline" : "default"} size="sm" onClick={() => onEnrollFace(student)}>
-                                        <Camera className="mr-2 h-4 w-4" />
-                                        {student.photoEnrolled ? 'Re-enroll Photo' : 'Enroll Photo'}
-                                    </Button>
                                      <Tooltip>
                                         <TooltipTrigger asChild>
                                              <Button variant="outline" size="icon" onClick={() => onEditStudent(student)}>

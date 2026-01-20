@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -49,10 +50,8 @@ export default function StudentsPage() {
     setIsAddDialogOpen(false);
     toast({
       title: "Student Added Successfully",
-      description: `${newStudent.name} has been enrolled. You can now enroll their face.`,
+      description: `${newStudent.name} has been enrolled. Their photo is being processed in the background.`,
     });
-    // Redirect to the new enrollment page, passing student ID as a query param
-    router.push(`/admin/face-enrollment?studentId=${newStudent.registerNumber}`);
   };
   
   const handleStudentUpdated = () => {
@@ -118,7 +117,7 @@ export default function StudentsPage() {
             <DialogHeader>
               <DialogTitle className="font-headline text-2xl">Add New Student</DialogTitle>
               <DialogDescription>
-                Fill in the details below to enroll a new student. You will then be prompted to enroll their face.
+                Fill in the details below and upload a profile photo to enroll a new student.
               </DialogDescription>
             </DialogHeader>
             <AddStudentForm onStudentAdded={handleStudentAdded} />

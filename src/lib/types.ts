@@ -34,7 +34,7 @@ export interface StudentsContextType {
   students: Student[];
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   loading: boolean;
-  addStudent: (student: Omit<Student, 'photoURL' | 'photoHash' | 'createdAt' | 'photoEnrolled'>) => Promise<Student>;
+  addStudent: (student: Omit<Student, 'photoURL' | 'photoHash' | 'createdAt' | 'photoEnrolled'> & { photoFile: File }) => Promise<Student>;
   updateStudent: (
     registerNumber: string,
     studentUpdate: Partial<Student> & { newPhotoFile?: File }

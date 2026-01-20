@@ -6,7 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2 } from "lucide-react"
+import { CalendarIcon, Loader2, FileImage } from "lucide-react"
+import Image from 'next/image';
 
 import { Button } from "@/components/ui/button"
 import {
@@ -44,6 +45,9 @@ const formSchema = z.object({
   dateOfBirth: z.date({
     required_error: "A date of birth is required.",
   }),
+  photo: z.instanceof(File, { message: "A profile photo is required." })
+    .refine(file => file.size > 0, "A profile photo is required.")
+    .refine(file => file.size < 5 * 1024 * 1024, "Photo must be less than 5MB."),
 })
 
 type AddStudentFormProps = {
@@ -56,6 +60,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const { toast } = useToast()
   const [isPending, startTransition] = React.useTransition()
   const { addStudent, students } = useStudents();
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -88,15 +93,14 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
         try {
             const newStudent = await addStudent({
                 ...values,
-                dateOfBirth: values.dateOfBirth
+                dateOfBirth: values.dateOfBirth,
+                photoFile: values.photo,
             });
-
-            toast({
-              title: "Student Enrolled",
-              description: `Proceeding to photo enrollment for ${values.name}.`,
-            });
+            
             onStudentAdded(newStudent);
             form.reset();
+            setPreviewUrl(null);
+
         } catch (error: any) {
              toast({
                 variant: "destructive",
@@ -107,160 +111,205 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     });
   }
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      form.setValue('photo', file);
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
+    }
+  }
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Student Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="registerNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Register Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Any format is accepted" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="fatherName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Father's Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="motherName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mother's Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="department"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Department</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a department" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="cs">Computer Science (CS)</SelectItem>
-                      <SelectItem value="ce">Civil Engineering (CE)</SelectItem>
-                      <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
-                      <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
-                      <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
-                      <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="student@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="contact"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contact Number</FormLabel>
-                  <FormControl>
-                    <Input type="tel" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-                control={form.control}
-                name="dateOfBirth"
-                render={({ field }) => (
-                    <FormItem className="flex flex-col pt-2">
-                    <FormLabel>Date of birth</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <FormControl>
-                            <Button
-                            variant={"outline"}
-                            className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                            )}
-                            >
-                            {field.value ? (
-                                format(field.value, "PPP")
-                            ) : (
-                                <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                        </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                            captionLayout="dropdown-buttons"
-                            fromYear={1950}
-                            toYear={new Date().getFullYear() - 10}
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                     <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Student Name</FormLabel>
+                            <FormControl>
+                                <Input placeholder="John Doe" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
                         />
-                        </PopoverContent>
-                    </Popover>
+                        <FormField
+                        control={form.control}
+                        name="registerNumber"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Register Number</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Unique ID" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <FormLabel>Profile Photo</FormLabel>
+                    <div className="w-full aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
+                        {previewUrl ? (
+                            <Image src={previewUrl} alt="Student preview" layout="fill" objectFit="contain" />
+                        ) : (
+                            <div className="text-center text-muted-foreground p-4">
+                                <FileImage className="mx-auto h-12 w-12" />
+                                <p className="mt-2 text-xs">Photo preview</p>
+                            </div>
+                        )}
+                    </div>
+                     <FormField
+                        control={form.control}
+                        name="photo"
+                        render={({ field }) => (
+                           <FormItem>
+                                <FormControl>
+                                    <Input
+                                        type="file"
+                                        accept="image/png, image/jpeg"
+                                        onChange={handlePhotoChange}
+                                        className="w-full file:text-primary file:font-semibold"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                           </FormItem>
+                        )}
+                    />
+                </div>
+            </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="fatherName"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Father's Name</FormLabel>
+                    <FormControl>
+                        <Input {...field} />
+                    </FormControl>
                     <FormMessage />
                     </FormItem>
                 )}
-            />
-        <div className="flex justify-end pt-4 col-span-2">
+                />
+                <FormField
+                control={form.control}
+                name="motherName"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Mother's Name</FormLabel>
+                    <FormControl>
+                        <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="department"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Department</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a department" />
+                        </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        <SelectItem value="cs">Computer Science (CS)</SelectItem>
+                        <SelectItem value="ce">Civil Engineering (CE)</SelectItem>
+                        <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
+                        <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
+                        <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
+                        <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                        <Input type="email" placeholder="student@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="contact"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Contact Number</FormLabel>
+                    <FormControl>
+                        <Input type="tel" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                    control={form.control}
+                    name="dateOfBirth"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col pt-2">
+                        <FormLabel>Date of birth</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "w-full pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                )}
+                                >
+                                {field.value ? (
+                                    format(field.value, "PPP")
+                                ) : (
+                                    <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) =>
+                                date > new Date() || date < new Date("1900-01-01")
+                                }
+                                initialFocus
+                                captionLayout="dropdown-buttons"
+                                fromYear={1950}
+                                toYear={new Date().getFullYear() - 10}
+                            />
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+        <div className="flex justify-end pt-4">
             <Button type="submit" disabled={isPending}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isPending ? 'Enrolling...' : 'Enroll Student & Scan Face'}
+                {isPending ? 'Enrolling...' : 'Enroll Student'}
             </Button>
         </div>
       </form>
