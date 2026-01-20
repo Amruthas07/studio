@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2, FileImage, Camera } from "lucide-react"
+import { CalendarIcon, Loader2, FileImage } from "lucide-react"
 import Image from 'next/image';
 
 import { Button } from "@/components/ui/button"
@@ -61,9 +61,6 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const { addStudent, students } = useStudents();
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   
-  const [isCameraOpen, setIsCameraOpen] = React.useState(false);
-  const videoRef = React.useRef<HTMLVideoElement>(null);
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -78,23 +75,6 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     },
   })
   
-  const closeCamera = React.useCallback(() => {
-    if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-        videoRef.current.srcObject = null;
-    }
-    setIsCameraOpen(false);
-  }, []);
-
-  React.useEffect(() => {
-    // Ensure camera is closed on unmount
-    return () => {
-        closeCamera();
-    };
-  }, [closeCamera]);
-
-
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(() => {
         const departmentStudentsCount = students.filter(
@@ -131,62 +111,12 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       form.setValue('photo', file, { shouldValidate: true });
       const objectUrl = URL.createObjectURL(file);
       setPreviewUrl(objectUrl);
-      if (isCameraOpen) {
-          closeCamera();
-      }
     }
   }
   
-  const openCamera = async () => {
-    form.setValue('photo', new File([], ""), { shouldValidate: false });
-    setPreviewUrl(null);
-
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-        }
-        setIsCameraOpen(true);
-    } catch (error) {
-        console.error("Error accessing camera:", error);
-        toast({
-            variant: 'destructive',
-            title: 'Camera Access Denied',
-            description: 'Please enable camera permissions in your browser settings.',
-        });
-    }
-  };
-
-  const handleCapture = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    const context = canvas.getContext('2d');
-    if (!context) {
-        toast({ title: "Error", description: "Could not capture photo.", variant: "destructive"});
-        return;
-    };
-    context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-
-    canvas.toBlob((blob) => {
-        if (blob) {
-            const file = new File([blob], "live_capture.jpg", { type: "image/jpeg" });
-            form.setValue('photo', file, { shouldValidate: true });
-            setPreviewUrl(URL.createObjectURL(file));
-            closeCamera();
-        }
-    }, 'image/jpeg');
-  };
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <canvas ref={canvasRef} className="hidden" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-4">
                      <FormField
@@ -219,10 +149,8 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                 <div className="space-y-2">
                     <FormLabel>Profile Photo</FormLabel>
                     <div className="w-full aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
-                        {previewUrl && !isCameraOpen ? (
+                        {previewUrl ? (
                             <Image src={previewUrl} alt="Student preview" layout="fill" objectFit="contain" />
-                        ) : isCameraOpen ? (
-                            <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
                         ) : (
                             <div className="text-center text-muted-foreground p-4">
                                 <FileImage className="mx-auto h-12 w-12" />
@@ -249,25 +177,9 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                            </FormItem>
                         )}
                     />
-                    {isCameraOpen ? (
-                         <div className="flex gap-2">
-                            <Button type="button" onClick={handleCapture} className="w-full">
-                                <Camera className="mr-2 h-4 w-4" /> Capture
-                            </Button>
-                            <Button type="button" variant="outline" onClick={closeCamera} className="w-full">
-                                Cancel
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 gap-2">
-                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                                <FileImage className="mr-2 h-4 w-4" /> Upload File
-                            </Button>
-                            <Button type="button" variant="secondary" onClick={openCamera} className="w-full">
-                                <Camera className="mr-2 h-4 w-4" /> Use Camera
-                            </Button>
-                        </div>
-                    )}
+                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
+                        <FileImage className="mr-2 h-4 w-4" /> Upload File
+                    </Button>
                 </div>
             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
