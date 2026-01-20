@@ -8,18 +8,11 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, deleteDoc, deleteField } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { AttendanceRecord } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
 import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
-
-// Helper to remove undefined properties from an object
-const cleanObject = (obj: any) => {
-  const newObj = { ...obj };
-  Object.keys(newObj).forEach(key => newObj[key] === undefined && delete newObj[key]);
-  return newObj;
-};
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
@@ -84,7 +77,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const { photoFile, ...newRecord } = record;
     const attendanceCollection = collection(firestore, 'attendance');
 
-    let finalRecord = { ...newRecord };
+    let finalRecord: { [key: string]: any } = { ...newRecord };
 
     if (photoFile) {
         const storage = getStorage(firebaseApp);
@@ -101,10 +94,10 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-        const docRef = await addDoc(attendanceCollection, cleanObject({ 
+        const docRef = await addDoc(attendanceCollection, { 
             ...finalRecord, 
             timestamp: serverTimestamp() 
-        }));
+        });
         return docRef.id;
     } catch (error) {
         console.error("Firestore write error for attendance:", error);
@@ -121,7 +114,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const { photoFile, ...otherUpdates } = updates;
     const recordDocRef = doc(firestore, 'attendance', recordId);
 
-    let finalUpdates = { ...otherUpdates };
+    let finalUpdates: { [key: string]: any } = { ...otherUpdates };
 
     if (photoFile) {
         const storage = getStorage(firebaseApp);
@@ -133,13 +126,21 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
             finalUpdates.photoUrl = await getDownloadURL(snapshot.ref);
         } catch (error) {
             console.error("Attendance photo upload error on update:", error);
-            // Don't throw, just log. The update will proceed without the new photo.
         }
+    }
+    
+    // Explicitly handle the 'reason' field for robustness
+    if (finalUpdates.status === 'on_leave') {
+        // Ensure reason is set, even if it's an empty string from the form
+        finalUpdates.reason = finalUpdates.reason || "";
+    } else {
+        // If status is not 'on_leave' (e.g., 'present'), remove the reason field
+        finalUpdates.reason = deleteField();
     }
 
 
     try {
-      await updateDoc(recordDocRef, cleanObject({ ...finalUpdates, timestamp: serverTimestamp() }));
+      await updateDoc(recordDocRef, { ...finalUpdates, timestamp: serverTimestamp() });
     } catch(error) {
        console.error("Firestore update error for attendance:", error);
        throw new Error("Failed to update attendance record.");
