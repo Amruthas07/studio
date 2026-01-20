@@ -57,7 +57,7 @@ const DEPARTMENT_LIMIT = 700;
 
 export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const { toast } = useToast()
-  const [isPending, setIsPending] = React.useState(false);
+  const [isPending, startTransition] = React.useTransition();
   const { addStudent, students } = useStudents();
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   
@@ -75,9 +75,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     },
   })
   
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsPending(true);
-
+  function onSubmit(values: z.infer<typeof formSchema>) {
     const departmentStudentsCount = students.filter(
         (student) => student.department === values.department
     ).length;
@@ -88,34 +86,33 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
         title: "Department Full",
         description: `The ${values.department.toUpperCase()} department has reached its limit of ${DEPARTMENT_LIMIT} students.`,
       });
-      setIsPending(false);
       return;
     }
     
-    try {
-        const newStudent = await addStudent({
-            ...values,
-            dateOfBirth: values.dateOfBirth,
-            photoFile: values.photo,
-        });
+    startTransition(async () => {
+      try {
+          const newStudent = await addStudent({
+              ...values,
+              dateOfBirth: values.dateOfBirth,
+              photoFile: values.photo,
+          });
 
-        toast({
-            title: "Student Enrolled",
-            description: `${newStudent.name} has been successfully added.`,
-        });
+          toast({
+              title: "Student Enrolled",
+              description: `${newStudent.name} has been successfully added.`,
+          });
 
-        onStudentAdded(newStudent);
-        form.reset();
-        setPreviewUrl(null);
-    } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "Enrollment Failed",
-            description: error.message || "An unexpected error occurred.",
-        });
-    } finally {
-        setIsPending(false);
-    }
+          onStudentAdded(newStudent);
+          form.reset();
+          setPreviewUrl(null);
+      } catch (error: any) {
+          toast({
+              variant: "destructive",
+              title: "Enrollment Failed",
+              description: error.message || "An unexpected error occurred.",
+          });
+      }
+    });
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {

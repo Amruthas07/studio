@@ -70,49 +70,42 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const { photoFile, ...details } = studentData;
     const studentDocRef = doc(firestore, 'students', details.registerNumber);
     
-    try {
-        const storage = getStorage(firebaseApp);
-        const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
+    const storage = getStorage(firebaseApp);
+    const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
 
-        const processedPhoto = await resizeAndCompressImage(photoFile);
-        const photoHash = await getImageHash(processedPhoto);
+    const processedPhoto = await resizeAndCompressImage(photoFile);
+    const photoHash = await getImageHash(processedPhoto);
 
-        const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
-        const duplicateSnap = await getDocs(duplicateQuery);
-        if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== details.registerNumber) {
-              const duplicateStudent = duplicateSnap.docs[0].data();
-              throw new Error(`This photo is already enrolled for ${duplicateStudent.name}.`);
-        }
-
-        await uploadBytes(photoRef, processedPhoto);
-        const downloadURL = await getDownloadURL(photoRef);
-
-        const studentToSave = {
-          ...details,
-          profilePhotoUrl: downloadURL,
-          photoHash: photoHash, 
-          createdAt: serverTimestamp(),
-          photoEnrolled: true,
-          updatedAt: serverTimestamp(),
-        };
-
-        await setDoc(studentDocRef, studentToSave);
-        
-        // Return the newly created student data for the UI
-        return {
-          ...details,
-          profilePhotoUrl: downloadURL,
-          photoHash: photoHash,
-          createdAt: new Date(),
-          photoEnrolled: true,
-          updatedAt: new Date(),
-        } as Student;
-
-    } catch (error: any) {
-        console.error("Enrollment failed:", error);
-        // Let the form handle the toast
-        throw error;
+    const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
+    const duplicateSnap = await getDocs(duplicateQuery);
+    if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== details.registerNumber) {
+          const duplicateStudent = duplicateSnap.docs[0].data();
+          throw new Error(`This photo is already enrolled for ${duplicateStudent.name}.`);
     }
+
+    await uploadBytes(photoRef, processedPhoto);
+    const downloadURL = await getDownloadURL(photoRef);
+
+    const studentToSave = {
+      ...details,
+      profilePhotoUrl: downloadURL,
+      photoHash: photoHash, 
+      createdAt: serverTimestamp(),
+      photoEnrolled: true,
+      updatedAt: serverTimestamp(),
+    };
+
+    await setDoc(studentDocRef, studentToSave);
+    
+    // Return the newly created student data for the UI
+    return {
+      ...details,
+      profilePhotoUrl: downloadURL,
+      photoHash: photoHash,
+      createdAt: new Date(),
+      photoEnrolled: true,
+      updatedAt: new Date(),
+    } as Student;
   }, [firestore, firebaseApp]);
 
 
@@ -198,6 +191,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const storage = getStorage(firebaseApp);
     const studentDocRef = doc(firestore, 'students', registerNumber);
     
+    // First, try to delete the firestore document
     try {
       await deleteDoc(studentDocRef);
       toast({
@@ -212,14 +206,23 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             title: "Delete Failed",
             description: `Could not delete ${studentToDelete.name}. ${error.message}`,
         });
+        // If document deletion fails, don't proceed to delete the photo
+        return;
     }
 
+    // If document deletion is successful, then try to delete the photo
     try {
       const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
       await deleteObject(photoRef);
     } catch (storageError: any) {
+      // If photo doesn't exist, it's not a critical error.
       if (storageError.code !== 'storage/object-not-found') {
-        console.error("Background photo deletion failed, but document was deleted:", storageError);
+        console.warn("Background photo deletion failed, but document was deleted:", storageError);
+         toast({
+            variant: "destructive",
+            title: "Partial Deletion",
+            description: `Student record was deleted, but the photo could not be removed from storage.`,
+        });
       }
     }
   }, [firestore, firebaseApp, toast, students]);
