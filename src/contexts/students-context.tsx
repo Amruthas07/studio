@@ -137,54 +137,20 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   ) => {
     if (!firestore || !firebaseApp) {
       toast({ variant: "destructive", title: "Update Failed", description: "Database is not available." });
-      return;
+      throw new Error("Database not available.");
     }
     
     const { newPhotoFile, ...otherUpdates } = studentUpdate;
     const studentDocRef = doc(firestore, 'students', registerNumber);
     
+    // --- Part 1: Immediately update non-photo details ---
     const updatesToApply: any = { ...otherUpdates, updatedAt: serverTimestamp() };
-
-    // Handle photo update if a new file is provided
-    if (newPhotoFile) {
-        try {
-            const storage = getStorage(firebaseApp);
-            const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
-
-            const processedPhoto = await resizeAndCompressImage(newPhotoFile);
-            const photoHash = await getImageHash(processedPhoto);
-            
-            // Check for duplicate photo
-            const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
-            const duplicateSnap = await getDocs(duplicateQuery);
-            if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== registerNumber) {
-                const duplicateStudent = duplicateSnap.docs[0].data();
-                throw new Error(`This photo is already in use for ${duplicateStudent.name}.`);
-            }
-            
-            await uploadBytes(photoRef, processedPhoto);
-            const downloadURL = await getDownloadURL(photoRef);
-            
-            updatesToApply.profilePhotoUrl = downloadURL;
-            updatesToApply.photoHash = photoHash;
-
-        } catch (error: any) {
-            console.error("Failed to update student photo:", error);
-            toast({
-                variant: "destructive",
-                title: "Photo Update Failed",
-                description: error.message || "Could not save the new photo.",
-            });
-            // We don't want to update other details if photo upload fails
-            return;
-        }
-    }
-
+    
     try {
         await updateDoc(studentDocRef, updatesToApply);
         toast({
             title: "Student Updated",
-            description: `Details for ${registerNumber} have been saved.`,
+            description: `Details for ${otherUpdates.name || registerNumber} have been saved.`,
         });
     } catch (error: any) {
         console.error("Failed to update student details:", error);
@@ -193,6 +159,52 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             title: "Update Failed",
             description: error.message || "Could not save changes.",
         });
+        // If the initial update fails, we throw the error to stop the process.
+        throw error;
+    }
+
+    // --- Part 2: Handle photo update in the background ---
+    if (newPhotoFile) {
+        (async () => {
+            try {
+                const storage = getStorage(firebaseApp);
+                const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
+
+                const processedPhoto = await resizeAndCompressImage(newPhotoFile);
+                const photoHash = await getImageHash(processedPhoto);
+                
+                const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
+                const duplicateSnap = await getDocs(duplicateQuery);
+                if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== registerNumber) {
+                    const duplicateStudent = duplicateSnap.docs[0].data();
+                    throw new Error(`This photo is already in use for ${duplicateStudent.name}.`);
+                }
+                
+                await uploadBytes(photoRef, processedPhoto);
+                const downloadURL = await getDownloadURL(photoRef);
+                
+                // Update the document with photo info
+                await updateDoc(studentDocRef, {
+                    profilePhotoUrl: downloadURL,
+                    photoHash: photoHash,
+                    updatedAt: serverTimestamp(),
+                });
+
+                toast({
+                    title: "Photo Updated",
+                    description: `The new photo for ${otherUpdates.name || registerNumber} has been saved.`,
+                });
+
+            } catch (error: any) {
+                console.error("Failed to update student photo in background:", error);
+                toast({
+                    variant: "destructive",
+                    title: "Background Photo Update Failed",
+                    description: error.message || "Could not save the new photo.",
+                    duration: 9000,
+                });
+            }
+        })();
     }
   }, [firestore, firebaseApp, toast]);
   
