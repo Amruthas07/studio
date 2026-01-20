@@ -9,7 +9,7 @@ import React, {
   useCallback,
 } from 'react';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { getStorage, ref, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
+import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'firebase/storage';
 import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -87,11 +87,8 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     (async () => {
         const studentDocRef = doc(firestore, 'students', details.registerNumber);
         try {
-            // Firestore doesn't accept File objects.
-            const { photo, ...savableDetails } = details;
-            
             const studentToSave = {
-              ...savableDetails,
+              ...details,
               profilePhotoUrl: '',
               photoHash: '', 
               createdAt: serverTimestamp(),
@@ -113,35 +110,28 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                  throw new Error(`This photo is already enrolled for ${duplicateStudent.name}.`);
             }
 
-            const uploadTask = uploadBytesResumable(photoRef, processedPhoto);
+            // Using await uploadBytes for simpler promise-based handling
+            await uploadBytes(photoRef, processedPhoto);
             
-            uploadTask.on('state_changed', 
-                null,
-                (error) => {
-                    console.error("Firebase Storage upload failed:", error);
-                    toast({
-                        variant: "destructive",
-                        title: `Photo Upload Failed for ${details.name}`,
-                        description: "Could not save photo to cloud storage. You can re-enroll it later.",
-                    });
-                },
-                async () => { // On success
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    const finalUpdate = {
-                        profilePhotoUrl: downloadURL,
-                        photoHash: photoHash,
-                        photoEnrolled: true,
-                        updatedAt: serverTimestamp(),
-                    };
-                    await updateDoc(studentDocRef, finalUpdate);
-                }
-            );
+            const downloadURL = await getDownloadURL(photoRef);
+
+            const finalUpdate = {
+                profilePhotoUrl: downloadURL,
+                photoHash: photoHash,
+                photoEnrolled: true,
+                updatedAt: serverTimestamp(),
+            };
+            await updateDoc(studentDocRef, finalUpdate);
+            
         } catch (error: any) {
             console.error("Background enrollment failed:", error);
+             // Cleanup: If background process fails, delete the partially created student doc
+            await deleteDoc(studentDocRef).catch(delErr => console.error("Failed to cleanup orphaned student doc:", delErr));
+            
             toast({
                 variant: "destructive",
                 title: `Enrollment Failed for ${details.name}`,
-                description: error.message || "Could not save student details. The student was not created.",
+                description: error.message || "Could not save student. Please try again.",
             });
         }
     })();
@@ -164,7 +154,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const studentDocRef = doc(firestore, 'students', registerNumber);
     const { newPhotoFile, ...otherUpdates } = studentUpdate;
 
-    // Handle just text updates
     if (!newPhotoFile) {
       try {
         await updateDoc(studentDocRef, {...otherUpdates, updatedAt: serverTimestamp()});
@@ -183,7 +172,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Handle photo re-enrollment
     toast({ title: 'Re-enrolling Photo', description: 'Starting background photo update...' });
      (async () => {
         const storage = getStorage(firebaseApp);
@@ -199,27 +187,22 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                  throw new Error(`This photo is already in use by ${duplicateSnap.docs[0].data().name}.`);
             }
 
-            const uploadTask = uploadBytesResumable(photoRef, processedPhoto);
+            await uploadBytes(photoRef, processedPhoto);
+            const downloadURL = await getDownloadURL(photoRef);
             
-            uploadTask.on('state_changed', null, 
-                (error) => {
-                    toast({ variant: "destructive", title: 'Photo Upload Failed', description: 'Please check your connection and try again.'});
-                },
-                async () => {
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    const finalUpdate = {
-                        ...otherUpdates,
-                        profilePhotoUrl: downloadURL,
-                        photoHash: photoHash,
-                        photoEnrolled: true,
-                        updatedAt: serverTimestamp(),
-                    };
-                    await updateDoc(studentDocRef, finalUpdate);
-                    toast({ title: "Photo Re-enrolled", description: `New photo saved for ${registerNumber}.` });
-                }
-            );
+            const finalUpdate = {
+                ...otherUpdates,
+                profilePhotoUrl: downloadURL,
+                photoHash: photoHash,
+                photoEnrolled: true,
+                updatedAt: serverTimestamp(),
+            };
+            await updateDoc(studentDocRef, finalUpdate);
+            toast({ title: "Photo Re-enrolled", description: `New photo saved for ${registerNumber}.` });
+
         } catch (error: any) {
-            toast({ variant: "destructive", title: 'Re-enrollment Failed', description: error.message });
+             console.error("Photo re-enrollment failed:", error);
+             toast({ variant: "destructive", title: 'Re-enrollment Failed', description: error.message });
         }
     })();
   }, [firestore, firebaseApp, toast]);
@@ -237,33 +220,35 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     }
 
     const storage = getStorage(firebaseApp);
-
+    
     try {
+      // Attempt to delete photo, but don't let it block document deletion.
+      try {
         const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
-        await deleteObject(photoRef).catch(error => {
-            // Don't throw an error if the object doesn't exist, just continue.
-            if (error.code !== 'storage/object-not-found') {
-                throw error;
-            }
-        });
-        
-        const studentDocRef = doc(firestore, 'students', registerNumber);
-        await deleteDoc(studentDocRef);
-        
-        toast({
-            title: "Student Deleted",
-            description: `Successfully removed ${studentToDelete.name}.`,
-        });
+        await deleteObject(photoRef);
+      } catch (storageError: any) {
+        // A "not-found" error is okay, it means there was no photo to delete.
+        if (storageError.code !== 'storage/object-not-found') {
+          console.error("Photo deletion failed, but proceeding to delete document:", storageError);
+        }
+      }
+      
+      // Delete the Firestore document.
+      const studentDocRef = doc(firestore, 'students', registerNumber);
+      await deleteDoc(studentDocRef);
+      
+      toast({
+          title: "Student Deleted",
+          description: `Successfully removed ${studentToDelete.name}.`,
+      });
 
     } catch (error: any) {
-        console.error("Failed to delete student:", error);
+        console.error("Failed to delete student document:", error);
         toast({
             variant: "destructive",
             title: "Delete Failed",
             description: `Could not delete ${studentToDelete.name}. ${error.message}`,
         });
-        // Do not re-throw the error, as it can cause an unhandled promise rejection
-        // in the component calling this function. The toast is sufficient feedback.
     }
   }, [firestore, firebaseApp, toast, students]);
 
