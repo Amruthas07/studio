@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Users, UserCheck, UserX, LogOut } from "lucide-react";
@@ -13,12 +12,13 @@ import { AttendanceChart } from "@/components/admin/attendance-chart";
 import { subDays, format } from 'date-fns';
 
 export default function AdminDashboard() {
-  const { user, loading } = useAuth();
-  const { attendanceRecords } = useAttendance();
+  const { user, loading: authLoading } = useAuth();
+  const { attendanceRecords, loading: attendanceLoading } = useAttendance();
   const { students, loading: studentsLoading } = useStudents();
   
   const { departmentStudents, totalStudents, presentToday, absentToday, onLeaveToday, weeklyData } = useMemo(() => {
-    if (!user || students.length === 0) {
+    // This calculation should only run when all data is available.
+    if (authLoading || studentsLoading || attendanceLoading || !user) {
       return { departmentStudents: [], totalStudents: 0, presentToday: 0, absentToday: 0, onLeaveToday: 0, weeklyData: [] };
     }
 
@@ -26,7 +26,7 @@ export default function AdminDashboard() {
       ? students 
       : students.filter(s => s.department === user.department);
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = format(new Date(), 'yyyy-MM-dd'); // Use date-fns for consistency
 
     const todaysAttendance = attendanceRecords.filter(record => 
       record.date === today && 
@@ -65,14 +65,14 @@ export default function AdminDashboard() {
       departmentStudents: deptStudents,
       totalStudents: totalDeptStudents,
       presentToday: presentCount,
-      absentToday: absentCount,
+      absentToday: absentCount > 0 ? absentCount : 0, // Ensure absent is not negative
       onLeaveToday: onLeaveCount,
       weeklyData: weeklyChartData,
     };
-  }, [user, students, attendanceRecords]);
+  }, [user, authLoading, students, studentsLoading, attendanceRecords, attendanceLoading]);
 
 
-  if (loading || studentsLoading || !user) {
+  if (authLoading || studentsLoading || attendanceLoading || !user) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
