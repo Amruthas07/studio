@@ -9,11 +9,11 @@ import { useAuth } from '@/hooks/use-auth';
 
 function Logo() {
   return (
-    <div className="flex items-center gap-2 text-lg font-semibold md:text-base text-foreground">
+    <div className="flex items-center gap-2 text-lg font-semibold md:text-base text-primary-foreground">
       <div className="bg-primary p-2 rounded-md">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary-foreground))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-scan-face"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01"/><path d="M15 9h.01"/></svg>
       </div>
-      <span className="font-headline text-foreground">FaceAttend</span>
+      <span className="font-headline text-primary-foreground">FaceAttend</span>
     </div>
   )
 }
@@ -38,7 +38,7 @@ export function Sidebar() {
     const navItems = user?.role === 'admin' ? adminNavItems : studentNavItems;
 
     return (
-        <div className="hidden border-r bg-card md:block">
+        <div className="hidden border-r bg-sidebar-bg md:block text-muted-foreground">
             <div className="flex h-full max-h-screen flex-col gap-2">
                 <div className="flex h-16 items-center border-b px-4 lg:px-6">
                     <Link href="/" className="flex items-center gap-2 font-semibold">
@@ -52,8 +52,8 @@ export function Sidebar() {
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
-                                    "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:bg-muted hover:text-foreground",
-                                    pathname.startsWith(item.href) && item.href !== '/admin' && !['/admin/students', '/admin/face-enrollment', '/admin/mark-attendance', '/admin/attendance', '/admin/reports'].includes(item.href) ? "bg-muted text-foreground" : pathname === item.href ? "bg-muted text-foreground" : ""
+                                    "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-accent hover:text-accent-foreground",
+                                    pathname.startsWith(item.href) && item.href !== '/admin' && !['/admin/students', '/admin/face-enrollment', '/admin/mark-attendance', '/admin/attendance', '/admin/reports'].includes(item.href) ? "bg-accent text-accent-foreground" : pathname === item.href ? "bg-accent text-accent-foreground" : ""
                                 )}
                             >
                                 <item.icon className="h-4 w-4" />
@@ -74,7 +74,7 @@ export function MobileSidebarContent() {
     const navItems = user?.role === 'admin' ? adminNavItems : studentNavItems;
 
      return (
-        <nav className="grid gap-2 text-lg font-medium p-4">
+        <nav className="grid gap-2 text-lg font-medium p-4 text-muted-foreground">
             <Link
               href="#"
               className="flex items-center gap-2 text-lg font-semibold mb-4"
@@ -86,8 +86,8 @@ export function MobileSidebarContent() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                        "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
-                         pathname.startsWith(item.href) && item.href !== '/admin' && !['/admin/students', '/admin/face-enrollment', '/admin/mark-attendance', '/admin/attendance', '/admin/reports'].includes(item.href) ? "bg-muted text-foreground" : pathname === item.href ? "bg-muted text-foreground" : ""
+                        "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 hover:text-accent-foreground hover:bg-accent",
+                         pathname.startsWith(item.href) && item.href !== '/admin' && !['/admin/students', '/admin/face-enrollment', '/admin/mark-attendance', '/admin/attendance', '/admin/reports'].includes(item.href) ? "bg-accent text-accent-foreground" : pathname === item.href ? "bg-accent text-accent-foreground" : ""
                     )}
                 >
                     <item.icon className="h-5 w-5" />
