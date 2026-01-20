@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             fatherName: 'N/A',
             motherName: 'N/A',
             profilePhotoUrl:
-              'https://jssonline.org/wp-content/uploads/2023/11/JSS_Polytechnic-Nanjangud.jpg',
+              'https://picsum.photos/seed/jsspoly/100/100',
             contact: 'N/A',
             createdAt: new Date(),
             dateOfBirth: new Date(),

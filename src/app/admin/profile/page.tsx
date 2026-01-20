@@ -1,3 +1,4 @@
+
 'use client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,7 +40,7 @@ export default function AdminProfilePage() {
         address: "Mysore-Ooty Road, Nanjangud",
         contact: "08221 - 22649 / +91 988661823",
         email: "jsspn324@gmail.com",
-        photoUrl: "https://jssonline.org/wp-content/uploads/2023/11/JSS_Polytechnic-Nanjangud.jpg"
+        photoUrl: "https://picsum.photos/seed/jsscampus/1200/400"
     };
 
   if (loading || !user) {
