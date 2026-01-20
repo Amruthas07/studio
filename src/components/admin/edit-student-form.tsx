@@ -126,7 +126,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                 <FormLabel>Profile Photo</FormLabel>
                 <div className="w-full aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
                     {previewUrl ? (
-                        <Image src={previewUrl} alt="Student preview" layout="fill" objectFit="contain" />
+                        <Image src={previewUrl} alt="Student preview" layout="fill" objectFit="cover" />
                     ) : (
                         <div className="text-center text-muted-foreground p-4">
                             <FileImage className="mx-auto h-12 w-12" />

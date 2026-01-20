@@ -162,7 +162,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                     <FormLabel>Profile Photo</FormLabel>
                     <div className="w-full aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
                         {previewUrl ? (
-                            <Image src={previewUrl} alt="Student preview" layout="fill" objectFit="contain" />
+                            <Image src={previewUrl} alt="Student preview" layout="fill" objectFit="cover" />
                         ) : (
                             <div className="text-center text-muted-foreground p-4">
                                 <FileImage className="mx-auto h-12 w-12" />
@@ -190,7 +190,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                         )}
                     />
                     <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
-                        <FileImage className="mr-2 h-4 w-4" /> Upload File
+                        <FileImage className="mr-2 h-4 w-4" /> Upload Photo
                     </Button>
                 </div>
             </div>

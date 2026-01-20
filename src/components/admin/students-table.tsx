@@ -57,7 +57,7 @@ export function StudentsTable({ students, onEditStudent, onDeleteStudent }: Stud
                         <TableRow key={student.registerNumber}>
                             <TableCell>
                                 <div className="flex items-center gap-3">
-                                    <Avatar className="h-9 w-9">
+                                    <Avatar className="h-10 w-10">
                                         <AvatarImage src={student.profilePhotoUrl} alt={student.name} />
                                         <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
                                     </Avatar>
