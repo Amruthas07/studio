@@ -40,7 +40,7 @@ export default function AdminProfilePage() {
         address: "Mysore-Ooty Road, Nanjangud",
         contact: "08221 - 22649 / +91 988661823",
         email: "jsspn324@gmail.com",
-        photoUrl: "https://picsum.photos/seed/jsscampus/1200/400"
+        photoUrl: "https://jssonline.org/wp-content/uploads/2021/04/JSS-Polytechnic-Nanjangud.jpg"
     };
 
   if (loading || !user) {
