@@ -8,7 +8,7 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, getDoc } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
 import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 import type { Student, StudentsContextType } from '@/lib/types';
@@ -64,17 +64,27 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       throw new Error('Firestore not initialized. Please try again later.');
     }
     
-    if (students.some(s => s.registerNumber === studentData.registerNumber)) {
+    console.log("Starting student enrollment: Checking for duplicates...");
+    const studentsRef = collection(firestore, 'students');
+    const studentDocRef = doc(firestore, 'students', studentData.registerNumber);
+
+    // Efficiently check for duplicates in parallel using Firestore queries
+    const [regNumSnap, emailSnap, contactSnap] = await Promise.all([
+        getDoc(studentDocRef),
+        getDocs(query(studentsRef, where('email', '==', studentData.email.toLowerCase()))),
+        getDocs(query(studentsRef, where('contact', '==', studentData.contact))),
+    ]);
+
+    if (regNumSnap.exists()) {
         throw new Error(`A student with Register Number ${studentData.registerNumber} already exists.`);
     }
-
-    if (students.some(s => s.email.toLowerCase() === studentData.email.toLowerCase())) {
+    if (!emailSnap.empty) {
         throw new Error(`A student with the email ${studentData.email} already exists.`);
     }
-
-    if (students.some(s => s.contact === studentData.contact)) {
+    if (!contactSnap.empty) {
         throw new Error(`A student with the contact number ${studentData.contact} already exists.`);
     }
+    console.log("Duplicate checks passed.");
 
     const newStudent: Student = {
       ...studentData,
@@ -84,8 +94,9 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     };
 
     try {
-        const studentDocRef = doc(firestore, 'students', newStudent.registerNumber);
+        console.log(`Enrolling student ${newStudent.registerNumber}...`);
         await setDoc(studentDocRef, newStudent);
+        console.log("Student enrolled successfully in Firestore.");
         
         // No need for setStudents, onSnapshot will handle it.
         return newStudent;
@@ -94,7 +105,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         console.error("Firestore add failed:", error);
         throw new Error("Could not save the new student to the database.");
     }
-  }, [firestore, students]);
+  }, [firestore]);
 
  const updateStudent = useCallback(async (
     registerNumber: string,
@@ -111,10 +122,12 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const { newPhotoFile } = studentUpdate;
 
     if (newPhotoFile) {
+        onProgress?.(5);
         console.log("Starting enrollment: Hashing photo...");
         const photoHash = await getImageHash(newPhotoFile);
         
         console.log("Checking for duplicate photo hash...");
+        onProgress?.(10);
         const q = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
         const duplicateSnap = await getDocs(q);
 
@@ -135,13 +148,13 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             const timeout = setTimeout(() => {
                 uploadTask.cancel();
                 reject(new Error("Enrollment timed out. Please check your network and try again."));
-            }, 30000); // 30 second timeout
+            }, 15000); // 15 second timeout
 
             uploadTask.on('state_changed',
             (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                const progress = 10 + (snapshot.bytesTransferred / snapshot.totalBytes) * 80; // Scale progress from 10% to 90%
                 if (onProgress) onProgress(progress);
-                 console.log(`Upload Progress: ${progress}%`);
+                 console.log(`Upload Progress: ${progress.toFixed(2)}%`);
             },
             (error) => {
                 clearTimeout(timeout);
@@ -152,7 +165,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                 try {
                     clearTimeout(timeout);
                     console.log('Upload complete, getting download URL...');
-                    if (onProgress) onProgress(100);
+                    if (onProgress) onProgress(95);
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     finalUpdate.photoURL = downloadURL;
                     delete (finalUpdate as any).newPhotoFile;
@@ -160,6 +173,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                     console.log('Saving metadata to Firestore...');
                     await setDoc(studentDocRef, finalUpdate, { merge: true });
                     console.log('Firestore write complete.');
+                    onProgress?.(100);
                     resolve();
                 } catch (dbError) {
                     console.error("Firestore update or URL fetch failed:", dbError);
