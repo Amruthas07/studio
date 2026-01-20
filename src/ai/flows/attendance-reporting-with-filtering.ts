@@ -121,9 +121,11 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
         
         let timestamp = 'N/A';
         let reason = 'N/A';
+        let method = 'N/A';
 
         if (attendanceRecord) {
             timestamp = new Date(attendanceRecord.timestamp).toLocaleString();
+            method = attendanceRecord.method;
             if (attendanceRecord.status === 'on_leave') {
                 reason = attendanceRecord.reason || 'Not specified';
             }
@@ -135,6 +137,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
             "Department": student.department.toUpperCase(),
             "Date": reportDate,
             "Status": status,
+            "Method": method,
             "Timestamp": timestamp,
             "Leave Reason": reason,
         };
