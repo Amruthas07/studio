@@ -8,14 +8,14 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import type { AttendanceRecord } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
 import { useFirestore } from '@/hooks/use-firebase';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
-  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'studentName'>) => Promise<void>;
+  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'studentName' | 'timestamp'>) => Promise<void>;
   loading: boolean;
 }
 
@@ -43,11 +43,12 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         const studentMap = new Map(students.map(s => [s.registerNumber, s.name]));
         const attendanceData = snapshot.docs.map(doc => {
           const data = doc.data();
+          const timestamp = data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : new Date().toISOString();
           return {
             ...data,
             id: doc.id,
             studentName: studentMap.get(data.studentRegister) || 'Unknown Student',
-            timestamp: data.timestamp, // ensure timestamp is a string
+            timestamp: timestamp,
           } as AttendanceRecord;
         });
         setAttendanceRecords(attendanceData);
@@ -62,10 +63,10 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [firestore, students, studentsLoading]);
 
-  const addAttendanceRecord = useCallback(async (newRecord: Omit<AttendanceRecord, 'id' | 'studentName'>) => {
+  const addAttendanceRecord = useCallback(async (newRecord: Omit<AttendanceRecord, 'id' | 'studentName' | 'timestamp'>) => {
     if (!firestore) throw new Error("Firestore is not initialized");
     const attendanceCollection = collection(firestore, 'attendance');
-    await addDoc(attendanceCollection, newRecord);
+    await addDoc(attendanceCollection, { ...newRecord, timestamp: serverTimestamp() });
   }, [firestore]);
 
   const value = { attendanceRecords, addAttendanceRecord, loading };

@@ -8,12 +8,12 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
 import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { simpleHash, resizeAndCompressImage } from '@/lib/utils';
+import { getImageHash } from '@/lib/utils';
 
 export const StudentsContext = createContext<StudentsContextType | undefined>(
   undefined
@@ -42,6 +42,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             return {
                 ...data,
                 id: doc.id,
+                registerNumber: doc.id, // Ensure registerNumber is consistent with doc ID
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
                 dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : new Date(data.dateOfBirth),
             } as Student;
@@ -58,7 +59,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [firestore]);
 
- const addStudent = useCallback(async (studentData: Omit<Student, 'photoURL' | 'faceId' | 'createdAt'>): Promise<Student> => {
+ const addStudent = useCallback(async (studentData: Omit<Student, 'photoURL' | 'photoHash' | 'createdAt'>): Promise<Student> => {
     if (!firestore) {
       throw new Error('Firestore not initialized. Please try again later.');
     }
@@ -78,7 +79,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const newStudent: Student = {
       ...studentData,
       photoURL: '',
-      faceId: '', // FaceID will be set on enrollment
+      photoHash: '', 
       createdAt: new Date(),
     };
 
@@ -86,7 +87,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         const studentDocRef = doc(firestore, 'students', newStudent.registerNumber);
         await setDoc(studentDocRef, newStudent);
         
-        setStudents(prev => [...prev, newStudent]);
+        // No need for setStudents, onSnapshot will handle it.
         return newStudent;
 
     } catch (error) {
@@ -97,7 +98,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
  const updateStudent = useCallback(async (
     registerNumber: string,
-    studentUpdate: Partial<Student> & { newFacePhoto?: string },
+    studentUpdate: Partial<Student> & { newPhotoFile?: File },
     onProgress?: (progress: number) => void
   ) => {
     if (!firestore || !firebaseApp) {
@@ -107,55 +108,71 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const studentDocRef = doc(firestore, 'students', registerNumber);
     const finalUpdate: Partial<Student> = { ...studentUpdate };
     const storage = getStorage(firebaseApp);
+    const { newPhotoFile } = studentUpdate;
 
-    if (finalUpdate.newFacePhoto) {
-      const faceSignature = simpleHash(finalUpdate.newFacePhoto);
-      const duplicateStudent = students.find(
-        s => s.faceId === faceSignature && s.registerNumber !== registerNumber
-      );
+    if (newPhotoFile) {
+        console.log("Starting enrollment: Hashing photo...");
+        const photoHash = await getImageHash(newPhotoFile);
+        
+        console.log("Checking for duplicate photo hash...");
+        const q = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
+        const duplicateSnap = await getDocs(q);
 
-      if (duplicateStudent) {
-        throw new Error(`This face is already enrolled for ${duplicateStudent.name} (${duplicateStudent.registerNumber}).`);
-      }
-      finalUpdate.faceId = faceSignature;
-
-      const photoRef = ref(storage, `students/${registerNumber}/enrollment/profile.jpg`);
-      const response = await fetch(finalUpdate.newFacePhoto);
-      const blob = await response.blob();
-      const uploadTask = uploadBytesResumable(photoRef, blob, { contentType: 'image/jpeg' });
-
-      await new Promise<void>((resolve, reject) => {
-        uploadTask.on('state_changed',
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            if (onProgress) onProgress(progress);
-          },
-          (error) => {
-            console.error("Firebase Storage upload failed:", error);
-            reject(new Error("Image Upload Failed: Could not save face image to cloud storage."));
-          },
-          async () => {
-            try {
-              console.log('Upload complete, getting download URL...');
-              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-              finalUpdate.photoURL = downloadURL;
-              delete (finalUpdate as any).newFacePhoto;
-
-              console.log('Saving metadata to Firestore...');
-              await setDoc(studentDocRef, finalUpdate, { merge: true });
-              console.log('Firestore write complete.');
-              resolve();
-            } catch (dbError) {
-              console.error("Firestore update or URL fetch failed:", dbError);
-              reject(new Error(`Database Update Failed: Could not save changes for ${registerNumber}.`));
+        if (!duplicateSnap.empty) {
+            const duplicateStudent = duplicateSnap.docs[0].data();
+            if (duplicateStudent.registerNumber !== registerNumber) {
+                console.error("Duplicate photo detected.");
+                throw new Error(`This photo is already enrolled for ${duplicateStudent.name} (${duplicateStudent.registerNumber}).`);
             }
-          }
-        );
-      });
+        }
+        
+        finalUpdate.photoHash = photoHash;
+
+        const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
+        const uploadTask = uploadBytesResumable(photoRef, newPhotoFile, { contentType: newPhotoFile.type });
+
+        await new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                uploadTask.cancel();
+                reject(new Error("Enrollment timed out. Please check your network and try again."));
+            }, 30000); // 30 second timeout
+
+            uploadTask.on('state_changed',
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                if (onProgress) onProgress(progress);
+                 console.log(`Upload Progress: ${progress}%`);
+            },
+            (error) => {
+                clearTimeout(timeout);
+                console.error("Firebase Storage upload failed:", error);
+                reject(new Error("Image Upload Failed: Could not save face image to cloud storage."));
+            },
+            async () => {
+                try {
+                    clearTimeout(timeout);
+                    console.log('Upload complete, getting download URL...');
+                    if (onProgress) onProgress(100);
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    finalUpdate.photoURL = downloadURL;
+                    delete (finalUpdate as any).newPhotoFile;
+
+                    console.log('Saving metadata to Firestore...');
+                    await setDoc(studentDocRef, finalUpdate, { merge: true });
+                    console.log('Firestore write complete.');
+                    resolve();
+                } catch (dbError) {
+                    console.error("Firestore update or URL fetch failed:", dbError);
+                    reject(new Error(`Database Update Failed: Could not save changes for ${registerNumber}.`));
+                }
+            }
+            );
+        });
     } else {
-      await setDoc(studentDocRef, finalUpdate, { merge: true });
+        // This case handles edits without photo change
+        await setDoc(studentDocRef, finalUpdate, { merge: true });
     }
-  }, [firestore, firebaseApp, students]);
+  }, [firestore, firebaseApp]);
   
   const deleteStudent = useCallback(async (registerNumber: string) => {
     if (!firestore || !firebaseApp) {
@@ -172,14 +189,12 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const storage = getStorage(firebaseApp);
 
     try {
-        if (studentToDelete.photoURL) {
-            const photoRef = ref(storage, `students/${registerNumber}/enrollment/profile.jpg`);
-            await deleteObject(photoRef).catch(error => {
-                if (error.code !== 'storage/object-not-found') {
-                    throw error;
-                }
-            });
-        }
+        const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
+        await deleteObject(photoRef).catch(error => {
+            if (error.code !== 'storage/object-not-found') {
+                throw error;
+            }
+        });
         
         const studentDocRef = doc(firestore, 'students', registerNumber);
         await deleteDoc(studentDocRef);

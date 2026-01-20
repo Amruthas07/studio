@@ -16,19 +16,16 @@ export function fileToBase64(file: File): Promise<string> {
 }
 
 /**
- * A simple, non-cryptographic hash function for generating a consistent signature from a string.
- * Used here to create a simulated unique ID from an image's base64 data to check for duplicates.
- * @param str The string to hash (e.g., a base64 image data URI)
- * @returns A string representation of the 32-bit hash.
+ * Generates a SHA-256 hash of an image file.
+ * @param file The image file to hash.
+ * @returns A promise that resolves with the hex string of the hash.
  */
-export function simpleHash(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash.toString();
+export async function getImageHash(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 /**
@@ -36,9 +33,9 @@ export function simpleHash(str: string): string {
  * @param file The image file to process.
  * @param maxSize The maximum width or height of the output image.
  * @param quality The quality of the output JPEG image (0 to 1).
- * @returns A promise that resolves with the base64 data URI of the processed image.
+ * @returns A promise that resolves with the processed image as a File object.
  */
-export function resizeAndCompressImage(file: File, maxSize: number = 512, quality: number = 0.8): Promise<string> {
+export function resizeAndCompressImage(file: File, maxSize: number = 512, quality: number = 0.8): Promise<File> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (readerEvent) => {
@@ -67,8 +64,16 @@ export function resizeAndCompressImage(file: File, maxSize: number = 512, qualit
         }
         ctx.drawImage(img, 0, 0, width, height);
         
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(dataUrl);
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                return reject(new Error('Canvas to Blob conversion failed'));
+            }
+            const processedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+            });
+            resolve(processedFile);
+        }, 'image/jpeg', quality);
       };
       img.onerror = reject;
       if (typeof readerEvent.target?.result === 'string') {

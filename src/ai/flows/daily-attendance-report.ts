@@ -23,7 +23,7 @@ const StudentSchema = z.object({
   photoURL: z.string(),
   email: z.string().email(),
   contact: z.string(),
-  faceId: z.string().optional(),
+  photoHash: z.string().optional(),
   createdAt: z.string(), // Changed from z.date()
   dateOfBirth: z.string(), // Changed from z.date()
 });
@@ -33,9 +33,7 @@ const AttendanceRecordSchema = z.object({
   studentRegister: z.string(),
   studentName: z.string().optional(),
   date: z.string(),
-  status: z.enum(['present', 'absent', 'late', 'manual', 'unknown-face']),
-  markedBy: z.string(),
-  method: z.enum(['face-scan', 'manual']),
+  matched: z.boolean(),
   timestamp: z.string(),
 });
 
@@ -99,7 +97,7 @@ const dailyAttendanceReportFlow = ai.defineFlow(
     const todaysRecords = input.attendanceRecords.filter(record => record.date === today);
     const presentStudentRegisters = new Set(
         todaysRecords
-            .filter(r => r.status === 'present' || r.status === 'late')
+            .filter(r => r.matched)
             .map(r => r.studentRegister)
     );
 
@@ -108,14 +106,11 @@ const dailyAttendanceReportFlow = ai.defineFlow(
         const isPresent = presentStudentRegisters.has(student.registerNumber);
         const attendanceRecord = todaysRecords.find(rec => rec.studentRegister === student.registerNumber);
         
-        let status = 'absent';
+        let status = isPresent ? 'Present' : 'Absent';
         let timestamp = 'N/A';
 
         if (attendanceRecord) {
-            status = attendanceRecord.status;
             timestamp = new Date(attendanceRecord.timestamp).toLocaleString();
-        } else if (isPresent) { // Fallback
-             status = 'present';
         }
 
         return {

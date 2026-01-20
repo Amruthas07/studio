@@ -22,20 +22,17 @@ const StudentSchema = z.object({
   photoURL: z.string(),
   email: z.string().email(),
   contact: z.string(),
-  faceId: z.string().optional(),
-  createdAt: z.string(), // Changed from z.date()
-  dateOfBirth: z.string(), // Changed from z.date()
+  photoHash: z.string().optional(), // updated
+  createdAt: z.string(), 
+  dateOfBirth: z.string(),
 });
-
 
 const AttendanceRecordSchema = z.object({
   id: z.string(),
   studentRegister: z.string(),
   studentName: z.string().optional(),
   date: z.string(),
-  status: z.enum(['present', 'absent', 'late', 'manual', 'unknown-face']),
-  markedBy: z.string(),
-  method: z.enum(['face-scan', 'manual']),
+  matched: z.boolean(), // updated
   timestamp: z.string(),
 });
 
@@ -46,19 +43,6 @@ const MarkAttendanceFromCameraInputSchema = z.object({
   date: z
     .string()
     .describe('The date of the attendance record in YYYY-MM-DD format.'),
-  status: z
-    .enum(['present', 'absent', 'late', 'unknown-face', 'manual'])
-    .describe('The attendance status.'),
-  markedBy: z
-    .string()
-    .describe('Identifier of who or what marked the attendance (admin email or camera).'),
-  method: z
-    .enum(['face-scan', 'manual'])
-    .describe('The method used to mark attendance.'),
-  timestamp: z
-    .string()
-    .describe('The timestamp of when the attendance was marked (ISO format).'),
-  confidenceScore: z.number().describe('Confidence score of the face recognition match.'),
   existingRecords: z.array(AttendanceRecordSchema).describe('List of existing attendance records for the day.'),
   students: z.array(StudentSchema).describe("List of all students"),
 });
@@ -103,10 +87,6 @@ const checkAttendanceData = ai.defineTool(
             isValid: false,
             reason: 'Attendance has already been marked for this student today.',
         };
-    }
-
-    if (input.status === 'unknown-face') {
-        return { isValid: true, reason: 'Unknown face detected.' };
     }
     
     // Check if student register number exists in the student list

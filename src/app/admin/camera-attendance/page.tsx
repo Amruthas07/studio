@@ -1,273 +1,150 @@
 
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState, ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, Loader2, Video, VideoOff } from 'lucide-react';
-import { markAttendanceFromCamera, type MarkAttendanceFromCameraInput } from '@/ai/flows/mark-attendance-with-checks';
+import { Loader2, FileImage, UserCheck, UploadCloud } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import type { AttendanceRecord, Student } from '@/lib/types';
 import { useAttendance } from '@/hooks/use-attendance';
 import { useStudents } from '@/hooks/use-students';
-import { simpleHash } from '@/lib/utils';
+import { getImageHash } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import Image from 'next/image';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function CameraAttendancePage() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { attendanceRecords, addAttendanceRecord } = useAttendance();
   const { students } = useStudents();
   
-  useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const startCamera = async () => {
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-          setHasCameraPermission(true);
-          setIsStreaming(true);
-        }
-      } catch (error) {
-        console.error('Error starting camera:', error);
-        setHasCameraPermission(false);
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
         toast({
           variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use this feature.',
+          title: 'File Too Large',
+          description: 'Please select an image smaller than 5MB.',
         });
+        return;
       }
-    } else {
-       setHasCameraPermission(false);
-       toast({
-          variant: 'destructive',
-          title: 'Camera Not Supported',
-          description: 'Your browser does not support camera access.',
-       });
+      setPhotoFile(file);
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
     }
   };
 
-  const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-      setIsStreaming(false);
-    }
-  };
-
-
-  const captureAndMarkAttendance = () => {
-    if (!videoRef.current || !canvasRef.current || !user?.email) {
-        toast({ title: "Error", description: "Video feed, user, or student list not available.", variant: "destructive"});
+  const handleMarkAttendance = async () => {
+    if (!photoFile) {
+        toast({ title: "Error", description: "Please upload a photo to mark attendance.", variant: "destructive"});
         return;
     }
     
     setIsProcessing(true);
 
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const context = canvas.getContext('2d');
-    context?.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    const photoDataUri = canvas.toDataURL('image/jpeg');
+    try {
+        const currentHash = await getImageHash(photoFile);
 
-    // --- SIMILARITY-BASED RECOGNITION LOGIC ---
-    // This signature is generated from the LIVE camera feed.
-    const liveFaceSignature = simpleHash(photoDataUri);
-
-    let bestMatch: Student | null = null;
-    let minDistance = Infinity;
-
-    // 1. Find the closest match by calculating the "distance" between the live signature
-    // and all enrolled student signatures (faceId). A smaller distance means a more similar face.
-    const enrolledStudents = students.filter(s => s.faceId);
-    for (const student of enrolledStudents) {
-      // Use the numeric difference of hashes as a pseudo-distance metric.
-      // A real system would use cosine similarity or Euclidean distance on real embeddings.
-      const distance = Math.abs(parseInt(liveFaceSignature, 10) - parseInt(student.faceId!, 10));
-      if (distance < minDistance) {
-        minDistance = distance;
-        bestMatch = student;
-      }
-    }
-
-    // 2. Define a similarity threshold. This is a heuristic value that works for our simulated hash-based comparison.
-    // In a real system, this threshold would be determined experimentally.
-    const SIMILARITY_THRESHOLD = 50_000_000; 
-
-    // 3. Check if the best match is within the acceptable threshold.
-    const matchedStudent = (bestMatch && minDistance < SIMILARITY_THRESHOLD) ? bestMatch : null;
-    
-    if (!matchedStudent) {
-      toast({ 
-          title: "Recognition Failed", 
-          description: "Face not recognized. Please ensure the student is enrolled and try again.", 
-          variant: "destructive"
-      });
-      setIsProcessing(false);
-      return;
-    }
-
-    const confidence = Math.max(0, 1 - (minDistance / SIMILARITY_THRESHOLD));
-    const confidencePercentage = Math.round(confidence * 100);
-
-    toast({
-        title: "Face Matched!",
-        description: `Recognized ${matchedStudent.name} with ${confidencePercentage}% confidence. Marking attendance...`,
-    });
-
-    const timestamp = new Date().toISOString();
-    const today = timestamp.split('T')[0];
-    
-    const todaysRecords = attendanceRecords.filter(rec => rec.date === today);
-
-    // Prepare students data for the flow by converting dates to strings
-    const studentsForFlow = students.map(s => ({
-        ...s,
-        createdAt: s.createdAt.toISOString(),
-        dateOfBirth: s.dateOfBirth.toISOString(),
-    }));
-    
-    const input: MarkAttendanceFromCameraInput = {
-        studentRegister: matchedStudent.registerNumber,
-        date: today,
-        status: 'present',
-        markedBy: user.email,
-        method: 'face-scan',
-        timestamp: timestamp,
-        confidenceScore: confidence,
-        existingRecords: todaysRecords,
-        students: studentsForFlow,
-    };
-
-    markAttendanceFromCamera(input).then(result => {
-        setIsProcessing(false);
-        if (result.success) {
-            const newRecord = {
-              id: `manual_${Date.now()}`,
-              studentRegister: input.studentRegister,
-              date: input.date,
-              status: input.status,
-              markedBy: input.markedBy,
-              method: input.method,
-              timestamp: input.timestamp,
-            };
-            addAttendanceRecord(newRecord); 
-
-            toast({
-                title: "Attendance Marked",
-                description: `${matchedStudent.name} (${input.studentRegister}) marked as present.`,
-            });
-        } else {
-            toast({
-                variant: "destructive",
-                title: "Failed to Mark Attendance",
-                description: result.message,
-            });
+        const matchedStudent = students.find(s => s.photoHash === currentHash);
+        
+        if (!matchedStudent) {
+            throw new Error("No matching student found in the database. Please ensure the correct photo is used or that the student is enrolled.");
         }
-    }).catch(error => {
-        setIsProcessing(false);
-        console.error(error);
+        
+        const today = new Date().toISOString().split('T')[0];
+        const alreadyMarked = attendanceRecords.some(
+            record => record.studentRegister === matchedStudent.registerNumber && record.date === today
+        );
+
+        if (alreadyMarked) {
+            throw new Error(`Attendance has already been marked for ${matchedStudent.name} today.`);
+        }
+
+        await addAttendanceRecord({
+            studentRegister: matchedStudent.registerNumber,
+            date: today,
+            matched: true
+        });
+
+        toast({
+            title: "Attendance Marked!",
+            description: `${matchedStudent.name} (${matchedStudent.registerNumber}) has been marked as present.`,
+        });
+
+        // Reset form
+        setPhotoFile(null);
+        setPreviewUrl(null);
+
+    } catch (error: any) {
         toast({
             variant: "destructive",
-            title: "An Error Occurred",
-            description: "Could not communicate with the validation service.",
+            title: "Attendance Failed",
+            description: error.message || "An unexpected error occurred.",
         });
-    });
+    } finally {
+        setIsProcessing(false);
+    }
   };
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight font-headline">Live Attendance</h1>
-        <p className="text-muted-foreground">Mark student attendance using the camera. A student's attendance can only be marked once per day.</p>
+        <h1 className="text-3xl font-bold tracking-tight font-headline">Mark Attendance</h1>
+        <p className="text-muted-foreground">Upload a student's photo to mark their attendance for today.</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Camera Feed</CardTitle>
-          <CardDescription>Position a student's face in the frame and capture to mark their attendance.</CardDescription>
+          <CardTitle>Attendance Photo Upload</CardTitle>
+          <CardDescription>Upload a clear, recent photo of the student. The system will match it against enrolled photos.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-4">
-          <div className="w-full max-w-2xl aspect-video rounded-md overflow-hidden bg-secondary border relative">
-            <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-            
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4 text-center">
-              {hasCameraPermission === null && !isStreaming && (
-                 <>
-                    <Camera className="h-12 w-12 mb-4" />
-                    <h3 className="font-bold">Camera is Off</h3>
-                    <p className="text-sm">Click "Start Camera" to begin the video feed.</p>
-                  </>
-              )}
-              {hasCameraPermission === false && (
-                <>
-                  <VideoOff className="h-12 w-12 mb-4" />
-                  <h3 className="font-bold">Camera Access Required</h3>
-                  <p className="text-sm">Please enable camera permissions in your browser settings to use this feature.</p>
-                </>
-              )}
-              {!isStreaming && hasCameraPermission === true && (
-                  <>
-                    <Camera className="h-12 w-12 mb-4" />
-                    <h3 className="font-bold">Camera is Off</h3>
-                    <p className="text-sm">Click "Start Camera" to begin the video feed.</p>
-                  </>
-              )}
-            </div>
-            
-            <canvas ref={canvasRef} className="hidden" />
+          <div className="w-full max-w-2xl aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
+             {previewUrl ? (
+                <Image src={previewUrl} alt="Attendance photo preview" layout="fill" objectFit="contain" />
+            ) : (
+                <div className="text-center text-muted-foreground p-4 flex flex-col items-center gap-4">
+                    <UploadCloud className="mx-auto h-16 w-16" />
+                    <p className="mt-2 font-semibold">Upload a photo to mark attendance</p>
+                    <p className="text-sm">The photo will be matched against the student database.</p>
+                </div>
+            )}
           </div>
-
-           {hasCameraPermission === false && (
-              <Alert variant="destructive" className="w-full max-w-2xl">
-                  <AlertTitle>Camera Access Required</AlertTitle>
-                  <AlertDescription>
-                   This feature requires camera access. Please update your browser settings to allow this site to use your camera, then refresh the page.
-                  </AlertDescription>
-              </Alert>
-           )}
           
-            <div className="flex gap-4">
-                <Button 
-                    size="lg"
-                    onClick={captureAndMarkAttendance}
-                    disabled={!isStreaming || isProcessing || hasCameraPermission === false}
-                >
-                    {isProcessing ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
-                        </>
-                    ) : (
-                        <>
-                            <Camera />
-                            Mark Attendance
-                        </>
-                    )}
-                </Button>
-                <Button size="lg" variant="outline" onClick={isStreaming ? stopCamera : startCamera}>
-                    {isStreaming ? <VideoOff /> : <Video />}
-                    {isStreaming ? 'Stop Camera' : 'Start Camera'}
-                </Button>
-            </div>
+           <Input
+                id="attendance-photo"
+                type="file"
+                accept="image/png, image/jpeg"
+                onChange={handleFileChange}
+                disabled={isProcessing}
+                className="w-full max-w-sm file:text-primary file:font-semibold"
+            />
+            { !photoFile && <Alert><AlertDescription>Please select a photo to begin.</AlertDescription></Alert>}
+
+            <Button 
+                size="lg"
+                onClick={handleMarkAttendance}
+                disabled={!photoFile || isProcessing}
+                className="w-full max-w-sm"
+            >
+                {isProcessing ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Matching...
+                    </>
+                ) : (
+                    <>
+                        <UserCheck />
+                        Mark Attendance
+                    </>
+                )}
+            </Button>
         </CardContent>
       </Card>
     </div>

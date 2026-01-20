@@ -1,9 +1,10 @@
+
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle } from "lucide-react";
 import React from "react";
 import { useAttendance } from "@/hooks/use-attendance";
 
@@ -20,15 +21,6 @@ export default function StudentAttendancePage() {
     }
     
     const studentAttendanceRecords = attendanceRecords.filter(rec => rec.studentRegister === user.registerNumber);
-
-    const getStatusVariant = (status: string) => {
-        switch (status) {
-            case 'present': return 'default';
-            case 'absent': return 'destructive';
-            case 'late': return 'outline';
-            default: return 'secondary';
-        }
-    };
 
     return (
         <div className="flex flex-col gap-6">
@@ -51,7 +43,6 @@ export default function StudentAttendancePage() {
                             <TableRow>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Method</TableHead>
                                 <TableHead>Timestamp</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -60,14 +51,16 @@ export default function StudentAttendancePage() {
                                 <TableRow key={record.id}>
                                     <TableCell>{record.date}</TableCell>
                                     <TableCell>
-                                        <Badge variant={getStatusVariant(record.status)} className="capitalize">{record.status}</Badge>
+                                        <Badge variant={record.matched ? 'default' : 'destructive'} className="capitalize">
+                                            {record.matched ? <CheckCircle className='mr-2 h-4 w-4' /> : null}
+                                            {record.matched ? 'Present' : 'Absent'}
+                                        </Badge>
                                     </TableCell>
-                                    <TableCell className="capitalize">{record.method}</TableCell>
                                     <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
                                 </TableRow>
                             )) : (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center">
+                                    <TableCell colSpan={3} className="h-24 text-center">
                                         No attendance records found.
                                     </TableCell>
                                 </TableRow>

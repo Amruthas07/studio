@@ -25,7 +25,7 @@ import { Progress } from '@/components/ui/progress';
 
 export default function FaceEnrollmentPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [processedPhotoDataUri, setProcessedPhotoDataUri] = useState<string | null>(null);
+  const [processedPhotoFile, setProcessedPhotoFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [enrollmentStep, setEnrollmentStep] = useState('');
@@ -70,14 +70,13 @@ export default function FaceEnrollmentPage() {
 
       setIsProcessing(true);
       setPreviewUrl(null);
-      setProcessedPhotoDataUri(null);
+      setProcessedPhotoFile(null);
 
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
-      
       try {
-        const compressedDataUri = await resizeAndCompressImage(file);
-        setProcessedPhotoDataUri(compressedDataUri);
+        const compressedFile = await resizeAndCompressImage(file);
+        setProcessedPhotoFile(compressedFile);
+        const objectUrl = URL.createObjectURL(compressedFile);
+        setPreviewUrl(objectUrl);
         toast({
             title: "Image Ready",
             description: "Image has been processed and is ready for enrollment.",
@@ -86,7 +85,7 @@ export default function FaceEnrollmentPage() {
         console.error("Image processing failed:", error);
         toast({
             variant: "destructive",
-            title: "No Face Detected",
+            title: "Image Processing Failed",
             description: "Could not process the image. Please upload a clear, front-facing photo.",
         });
         setPreviewUrl(null);
@@ -97,7 +96,7 @@ export default function FaceEnrollmentPage() {
   };
 
  const completeEnrollment = async () => {
-    if (!selectedStudent || !processedPhotoDataUri) {
+    if (!selectedStudent || !processedPhotoFile) {
       toast({
         title: "Enrollment Failed",
         description: "Please select a student and upload a processed photo.",
@@ -109,34 +108,24 @@ export default function FaceEnrollmentPage() {
     setIsEnrolling(true);
     setUploadProgress(0);
     setEnrollmentStep('Starting enrollment...');
-    console.log("Starting enrollment...");
     
-    const ENROLLMENT_TIMEOUT = 15000; // 15 seconds
-    const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Enrollment timed out. Please check your network and try again.")), ENROLLMENT_TIMEOUT)
-    );
-
     try {
-        await Promise.race([
-            updateStudent(
-              selectedStudent.registerNumber,
-              { newFacePhoto: processedPhotoDataUri },
-              (progress) => {
-                setUploadProgress(progress);
-                if (progress < 100) {
-                  setEnrollmentStep(`Uploading image: ${Math.round(progress)}%`);
-                } else {
-                  setEnrollmentStep('Saving face data...');
-                }
-                console.log(`Upload Progress: ${progress}%`);
-              }
-            ),
-            timeoutPromise
-        ]);
+        await updateStudent(
+            selectedStudent.registerNumber,
+            { newPhotoFile: processedPhotoFile },
+            (progress) => {
+            setUploadProgress(progress);
+            if (progress < 100) {
+                setEnrollmentStep(`Uploading image: ${Math.round(progress)}%`);
+            } else {
+                setEnrollmentStep('Finalizing...');
+            }
+            }
+        );
         
         toast({ 
           title: "Enrollment Successful!", 
-          description: `${selectedStudent.name} has been successfully enrolled with the new face photo.`
+          description: `${selectedStudent.name} has been successfully enrolled with the new photo.`
         });
         router.push('/admin/students');
 
@@ -158,7 +147,7 @@ export default function FaceEnrollmentPage() {
     const student = students.find(s => s.registerNumber === registerNumber);
     setSelectedStudent(student || null);
     setPreviewUrl(student?.photoURL || null);
-    setProcessedPhotoDataUri(null);
+    setProcessedPhotoFile(null);
     router.replace(`/admin/face-enrollment?studentId=${registerNumber}`);
   };
 
@@ -236,7 +225,7 @@ export default function FaceEnrollmentPage() {
                     <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white p-4">
                         <Loader2 className="h-8 w-8 animate-spin" />
                         <p className="mt-4 font-semibold">{enrollmentStep}</p>
-                        {uploadProgress > 0 && <Progress value={uploadProgress} className="w-3/4 mt-2 h-2" />}
+                        {uploadProgress > 0 && uploadProgress < 100 && <Progress value={uploadProgress} className="w-3/4 mt-2 h-2" />}
                     </div>
                  )}
                  {isProcessing && !isEnrolling && (
@@ -261,9 +250,9 @@ export default function FaceEnrollmentPage() {
           </Card>
           
           <div className="flex gap-4">
-            <Button size="lg" className="w-full" onClick={completeEnrollment} disabled={isProcessing || isEnrolling || !processedPhotoDataUri || !selectedStudent}>
+            <Button size="lg" className="w-full" onClick={completeEnrollment} disabled={isProcessing || isEnrolling || !processedPhotoFile || !selectedStudent}>
               {isEnrolling ? <Loader2 className="animate-spin" /> : <CheckCircle />}
-              {isEnrolling ? 'Enrolling...' : 'Complete Enrollment'}
+              {isEnrolling ? enrollmentStep || 'Enrolling...' : 'Complete Enrollment'}
             </Button>
             <Button size="lg" variant="outline" className="w-full" onClick={() => router.push('/admin/students')} disabled={isProcessing || isEnrolling}>
               <XCircle />

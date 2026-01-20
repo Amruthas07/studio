@@ -23,7 +23,7 @@ const StudentSchema = z.object({
   photoURL: z.string(),
   email: z.string().email(),
   contact: z.string(),
-  faceId: z.string().optional(),
+  photoHash: z.string().optional(),
   createdAt: z.string(), // Changed from z.date()
   dateOfBirth: z.string(), // Changed from z.date()
 });
@@ -33,9 +33,7 @@ const AttendanceRecordSchema = z.object({
   studentRegister: z.string(),
   studentName: z.string().optional(),
   date: z.string(),
-  status: z.enum(['present', 'absent', 'late', 'manual', 'unknown-face']),
-  markedBy: z.string(),
-  method: z.enum(['face-scan', 'manual']),
+  matched: z.boolean(),
   timestamp: z.string(),
 });
 
@@ -100,7 +98,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
     const todaysRecords = input.attendanceRecords.filter(record => record.date === reportDate);
     const presentStudentRegisters = new Set(
         todaysRecords
-            .filter(r => r.status === 'present' || r.status === 'late')
+            .filter(r => r.matched)
             .map(r => r.studentRegister)
     );
 
@@ -109,16 +107,11 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
         const isPresent = presentStudentRegisters.has(student.registerNumber);
         const attendanceRecord = todaysRecords.find(rec => rec.studentRegister === student.registerNumber);
         
-        let status = 'absent';
+        let status = isPresent ? 'Present' : 'Absent';
         let timestamp = 'N/A';
-        let method = 'N/A';
 
         if (attendanceRecord) {
-            status = attendanceRecord.status;
             timestamp = new Date(attendanceRecord.timestamp).toLocaleString();
-            method = attendanceRecord.method;
-        } else if (isPresent) { // Should not happen with current logic, but as a fallback
-             status = 'present';
         }
 
         return {
@@ -128,12 +121,11 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
             "Date": reportDate,
             "Status": status,
             "Timestamp": timestamp,
-            "Method": method
         };
     });
 
     // 4. Calculate summary
-    const presentCount = rollCall.filter(s => s.Status === 'present' || s.Status === 'late').length;
+    const presentCount = rollCall.filter(s => s.Status === 'Present').length;
     const absentCount = rollCall.length - presentCount;
     
     const summaryData = [

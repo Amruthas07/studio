@@ -8,7 +8,7 @@ export interface Student {
   photoURL: string;
   email: string;
   contact: string;
-  faceId?: string;
+  photoHash?: string;
   createdAt: Date;
   dateOfBirth: Date;
 }
@@ -18,9 +18,7 @@ export interface AttendanceRecord {
   studentRegister: string;
   studentName?: string; // For easier display
   date: string; // YYYY-MM-DD
-  status: 'present' | 'absent' | 'late' | 'manual' | 'unknown-face';
-  markedBy: string; // admin email or 'camera'
-  method: 'face-scan' | 'manual';
+  matched: boolean;
   timestamp: string; // Storing as ISO string for localStorage compatibility
 }
 
@@ -35,10 +33,10 @@ export interface StudentsContextType {
   students: Student[];
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   loading: boolean;
-  addStudent: (student: Omit<Student, 'photoURL' | 'faceId' | 'createdAt'>) => Promise<Student>;
+  addStudent: (student: Omit<Student, 'photoURL' | 'photoHash' | 'createdAt'>) => Promise<Student>;
   updateStudent: (
     registerNumber: string,
-    studentUpdate: Partial<Student> & { newFacePhoto?: string },
+    studentUpdate: Partial<Student> & { newPhotoFile?: File },
     onProgress?: (progress: number) => void
   ) => Promise<void>;
   deleteStudent: (registerNumber: string) => Promise<void>;

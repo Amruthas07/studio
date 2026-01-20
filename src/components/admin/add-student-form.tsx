@@ -70,36 +70,8 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    startTransition(() => {
-        // --- START DUPLICATE CHECKS ---
-        if (students.some(s => s.registerNumber === values.registerNumber)) {
-            toast({
-            variant: "destructive",
-            title: "Duplicate Student",
-            description: `A student with Register Number ${values.registerNumber} already exists.`,
-            });
-            return;
-        }
-
-        if (students.some(s => s.email.toLowerCase() === values.email.toLowerCase())) {
-            toast({
-            variant: "destructive",
-            title: "Duplicate Email",
-            description: `A student with the email ${values.email} already exists.`,
-            });
-            return;
-        }
-
-        if (students.some(s => s.contact === values.contact)) {
-            toast({
-            variant: "destructive",
-            title: "Duplicate Contact",
-            description: `A student with the contact number ${values.contact} already exists.`,
-            });
-            return;
-        }
-        // --- END DUPLICATE CHECKS ---
-
+    startTransition(async () => {
+        
         const departmentStudentsCount = students.filter(
             (student) => student.department === values.department
         ).length;
@@ -113,23 +85,25 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           return;
         }
         
-        const studentToSave: Student = {
-          ...values,
-          photoURL: "",
-          faceId: `face_${values.registerNumber}_${Date.now()}`,
-          createdAt: new Date(),
-          dateOfBirth: values.dateOfBirth,
-        };
-        
-        addStudent(studentToSave);
+        try {
+            const newStudent = await addStudent({
+                ...values,
+                dateOfBirth: values.dateOfBirth
+            });
 
-        toast({
-          title: "Student Enrolled",
-          description: `Proceeding to face enrollment for ${values.name}.`,
-        });
-
-        onStudentAdded(studentToSave);
-        form.reset();
+            toast({
+              title: "Student Enrolled",
+              description: `Proceeding to photo enrollment for ${values.name}.`,
+            });
+            onStudentAdded(newStudent);
+            form.reset();
+        } catch (error: any) {
+             toast({
+                variant: "destructive",
+                title: "Enrollment Failed",
+                description: error.message || "An unexpected error occurred.",
+            });
+        }
     });
   }
 

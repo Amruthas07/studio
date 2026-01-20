@@ -1,3 +1,4 @@
+
 import {
   Table,
   TableBody,
@@ -37,7 +38,7 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace, onDeleteS
         <Card>
             <CardHeader>
                 <CardTitle>All Students</CardTitle>
-                <CardDescription>A list of all registered students. Enroll their face for recognition.</CardDescription>
+                <CardDescription>A list of all registered students. Enroll their photo for attendance matching.</CardDescription>
             </CardHeader>
             <CardContent>
                 <TooltipProvider>
@@ -49,7 +50,7 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace, onDeleteS
                             <TableHead>Register No.</TableHead>
                             <TableHead>Department</TableHead>
                             <TableHead>Contact</TableHead>
-                            <TableHead>Face Enrolled</TableHead>
+                            <TableHead>Photo Enrolled</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -84,7 +85,7 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace, onDeleteS
                                <div className="flex justify-end gap-2">
                                      <Button variant={student.photoURL ? "outline" : "default"} size="sm" onClick={() => onEnrollFace(student)}>
                                         <Camera className="mr-2 h-4 w-4" />
-                                        {student.photoURL ? 'Re-enroll Face' : 'Enroll Face'}
+                                        {student.photoURL ? 'Re-enroll Photo' : 'Enroll Photo'}
                                     </Button>
                                      <Tooltip>
                                         <TooltipTrigger asChild>
