@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, ChangeEvent } from 'react';
@@ -20,12 +21,15 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { resizeAndCompressImage } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
 
 export default function FaceEnrollmentPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [processedPhotoDataUri, setProcessedPhotoDataUri] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);
+  const [enrollmentStep, setEnrollmentStep] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
   const { user } = useAuth();
   const { students, updateStudent, loading: studentsLoading } = useStudents();
@@ -103,15 +107,30 @@ export default function FaceEnrollmentPage() {
     }
     
     setIsEnrolling(true);
+    setUploadProgress(0);
+    setEnrollmentStep('Starting enrollment...');
+    console.log("Starting enrollment...");
     
-    const ENROLLMENT_TIMEOUT = 30000; // 30 seconds
+    const ENROLLMENT_TIMEOUT = 15000; // 15 seconds
     const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Enrollment timed out. Please check your network and try again.")), ENROLLMENT_TIMEOUT)
     );
 
     try {
         await Promise.race([
-            updateStudent(selectedStudent.registerNumber, { newFacePhoto: processedPhotoDataUri }),
+            updateStudent(
+              selectedStudent.registerNumber,
+              { newFacePhoto: processedPhotoDataUri },
+              (progress) => {
+                setUploadProgress(progress);
+                if (progress < 100) {
+                  setEnrollmentStep(`Uploading image: ${Math.round(progress)}%`);
+                } else {
+                  setEnrollmentStep('Saving face data...');
+                }
+                console.log(`Upload Progress: ${progress}%`);
+              }
+            ),
             timeoutPromise
         ]);
         
@@ -130,6 +149,8 @@ export default function FaceEnrollmentPage() {
         });
     } finally {
         setIsEnrolling(false);
+        setEnrollmentStep('');
+        setUploadProgress(0);
     }
   };
   
@@ -211,12 +232,19 @@ export default function FaceEnrollmentPage() {
                         <p className="mt-2">Image preview will appear here</p>
                     </div>
                 )}
-                 {(isProcessing || isEnrolling) && (
+                 {isEnrolling && (
+                    <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white p-4">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                        <p className="mt-4 font-semibold">{enrollmentStep}</p>
+                        {uploadProgress > 0 && <Progress value={uploadProgress} className="w-3/4 mt-2 h-2" />}
+                    </div>
+                 )}
+                 {isProcessing && !isEnrolling && (
                     <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white">
                         <Loader2 className="h-8 w-8 animate-spin" />
-                        <p className="mt-2">{isEnrolling ? 'Enrolling face...' : 'Processing image...'}</p>
+                        <p className="mt-2">Processing image...</p>
                     </div>
-                )}
+                 )}
                </div>
 
                 <Input

@@ -9,7 +9,7 @@ import React, {
   useCallback,
 } from 'react';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
-import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
+import { getStorage, ref, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
 import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -95,7 +95,11 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     }
   }, [firestore, students]);
 
- const updateStudent = useCallback(async (registerNumber: string, studentUpdate: Partial<Student> & { newFacePhoto?: string }) => {
+ const updateStudent = useCallback(async (
+    registerNumber: string,
+    studentUpdate: Partial<Student> & { newFacePhoto?: string },
+    onProgress?: (progress: number) => void
+  ) => {
     if (!firestore || !firebaseApp) {
       throw new Error("Database not available. Please try again later.");
     }
@@ -115,26 +119,41 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       }
       finalUpdate.faceId = faceSignature;
 
-      try {
-        const photoRef = ref(storage, `students/${registerNumber}/enrollment/profile.jpg`);
-        const snapshot = await uploadString(photoRef, finalUpdate.newFacePhoto, 'data_url');
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        
-        finalUpdate.photoURL = downloadURL;
+      const photoRef = ref(storage, `students/${registerNumber}/enrollment/profile.jpg`);
+      const response = await fetch(finalUpdate.newFacePhoto);
+      const blob = await response.blob();
+      const uploadTask = uploadBytesResumable(photoRef, blob, { contentType: 'image/jpeg' });
 
-      } catch (error) {
-        console.error("Firebase Storage upload failed:", error);
-        throw new Error("Image Upload Failed: Could not save face image to cloud storage.");
-      }
-    }
-    
-    delete (finalUpdate as any).newFacePhoto;
+      await new Promise<void>((resolve, reject) => {
+        uploadTask.on('state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            if (onProgress) onProgress(progress);
+          },
+          (error) => {
+            console.error("Firebase Storage upload failed:", error);
+            reject(new Error("Image Upload Failed: Could not save face image to cloud storage."));
+          },
+          async () => {
+            try {
+              console.log('Upload complete, getting download URL...');
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+              finalUpdate.photoURL = downloadURL;
+              delete (finalUpdate as any).newFacePhoto;
 
-    try {
+              console.log('Saving metadata to Firestore...');
+              await setDoc(studentDocRef, finalUpdate, { merge: true });
+              console.log('Firestore write complete.');
+              resolve();
+            } catch (dbError) {
+              console.error("Firestore update or URL fetch failed:", dbError);
+              reject(new Error(`Database Update Failed: Could not save changes for ${registerNumber}.`));
+            }
+          }
+        );
+      });
+    } else {
       await setDoc(studentDocRef, finalUpdate, { merge: true });
-    } catch (error) {
-      console.error("Firestore update failed:", error);
-      throw new Error(`Database Update Failed: Could not save changes for ${registerNumber}.`);
     }
   }, [firestore, firebaseApp, students]);
   

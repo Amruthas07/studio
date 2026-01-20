@@ -36,6 +36,10 @@ export interface StudentsContextType {
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   loading: boolean;
   addStudent: (student: Omit<Student, 'photoURL' | 'faceId' | 'createdAt'>) => Promise<Student>;
-  updateStudent: (registerNumber: string, studentUpdate: Partial<Student> & { newFacePhoto?: string }) => Promise<void>;
+  updateStudent: (
+    registerNumber: string,
+    studentUpdate: Partial<Student> & { newFacePhoto?: string },
+    onProgress?: (progress: number) => void
+  ) => Promise<void>;
   deleteStudent: (registerNumber: string) => Promise<void>;
 }
