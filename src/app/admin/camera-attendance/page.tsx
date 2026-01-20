@@ -96,11 +96,15 @@ export default function CameraAttendancePage() {
 
     try {
         const currentHash = await getImageHash(photoFile);
-
         const matchedStudent = students.find(s => s.photoHash === currentHash);
         
         if (!matchedStudent) {
-            throw new Error("No matching student found in the database. Please ensure the student is enrolled.");
+            toast({
+                title: "No Match Detected",
+                description: "No matching student found for the captured photo.",
+            });
+            setIsProcessing(false); // Reset and exit
+            return;
         }
         
         const today = new Date().toISOString().split('T')[0];
@@ -109,13 +113,15 @@ export default function CameraAttendancePage() {
         );
 
         if (alreadyMarked) {
+            // This is a valid error to show to the user.
             throw new Error(`Attendance has already been marked for ${matchedStudent.name} today.`);
         }
 
         await addAttendanceRecord({
             studentRegister: matchedStudent.registerNumber,
             date: today,
-            matched: true
+            matched: true,
+            method: 'face-scan', // Added method
         });
 
         toast({

@@ -21,6 +21,7 @@ export interface AttendanceRecord {
   date: string; // YYYY-MM-DD
   matched: boolean;
   timestamp: string; // Storing as ISO string for localStorage compatibility
+  method: 'face-scan' | 'manual';
 }
 
 export interface RecentExport {
