@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -7,10 +8,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Camera, UserCheck, RefreshCw, AlertCircle, CheckCircle, Info } from 'lucide-react';
 import { useAttendance } from '@/hooks/use-attendance';
 import { useStudents } from '@/hooks/use-students';
-import { getImageHash } from '@/lib/utils';
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import type { Student } from '@/lib/types';
+import { identifyStudentAction } from '@/app/actions';
 
 type Status = 'idle' | 'capturing' | 'processing' | 'success' | 'no_match' | 'already_marked' | 'error';
 
@@ -66,7 +67,7 @@ export default function LiveAttendancePage() {
   }, [toast]);
   
   useEffect(() => {
-    if (['success', 'no_match', 'already_marked'].includes(status)) {
+    if (['success', 'no_match', 'already_marked', 'error'].includes(status)) {
       const timer = setTimeout(() => {
         handleRetake();
       }, 3000); // Automatically resets after 3 seconds for a new capture
@@ -112,13 +113,40 @@ export default function LiveAttendancePage() {
     setMatchedStudent(null);
 
     try {
-        const currentHash = await getImageHash(photoFile);
-        const enrolledStudents = students.filter(s => s.photoEnrolled);
-        const student = enrolledStudents.find(s => s.photoHash === currentHash);
+        const enrolledStudentsForCheck = students
+            .filter(s => s.photoEnrolled && s.profilePhotoUrl)
+            .map(s => ({
+                registerNumber: s.registerNumber,
+                profilePhotoUrl: s.profilePhotoUrl,
+            }));
+
+        if (enrolledStudentsForCheck.length === 0) {
+            setStatus('error');
+            setMessage('No students are enrolled for face identification.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('livePhoto', photoFile);
+        formData.append('enrolledStudents', JSON.stringify(enrolledStudentsForCheck));
+        
+        const result = await identifyStudentAction(formData);
+
+        const { matchedStudentRegister, confidence } = result;
+
+        const CONFIDENCE_THRESHOLD = 0.75;
+
+        if (!matchedStudentRegister || confidence < CONFIDENCE_THRESHOLD) {
+            setStatus('no_match');
+            setMessage('Face not clear. Please retake photo.');
+            return;
+        }
+        
+        const student = students.find(s => s.registerNumber === matchedStudentRegister);
         
         if (!student) {
             setStatus('no_match');
-            setMessage('Could not identify student. Please try another photo.');
+            setMessage('Could not find matched student details.');
             return;
         }
 
@@ -140,7 +168,7 @@ export default function LiveAttendancePage() {
             date: today,
             matched: true,
             method: 'live-photo',
-            confidence: 100, // Hash match is 100% confidence
+            confidence: confidence * 100, // Store as percentage
             photoFile: photoFile,
         });
 
@@ -157,7 +185,7 @@ export default function LiveAttendancePage() {
         setMatchedStudent(null);
         toast({
             variant: "destructive",
-            title: "Attendance Failed",
+            title: "Identification Failed",
             description: error.message || "An unexpected error occurred.",
         });
     }
