@@ -38,10 +38,10 @@ export interface StudentsContextType {
   students: Student[];
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   loading: boolean;
-  addStudent: (studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoEnrolled' | 'updatedAt'> & { photoFile: File }, onSuccess: (newStudent: Student) => void) => void;
+  addStudent: (studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoEnrolled' | 'updatedAt'> & { photoFile: File }) => Promise<Student>;
   updateStudent: (
     registerNumber: string,
     studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt'>> & { newPhotoFile?: File }
-  ) => void;
+  ) => Promise<void>;
   deleteStudent: (registerNumber: string) => Promise<void>;
 }

@@ -91,7 +91,7 @@ export default function FaceEnrollmentPage() {
     }
   };
 
- const completeEnrollment = () => {
+ const handleCompleteEnrollment = async () => {
     if (!selectedStudent || !processedPhotoFile) {
       toast({
         title: "Enrollment Failed",
@@ -101,17 +101,23 @@ export default function FaceEnrollmentPage() {
       return;
     }
     
-    // Fire and forget. The context will handle the final success/error toast.
-    updateStudent(
-        selectedStudent.registerNumber,
-        { newPhotoFile: processedPhotoFile }
-    );
-    
-    toast({ 
-      title: "Enrollment Started", 
-      description: `Enrolling photo for ${selectedStudent.name}. You'll be notified on completion.`
-    });
-    router.push('/admin/students');
+    setIsProcessing(true);
+    try {
+        await updateStudent(
+            selectedStudent.registerNumber,
+            { newPhotoFile: processedPhotoFile }
+        );
+        toast({ 
+          title: "Enrollment Successful", 
+          description: `New photo enrolled for ${selectedStudent.name}.`
+        });
+        router.push('/admin/students');
+    } catch(error: any) {
+        // Error toast is handled by the context
+        console.error(error);
+    } finally {
+        setIsProcessing(false);
+    }
   };
   
   const handleStudentSelect = (registerNumber: string) => {
@@ -214,8 +220,8 @@ export default function FaceEnrollmentPage() {
           </Card>
           
           <div className="flex gap-4">
-            <Button size="lg" className="w-full" onClick={completeEnrollment} disabled={isProcessing || !processedPhotoFile || !selectedStudent}>
-              <CheckCircle />
+            <Button size="lg" className="w-full" onClick={handleCompleteEnrollment} disabled={isProcessing || !processedPhotoFile || !selectedStudent}>
+              {isProcessing ? <Loader2 className="animate-spin" /> : <CheckCircle />}
               Complete Enrollment
             </Button>
             <Button size="lg" variant="outline" className="w-full" onClick={() => router.push('/admin/students')} disabled={isProcessing}>

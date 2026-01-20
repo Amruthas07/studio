@@ -57,7 +57,7 @@ const DEPARTMENT_LIMIT = 700;
 
 export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const { toast } = useToast()
-  const [isPending, startTransition] = React.useTransition()
+  const [isPending, setIsPending] = React.useState(false);
   const { addStudent, students } = useStudents();
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   
@@ -75,34 +75,47 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     },
   })
   
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    startTransition(() => {
-        const departmentStudentsCount = students.filter(
-            (student) => student.department === values.department
-        ).length;
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsPending(true);
 
-        if (departmentStudentsCount >= DEPARTMENT_LIMIT) {
-          toast({
+    const departmentStudentsCount = students.filter(
+        (student) => student.department === values.department
+    ).length;
+
+    if (departmentStudentsCount >= DEPARTMENT_LIMIT) {
+      toast({
+        variant: "destructive",
+        title: "Department Full",
+        description: `The ${values.department.toUpperCase()} department has reached its limit of ${DEPARTMENT_LIMIT} students.`,
+      });
+      setIsPending(false);
+      return;
+    }
+    
+    try {
+        const newStudent = await addStudent({
+            ...values,
+            dateOfBirth: values.dateOfBirth,
+            photoFile: values.photo,
+        });
+
+        toast({
+            title: "Student Enrolled",
+            description: `${newStudent.name} has been successfully added.`,
+        });
+
+        onStudentAdded(newStudent);
+        form.reset();
+        setPreviewUrl(null);
+    } catch (error: any) {
+        toast({
             variant: "destructive",
-            title: "Department Full",
-            description: `The ${values.department.toUpperCase()} department has reached its limit of ${DEPARTMENT_LIMIT} students.`,
-          });
-          return;
-        }
-        
-        addStudent(
-            {
-                ...values,
-                dateOfBirth: values.dateOfBirth,
-                photoFile: values.photo,
-            },
-            (newStudent) => {
-                onStudentAdded(newStudent);
-                form.reset();
-                setPreviewUrl(null);
-            }
-        );
-    });
+            title: "Enrollment Failed",
+            description: error.message || "An unexpected error occurred.",
+        });
+    } finally {
+        setIsPending(false);
+    }
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {

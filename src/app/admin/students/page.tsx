@@ -48,10 +48,6 @@ export default function StudentsPage() {
 
   const handleStudentAdded = (newStudent: Student) => {
     setIsAddDialogOpen(false);
-    toast({
-      title: "Student Added Successfully",
-      description: `${newStudent.name} has been enrolled. Their photo is being processed in the background.`,
-    });
   };
   
   const handleStudentUpdated = () => {
