@@ -9,7 +9,7 @@ import React, {
   useCallback,
 } from 'react';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, getDoc } from 'firebase/firestore';
-import { getStorage, ref, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
+import { getStorage, ref, getDownloadURL, deleteObject, uploadBytesResumable, UploadTask } from 'firebase/storage';
 import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -68,7 +68,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const studentsRef = collection(firestore, 'students');
     const studentDocRef = doc(firestore, 'students', studentData.registerNumber);
 
-    // Efficiently check for duplicates in parallel using Firestore queries
     const [regNumSnap, emailSnap, contactSnap] = await Promise.all([
         getDoc(studentDocRef),
         getDocs(query(studentsRef, where('email', '==', studentData.email.toLowerCase()))),
@@ -98,7 +97,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         await setDoc(studentDocRef, newStudent);
         console.log("Student enrolled successfully in Firestore.");
         
-        // No need for setStudents, onSnapshot will handle it.
         return newStudent;
 
     } catch (error) {
@@ -140,48 +138,67 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         }
         
         finalUpdate.photoHash = photoHash;
+        delete (finalUpdate as any).newPhotoFile;
 
         const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
-        const uploadTask = uploadBytesResumable(photoRef, newPhotoFile, { contentType: newPhotoFile.type });
-
-        await new Promise<void>((resolve, reject) => {
+        
+        const uploadFileWithTimeout = () => new Promise<string>((resolve, reject) => {
+            const uploadTask = uploadBytesResumable(photoRef, newPhotoFile, { contentType: newPhotoFile.type });
+            
             const timeout = setTimeout(() => {
                 uploadTask.cancel();
-                reject(new Error("Enrollment timed out. Please check your network and try again."));
+                reject(new Error("Enrollment timed out."));
             }, 15000); // 15 second timeout
 
             uploadTask.on('state_changed',
-            (snapshot) => {
-                const progress = 10 + (snapshot.bytesTransferred / snapshot.totalBytes) * 80; // Scale progress from 10% to 90%
-                if (onProgress) onProgress(progress);
-                 console.log(`Upload Progress: ${progress.toFixed(2)}%`);
-            },
-            (error) => {
-                clearTimeout(timeout);
-                console.error("Firebase Storage upload failed:", error);
-                reject(new Error("Image Upload Failed: Could not save face image to cloud storage."));
-            },
-            async () => {
-                try {
+                (snapshot) => {
+                    const progress = 10 + (snapshot.bytesTransferred / snapshot.totalBytes) * 80; // Scale 10-90%
+                    if (onProgress) onProgress(progress);
+                },
+                (error) => {
                     clearTimeout(timeout);
-                    console.log('Upload complete, getting download URL...');
-                    if (onProgress) onProgress(95);
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    finalUpdate.photoURL = downloadURL;
-                    delete (finalUpdate as any).newPhotoFile;
-
-                    console.log('Saving metadata to Firestore...');
-                    await setDoc(studentDocRef, finalUpdate, { merge: true });
-                    console.log('Firestore write complete.');
-                    onProgress?.(100);
-                    resolve();
-                } catch (dbError) {
-                    console.error("Firestore update or URL fetch failed:", dbError);
-                    reject(new Error(`Database Update Failed: Could not save changes for ${registerNumber}.`));
+                    console.error("Firebase Storage upload failed:", error);
+                    reject(new Error("Image Upload Failed: Could not save face image to cloud storage."));
+                },
+                async () => {
+                    try {
+                        clearTimeout(timeout);
+                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                        resolve(downloadURL);
+                    } catch (urlError) {
+                        console.error("Failed to get download URL:", urlError);
+                        reject(new Error("Failed to get image URL after upload."));
+                    }
                 }
-            }
             );
         });
+
+        let downloadURL = '';
+        const maxRetries = 2;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                console.log(`Upload attempt ${attempt}...`);
+                downloadURL = await uploadFileWithTimeout();
+                console.log("Upload successful.");
+                break; // Break loop on success
+            } catch (error: any) {
+                console.error(`Attempt ${attempt} failed:`, error.message);
+                if (attempt === maxRetries) {
+                    throw new Error("Enrollment failed after multiple attempts. Please check your network and try again.");
+                }
+                // Wait 1 second before retrying
+                await new Promise(res => setTimeout(res, 1000));
+            }
+        }
+
+        finalUpdate.photoURL = downloadURL;
+        
+        onProgress?.(95);
+        console.log('Saving metadata to Firestore...');
+        await setDoc(studentDocRef, finalUpdate, { merge: true });
+        console.log('Firestore write complete.');
+        onProgress?.(100);
+
     } else {
         // This case handles edits without photo change
         await setDoc(studentDocRef, finalUpdate, { merge: true });
