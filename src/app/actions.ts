@@ -49,9 +49,30 @@ export async function updateStudent(formData: FormData) {
   }
 }
 
-export async function generateDailyReport(input: DailyAttendanceReportInput) {
+// This is the type the client-side component provides
+type GenerateDailyReportActionInput = {
+    department: string;
+    students: Student[];
+    attendanceRecords: AttendanceRecord[];
+}
+
+export async function generateDailyReport(input: GenerateDailyReportActionInput) {
   try {
-    const result = await dailyAttendanceReport(input);
+    // Sanitize student data to match flow schema (convert dates to strings)
+    const sanitizedStudents = input.students.map(s => ({
+      ...s,
+      createdAt: s.createdAt.toISOString(),
+      dateOfBirth: s.dateOfBirth.toISOString(),
+      updatedAt: s.updatedAt?.toISOString() ?? s.createdAt.toISOString(),
+    }));
+
+    const flowInput: DailyAttendanceReportInput = {
+      department: input.department,
+      students: sanitizedStudents,
+      attendanceRecords: input.attendanceRecords,
+    };
+
+    const result = await dailyAttendanceReport(flowInput);
     return { success: true, fileUrl: result.fileUrl };
   } catch (error) {
     console.error("Error generating daily report:", error);
@@ -71,11 +92,19 @@ export async function generateReport(input: GenerateReportFormInput) {
     try {
         const dateStr = format(input.date, 'yyyy-MM-dd');
         
+        // Sanitize student data to match flow schema (convert dates to strings)
+        const sanitizedStudents = input.students.map(s => ({
+          ...s,
+          createdAt: s.createdAt.toISOString(),
+          dateOfBirth: s.dateOfBirth.toISOString(),
+          updatedAt: s.updatedAt?.toISOString() ?? s.createdAt.toISOString(),
+        }));
+
         const flowInput: AttendanceReportingWithFilteringInput = {
             startDate: dateStr,
             endDate: dateStr,
             department: input.department,
-            students: input.students,
+            students: sanitizedStudents,
             attendanceRecords: input.attendanceRecords
         };
 

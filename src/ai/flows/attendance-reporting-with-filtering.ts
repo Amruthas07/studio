@@ -22,8 +22,9 @@ const StudentSchema = z.object({
   email: z.string().email(),
   contact: z.string(),
   photoHash: z.string().optional(),
-  createdAt: z.string(), // Changed from z.date()
-  dateOfBirth: z.string(), // Changed from z.date()
+  createdAt: z.string(),
+  dateOfBirth: z.string(),
+  updatedAt: z.string().optional(),
 });
 
 const AttendanceRecordSchema = z.object({
@@ -34,6 +35,8 @@ const AttendanceRecordSchema = z.object({
   status: z.enum(['present', 'on_leave']),
   timestamp: z.string(),
   reason: z.string().optional(),
+  method: z.enum(["face-scan", "manual", "live-photo"]),
+  photoUrl: z.string().optional(),
 });
 
 
