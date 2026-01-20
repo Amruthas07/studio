@@ -103,7 +103,7 @@ export default function CameraAttendancePage() {
                 title: "No Match Detected",
                 description: "No matching student found for the captured photo.",
             });
-            setIsProcessing(false); // Reset and exit
+            setIsProcessing(false);
             return;
         }
         
@@ -113,15 +113,20 @@ export default function CameraAttendancePage() {
         );
 
         if (alreadyMarked) {
-            // This is a valid error to show to the user.
-            throw new Error(`Attendance has already been marked for ${matchedStudent.name} today.`);
+             toast({
+                title: 'Already Marked',
+                description: `Attendance has already been marked for ${matchedStudent.name} today.`,
+            });
+            setIsProcessing(false);
+            return;
         }
 
         await addAttendanceRecord({
             studentRegister: matchedStudent.registerNumber,
             date: today,
             matched: true,
-            method: 'face-scan', // Added method
+            method: 'face-scan',
+            photoFile: photoFile,
         });
 
         toast({

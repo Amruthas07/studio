@@ -22,6 +22,7 @@ export interface AttendanceRecord {
   matched: boolean;
   timestamp: string; // Storing as ISO string for localStorage compatibility
   method: 'face-scan' | 'manual';
+  photoUrl?: string;
 }
 
 export interface RecentExport {
