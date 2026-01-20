@@ -41,7 +41,7 @@ export interface StudentsContextType {
   addStudent: (studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoEnrolled' | 'updatedAt'> & { photoFile: File }) => Promise<void>;
   updateStudent: (
     registerNumber: string,
-    studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt'>> & { newPhotoFile?: File }
+    studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'profilePhotoUrl' | 'photoHash' | 'photoEnrolled'>>
   ) => Promise<void>;
   deleteStudent: (registerNumber: string) => Promise<void>;
 }

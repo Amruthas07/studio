@@ -40,10 +40,6 @@
           "type": "string",
           "description": "The student's contact phone number."
         },
-        "faceId": {
-            "type": "string",
-            "description": "A unique identifier for the student's enrolled face data."
-        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

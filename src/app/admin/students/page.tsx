@@ -29,14 +29,12 @@ import type { Student } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useStudents } from '@/hooks/use-students';
-import { useRouter } from 'next/navigation';
 
 
 export default function StudentsPage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const { students, loading: studentsLoading, deleteStudent } = useStudents();
-  const router = useRouter();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
@@ -72,10 +70,6 @@ export default function StudentsPage() {
     setStudentToDelete(student);
     setIsDeleteDialogOpen(true);
   }
-
-  const openEnrollPage = (student: Student) => {
-    router.push(`/admin/face-enrollment?studentId=${student.registerNumber}`);
-  };
   
   const departmentStudents = React.useMemo(() => {
       if (!user?.department) return [];
@@ -124,7 +118,6 @@ export default function StudentsPage() {
       <StudentsTable 
         students={departmentStudents} 
         onEditStudent={openEditDialog}
-        onEnrollFace={openEnrollPage}
         onDeleteStudent={openDeleteDialog}
       />
 

@@ -13,18 +13,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import type { Student } from "@/lib/types";
 import { Button } from "../ui/button";
-import { Pencil, Trash, Camera } from "lucide-react";
+import { Pencil, Trash } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 
 interface StudentsTableProps {
     students: Student[];
     onEditStudent: (student: Student) => void;
-    onEnrollFace: (student: Student) => void;
     onDeleteStudent: (student: Student) => void;
 }
 
-export function StudentsTable({ students, onEditStudent, onEnrollFace, onDeleteStudent }: StudentsTableProps) {
+export function StudentsTable({ students, onEditStudent, onDeleteStudent }: StudentsTableProps) {
     
     const getInitials = (name: string) => {
         const names = name.split(' ');
@@ -83,17 +82,6 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace, onDeleteS
                             </TableCell>
                             <TableCell className="text-right">
                                <div className="flex justify-end gap-2">
-                                     <Tooltip>
-                                        <TooltipTrigger asChild>
-                                             <Button variant="outline" size="icon" onClick={() => onEnrollFace(student)}>
-                                                <Camera className="h-4 w-4" />
-                                                <span className="sr-only">Enroll Face</span>
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Enroll/Update Face</p>
-                                        </TooltipContent>
-                                    </Tooltip>
                                      <Tooltip>
                                         <TooltipTrigger asChild>
                                              <Button variant="outline" size="icon" onClick={() => onEditStudent(student)}>

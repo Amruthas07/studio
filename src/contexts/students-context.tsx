@@ -132,74 +132,30 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
   const updateStudent = useCallback(async (
     registerNumber: string,
-    studentUpdate: Partial<Student> & { newPhotoFile?: File }
+    studentUpdate: Partial<Student>
   ) => {
-    if (!firestore || !firebaseApp) {
+    if (!firestore) {
       toast({ variant: "destructive", title: "Update Failed", description: "Database is not available." });
       return;
     }
 
     const studentDocRef = doc(firestore, 'students', registerNumber);
-    const { newPhotoFile, ...otherUpdates } = studentUpdate;
-
-    // This block handles updates from the Edit Student form
-    if (!newPhotoFile) {
-        try {
-            await updateDoc(studentDocRef, { ...otherUpdates, updatedAt: serverTimestamp() });
-            toast({
-                title: "Student Updated",
-                description: `Details for ${registerNumber} have been saved.`,
-            });
-        } catch (error: any) {
-            console.error("Failed to update student details:", error);
-            toast({
-                variant: "destructive",
-                title: "Update Failed",
-                description: error.message || "Could not save changes.",
-            });
-        }
-        return;
+    
+    try {
+        await updateDoc(studentDocRef, { ...studentUpdate, updatedAt: serverTimestamp() });
+        toast({
+            title: "Student Updated",
+            description: `Details for ${registerNumber} have been saved.`,
+        });
+    } catch (error: any) {
+        console.error("Failed to update student details:", error);
+        toast({
+            variant: "destructive",
+            title: "Update Failed",
+            description: error.message || "Could not save changes.",
+        });
     }
-
-    // This block handles updates from the Face Enrollment page (fire-and-forget)
-    await updateDoc(studentDocRef, { photoEnrolled: false, updatedAt: serverTimestamp() });
-
-    (async () => {
-        const storage = getStorage(firebaseApp);
-        const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
-        const studentName = students.find(s => s.registerNumber === registerNumber)?.name || 'the student';
-
-        try {
-            const processedPhoto = await resizeAndCompressImage(newPhotoFile);
-            const photoHash = await getImageHash(processedPhoto);
-
-            const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
-            const duplicateSnap = await getDocs(duplicateQuery);
-            if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== registerNumber) {
-                  throw new Error(`This photo is already in use by ${duplicateSnap.docs[0].data().name}.`);
-            }
-
-            await uploadBytes(photoRef, processedPhoto);
-            const downloadURL = await getDownloadURL(photoRef);
-            
-            const finalUpdate = {
-                profilePhotoUrl: downloadURL,
-                photoHash: photoHash,
-                photoEnrolled: true,
-                updatedAt: serverTimestamp(),
-            };
-            await updateDoc(studentDocRef, finalUpdate);
-        } catch (error: any) {
-              console.error("Photo re-enrollment failed:", error);
-              toast({ 
-                  variant: "destructive", 
-                  title: 'Photo Re-enrollment Failed', 
-                  description: `Could not enroll new photo for ${studentName}. Reason: ${error.message}`,
-                  duration: 9000,
-              });
-        }
-    })();
-  }, [firestore, firebaseApp, toast, students]);
+  }, [firestore, toast]);
   
   const deleteStudent = useCallback(async (registerNumber: string) => {
     if (!firestore || !firebaseApp) {
