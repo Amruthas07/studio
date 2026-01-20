@@ -22,20 +22,10 @@ export interface AttendanceRecord {
   date: string; // YYYY-MM-DD
   matched: boolean;
   timestamp: string; // Storing as ISO string for localStorage compatibility
-  method: 'face-scan' | 'manual' | 'live-photo' | 'live-face';
+  method: 'face-scan' | 'manual' | 'live-photo';
   photoUrl?: string;
   confidence?: number;
 }
-
-export interface LiveCaptureRecord {
-  id: string;
-  studentRegister: string | null;
-  timestamp: string;
-  photoUrl: string;
-  confidence: number;
-  matchResult: 'success' | 'no_match' | 'already_marked' | 'error';
-}
-
 
 export interface RecentExport {
   fileName: string;
@@ -54,9 +44,4 @@ export interface StudentsContextType {
     studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt'>> & { newPhotoFile?: File }
   ) => Promise<void>;
   deleteStudent: (registerNumber: string) => Promise<void>;
-}
-
-export interface LiveCapturesContextType {
-  liveCaptures: LiveCaptureRecord[];
-  loading: boolean;
 }

@@ -14,18 +14,10 @@ import type { AttendanceRecord } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
 import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 
-type Status = 'idle' | 'capturing' | 'processing' | 'success' | 'no_match' | 'already_marked' | 'error';
-
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
   addAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp'> & { photoFile?: File }) => Promise<void>;
   loading: boolean;
-  logLiveCapture: (data: {
-    photoFile: File;
-    status: Status;
-    confidence?: number;
-    studentRegister?: string;
-  }) => void;
 }
 
 export const AttendanceContext = createContext<AttendanceContextType | undefined>(
@@ -114,43 +106,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     }
   }, [firestore, firebaseApp]);
 
-  const logLiveCapture = useCallback(async (data: {
-    photoFile: File;
-    status: Status;
-    confidence?: number;
-    studentRegister?: string;
-  }) => {
-      if (!firestore || !firebaseApp) {
-          console.warn("logLiveCapture: Firebase not initialized.");
-          return;
-      }
-      const { photoFile, status, confidence, studentRegister } = data;
-
-      const storage = getStorage(firebaseApp);
-      const date = new Date().toISOString().split('T')[0];
-      const filePath = `live_captures/${date}/${crypto.randomUUID()}.jpg`;
-      const storageRef = ref(storage, filePath);
-
-      try {
-          const snapshot = await uploadBytes(storageRef, photoFile);
-          const photoUrl = await getDownloadURL(snapshot.ref);
-
-          const logCollection = collection(firestore, 'liveCaptures');
-          await addDoc(logCollection, {
-              studentRegister: studentRegister || null,
-              timestamp: serverTimestamp(),
-              photoUrl: photoUrl,
-              confidence: confidence || 0,
-              matchResult: status,
-          });
-          console.log("Live capture logged successfully.");
-      } catch (error) {
-          console.error("Failed to log live capture:", error);
-          // Don't bother the user with a toast for a background logging failure.
-      }
-  }, [firestore, firebaseApp]);
-
-  const value = { attendanceRecords, addAttendanceRecord, loading, logLiveCapture };
+  const value = { attendanceRecords, addAttendanceRecord, loading };
 
   return (
     <AttendanceContext.Provider value={value}>

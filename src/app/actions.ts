@@ -4,9 +4,7 @@
 import { z } from "zod";
 import { attendanceReportingWithFiltering, type AttendanceReportingWithFilteringInput } from "@/ai/flows/attendance-reporting-with-filtering";
 import { dailyAttendanceReport, type DailyAttendanceReportInput } from "@/ai/flows/daily-attendance-report";
-import { identifyStudent, type IdentifyStudentInput, type IdentifyStudentOutput } from "@/ai/flows/identify-student";
 import type { Student, AttendanceRecord } from "@/lib/types";
-import { fileToBase64 } from "@/lib/utils";
 
 const addStudentSchema = z.object({
   name: z.string(),
@@ -116,35 +114,5 @@ export async function generateDailyReport(values: GenerateDailyReportClientInput
     } catch (error) {
         console.error(error);
         return { success: false, error: "An unexpected error occurred while generating the daily report." };
-    }
-}
-
-export async function identifyStudentAction(formData: FormData): Promise<IdentifyStudentOutput> {
-    const livePhoto = formData.get('livePhoto') as File;
-    const enrolledStudentsData = formData.get('enrolledStudents') as string;
-    
-    if (!livePhoto || !enrolledStudentsData) {
-        throw new Error("Missing required data for identification.");
-    }
-    
-    try {
-        const livePhotoDataUri = await fileToBase64(livePhoto);
-        const enrolledStudents = JSON.parse(enrolledStudentsData);
-
-        const flowInput: IdentifyStudentInput = {
-            livePhotoDataUri,
-            enrolledStudents,
-        };
-        
-        const result = await identifyStudent(flowInput);
-        return result;
-
-    } catch (error: any) {
-        console.error("Error in identifyStudentAction:", error);
-        // Return a low-confidence result instead of throwing, to prevent client-side crashes
-        return {
-            matchedStudentRegister: null,
-            confidence: 0,
-        };
     }
 }

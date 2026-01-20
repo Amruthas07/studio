@@ -8,7 +8,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { StudentsProvider } from '@/contexts/students-context';
 import { AttendanceProvider } from '@/contexts/attendance-context';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { LiveCapturesProvider } from '@/contexts/live-captures-context';
 
 const fontInter = Inter({
   subsets: ['latin'],
@@ -49,10 +48,8 @@ export default function RootLayout({
           <AuthProvider>
             <StudentsProvider>
               <AttendanceProvider>
-                <LiveCapturesProvider>
                   {children}
                   <Toaster />
-                </LiveCapturesProvider>
               </AttendanceProvider>
             </StudentsProvider>
           </AuthProvider>
