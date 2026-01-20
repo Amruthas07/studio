@@ -18,11 +18,11 @@ import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function MarkAttendancePage() {
   const { students, loading: studentsLoading } = useStudents();
   const { 
-    attendanceRecords, 
     addAttendanceRecord,
     updateAttendanceRecord, 
     deleteAttendanceRecord,
@@ -36,6 +36,9 @@ export default function MarkAttendancePage() {
   const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
   const [studentToCapture, setStudentToCapture] = useState<Student | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
+  const [studentForLeave, setStudentForLeave] = useState<Student | null>(null);
+  const [leaveReason, setLeaveReason] = useState("");
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -89,24 +92,27 @@ export default function MarkAttendancePage() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  const handleAction = async (student: Student, status: 'present' | 'on_leave', method: 'manual' | 'live-photo' = 'manual', photoFile?: File) => {
+  const handleAction = async (student: Student, status: 'present' | 'on_leave', method: 'manual' | 'live-photo' = 'manual', photoFile?: File, reason?: string) => {
     const existingRecord = getTodaysRecordForStudent(student.registerNumber, today);
     try {
+        const recordData = {
+            studentRegister: student.registerNumber,
+            studentName: student.name,
+            date: today,
+            status,
+            method,
+            photoFile,
+            reason: status === 'on_leave' ? reason : undefined,
+        };
+
         if (existingRecord) {
-            await updateAttendanceRecord(existingRecord.id, { status, method });
+            await updateAttendanceRecord(existingRecord.id, recordData);
         } else {
-            await addAttendanceRecord({
-                studentRegister: student.registerNumber,
-                studentName: student.name,
-                date: today,
-                status,
-                method,
-                photoFile
-            });
+            await addAttendanceRecord(recordData);
         }
         toast({
             title: 'Attendance Updated',
-            description: `${student.name} marked as ${status === 'present' ? 'Present' : 'On Leave'}.`,
+            description: `${student.name} marked as ${status.replace('_', ' ')}.`,
         });
     } catch(error: any) {
         toast({
@@ -150,7 +156,24 @@ export default function MarkAttendancePage() {
         }
     }, 'image/jpeg');
     setIsCameraDialogOpen(false);
+    setStudentToCapture(null);
   }
+
+  const handleMarkOnLeave = async () => {
+    if (!studentForLeave || !leaveReason.trim()) {
+        toast({
+            variant: "destructive",
+            title: "Reason Required",
+            description: "Please provide a reason for the leave.",
+        });
+        return;
+    }
+    await handleAction(studentForLeave, 'on_leave', 'manual', undefined, leaveReason);
+    setIsLeaveDialogOpen(false);
+    setStudentForLeave(null);
+    setLeaveReason("");
+  }
+
 
   const loading = authLoading || studentsLoading || attendanceLoading;
 
@@ -233,13 +256,13 @@ export default function MarkAttendancePage() {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => handleAction(student, 'present')}>
+                                            <DropdownMenuItem onClick={() => handleAction(student, 'present', 'manual')}>
                                                 <UserCheck className="mr-2 h-4 w-4" /> Mark Present
                                             </DropdownMenuItem>
                                              <DropdownMenuItem onClick={() => { setStudentToCapture(student); setIsCameraDialogOpen(true); }}>
                                                 <Camera className="mr-2 h-4 w-4" /> Mark with Camera
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleAction(student, 'on_leave')}>
+                                            <DropdownMenuItem onClick={() => { setStudentForLeave(student); setIsLeaveDialogOpen(true); }}>
                                                 <LogOut className="mr-2 h-4 w-4" /> Mark On Leave
                                             </DropdownMenuItem>
                                             {record && (
@@ -289,6 +312,29 @@ export default function MarkAttendancePage() {
                     <Button onClick={handleCaptureAndMark} disabled={!hasCameraPermission}>
                         <Camera className="mr-2" /> Capture and Mark Present
                     </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isLeaveDialogOpen} onOpenChange={setIsLeaveDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Mark {studentForLeave?.name} On Leave</DialogTitle>
+                    <DialogDescription>
+                        Please provide a reason for the student's leave. This will be recorded.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <Textarea 
+                        placeholder="E.g., Sick leave, family emergency..."
+                        value={leaveReason}
+                        onChange={(e) => setLeaveReason(e.target.value)}
+                        className="min-h-[100px]"
+                    />
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsLeaveDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleMarkOnLeave}>Approve Leave</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

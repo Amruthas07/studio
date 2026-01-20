@@ -24,6 +24,7 @@ export interface AttendanceRecord {
   timestamp: string; // Storing as ISO string for localStorage compatibility
   method: 'face-scan' | 'manual' | 'live-photo';
   photoUrl?: string;
+  reason?: string;
 }
 
 export interface RecentExport {

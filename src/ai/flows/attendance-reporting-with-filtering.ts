@@ -33,6 +33,7 @@ const AttendanceRecordSchema = z.object({
   date: z.string(),
   status: z.enum(['present', 'on_leave']),
   timestamp: z.string(),
+  reason: z.string().optional(),
 });
 
 
@@ -116,9 +117,13 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
         if (isOnLeave) status = 'On Leave';
         
         let timestamp = 'N/A';
+        let reason = 'N/A';
 
         if (attendanceRecord) {
             timestamp = new Date(attendanceRecord.timestamp).toLocaleString();
+            if (attendanceRecord.status === 'on_leave') {
+                reason = attendanceRecord.reason || 'Not specified';
+            }
         }
 
         return {
@@ -128,6 +133,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
             "Date": reportDate,
             "Status": status,
             "Timestamp": timestamp,
+            "Leave Reason": reason,
         };
     });
 

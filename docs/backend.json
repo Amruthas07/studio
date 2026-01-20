@@ -103,6 +103,10 @@
           "type": "string",
           "format": "date-time",
           "description": "The exact timestamp when the attendance was marked."
+        },
+        "reason": {
+          "type": "string",
+          "description": "The reason for the student being on leave."
         }
       },
       "required": [
