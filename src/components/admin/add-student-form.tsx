@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -91,10 +92,12 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     
     startTransition(async () => {
       try {
+          const { photo, ...studentDetails } = values;
+
           const newStudent = await addStudent({
-              ...values,
+              ...studentDetails,
               dateOfBirth: values.dateOfBirth,
-              photoFile: values.photo,
+              photoFile: photo,
           });
 
           toast({
