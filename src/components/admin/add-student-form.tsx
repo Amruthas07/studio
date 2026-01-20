@@ -64,6 +64,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const [isCameraOpen, setIsCameraOpen] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -169,7 +170,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     if (!context) {
         toast({ title: "Error", description: "Could not capture photo.", variant: "destructive"});
         return;
-    }
+    };
     context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
 
     canvas.toBlob((blob) => {
@@ -230,6 +231,24 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                         )}
                     </div>
                      
+                    <FormField
+                        control={form.control}
+                        name="photo"
+                        render={() => (
+                           <FormItem>
+                                <FormControl>
+                                    <Input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/png, image/jpeg"
+                                        onChange={handlePhotoChange}
+                                        className="hidden"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                           </FormItem>
+                        )}
+                    />
                     {isCameraOpen ? (
                          <div className="flex gap-2">
                             <Button type="button" onClick={handleCapture} className="w-full">
@@ -240,29 +259,10 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                             </Button>
                         </div>
                     ) : (
-                        <div>
-                             <FormField
-                                control={form.control}
-                                name="photo"
-                                render={() => (
-                                   <FormItem>
-                                        <FormControl>
-                                            <Input
-                                                type="file"
-                                                accept="image/png, image/jpeg"
-                                                onChange={handlePhotoChange}
-                                                className="w-full file:text-primary file:font-semibold"
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                   </FormItem>
-                                )}
-                            />
-                             <div className="relative flex py-2 items-center">
-                                <div className="flex-grow border-t border-muted"></div>
-                                <span className="flex-shrink mx-4 text-muted-foreground text-xs">OR</span>
-                                <div className="flex-grow border-t border-muted"></div>
-                            </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                                <FileImage className="mr-2 h-4 w-4" /> Upload File
+                            </Button>
                             <Button type="button" variant="secondary" onClick={openCamera} className="w-full">
                                 <Camera className="mr-2 h-4 w-4" /> Use Camera
                             </Button>
