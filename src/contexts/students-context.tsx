@@ -61,13 +61,17 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   }, [firestore]);
 
   const addStudent = useCallback(async (
-    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoEnrolled'> & { photoFile: File }
+    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoEnrolled' | 'updatedAt'> & { photoFile: File }
   ): Promise<Student> => {
     if (!firestore || !firebaseApp) {
       throw new Error('Database not initialized. Please try again later.');
     }
     
-    const { photoFile, ...details } = studentData;
+    const { photoFile, ...studentDetails } = studentData;
+    // The `studentDetails` object still contains the `photo: File` property from the form.
+    // We must remove it before sending it to Firestore.
+    const { photo, ...details } = studentDetails as any;
+
     const studentDocRef = doc(firestore, 'students', details.registerNumber);
 
     // Stage 1: Create student document immediately so UI can update
@@ -79,6 +83,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       photoEnrolled: false,
     };
     // This is an optimistic update. We create the student record right away.
+    // `newStudent` no longer contains the illegal 'photo' property.
     await setDoc(studentDocRef, newStudent);
 
     // Stage 2: Handle photo processing in the background
