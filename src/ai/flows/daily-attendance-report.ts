@@ -100,44 +100,48 @@ const dailyAttendanceReportFlow = ai.defineFlow(
 
     // 4. Create the roll call list with robust logic
     const rollCall = departmentStudents.map(student => {
-        // Get all records for this student for the report date
-        const studentRecordsForDate = todaysRecords.filter(
+        const recordsForStudent = todaysRecords.filter(
             rec => rec.studentRegister === student.registerNumber
         );
 
-        // Sort by timestamp descending to get the latest record first
-        studentRecordsForDate.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-        // The most recent record is the first one, if it exists
-        const latestRecord = studentRecordsForDate[0];
-
-        let status = 'Absent';
-        let timestamp = 'N/A';
-        let reason = 'N/A';
-        let method = 'N/A';
-
-        // If a record exists, use it to populate details
-        if (latestRecord) {
-            if (latestRecord.status === 'present') {
-                status = 'Present';
-            } else if (latestRecord.status === 'on_leave') {
-                status = 'Absent (Leave)';
-                reason = latestRecord.reason || 'Not specified';
-            }
-            timestamp = new Date(latestRecord.timestamp).toLocaleString();
-            method = latestRecord.method;
-        }
-
-        return {
+        const baseDetails = {
             "Register Number": student.registerNumber,
             "Student Name": student.name,
             "Date": today,
             "Department": student.department.toUpperCase(),
-            "Status": status,
-            "Method": method,
-            "Timestamp": timestamp,
-            "Leave Reason": reason,
         };
+
+        if (recordsForStudent.length === 0) {
+            return {
+                ...baseDetails,
+                "Status": "Absent",
+                "Method": "N/A",
+                "Timestamp": "N/A",
+                "Leave Reason": "N/A",
+            };
+        }
+
+        // Sort to find the most recent record
+        recordsForStudent.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        const latestRecord = recordsForStudent[0];
+
+        if (latestRecord.status === 'present') {
+            return {
+                ...baseDetails,
+                "Status": 'Present',
+                "Method": latestRecord.method,
+                "Timestamp": new Date(latestRecord.timestamp).toLocaleString(),
+                "Leave Reason": 'N/A',
+            };
+        } else { // 'on_leave'
+            return {
+                ...baseDetails,
+                "Status": 'Absent (Leave)',
+                "Method": latestRecord.method,
+                "Timestamp": new Date(latestRecord.timestamp).toLocaleString(),
+                "Leave Reason": latestRecord.reason || 'Not specified',
+            };
+        }
     });
 
     // 5. Convert to CSV
