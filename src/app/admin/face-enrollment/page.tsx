@@ -19,13 +19,12 @@ import {
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
-import { resizeAndCompressImage } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function FaceEnrollmentPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [processedPhotoFile, setProcessedPhotoFile] = useState<File | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { students, updateStudent, loading: studentsLoading } = useStudents();
@@ -52,7 +51,7 @@ export default function FaceEnrollmentPage() {
       }
   }, [searchParams, students]);
 
-  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
@@ -64,67 +63,43 @@ export default function FaceEnrollmentPage() {
           return;
       }
 
-      setIsProcessing(true);
-      setPreviewUrl(null);
-      setProcessedPhotoFile(null);
-
-      try {
-        const compressedFile = await resizeAndCompressImage(file);
-        setProcessedPhotoFile(compressedFile);
-        const objectUrl = URL.createObjectURL(compressedFile);
-        setPreviewUrl(objectUrl);
-        toast({
-            title: "Image Ready",
-            description: "Image has been processed and is ready for enrollment.",
-        });
-      } catch (error) {
-        console.error("Image processing failed:", error);
-        toast({
-            variant: "destructive",
-            title: "Image Processing Failed",
-            description: "Could not process the image. Please upload a clear, front-facing photo.",
-        });
-        setPreviewUrl(null);
-      } finally {
-        setIsProcessing(false);
-      }
+      setSelectedFile(file);
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
     }
   };
 
- const handleCompleteEnrollment = async () => {
-    if (!selectedStudent || !processedPhotoFile) {
+ const handleCompleteEnrollment = () => {
+    if (!selectedStudent || !selectedFile) {
       toast({
         title: "Enrollment Failed",
-        description: "Please select a student and upload a processed photo.",
+        description: "Please select a student and upload a photo.",
         variant: "destructive"
       });
       return;
     }
     
-    setIsProcessing(true);
-    try {
-        await updateStudent(
-            selectedStudent.registerNumber,
-            { newPhotoFile: processedPhotoFile }
-        );
-        toast({ 
-          title: "Enrollment Successful", 
-          description: `New photo enrolled for ${selectedStudent.name}.`
-        });
-        router.push('/admin/students');
-    } catch(error: any) {
-        // Error toast is handled by the context
-        console.error(error);
-    } finally {
-        setIsProcessing(false);
-    }
+    setIsUploading(true);
+
+    // Fire-and-forget style
+    updateStudent(
+        selectedStudent.registerNumber,
+        { newPhotoFile: selectedFile }
+    );
+    
+    toast({ 
+      title: "Re-enrollment Started", 
+      description: `New photo for ${selectedStudent.name} is processing in the background.`
+    });
+
+    router.push('/admin/students');
   };
   
   const handleStudentSelect = (registerNumber: string) => {
     const student = students.find(s => s.registerNumber === registerNumber);
     setSelectedStudent(student || null);
-    setPreviewUrl(student?.photoURL || null);
-    setProcessedPhotoFile(null);
+    setPreviewUrl(student?.profilePhotoUrl || null);
+    setSelectedFile(null);
     router.replace(`/admin/face-enrollment?studentId=${registerNumber}`);
   };
 
@@ -198,12 +173,6 @@ export default function FaceEnrollmentPage() {
                         <p className="mt-2">Image preview will appear here</p>
                     </div>
                 )}
-                 {isProcessing && (
-                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white">
-                        <Loader2 className="h-8 w-8 animate-spin" />
-                        <p className="mt-2">Processing image...</p>
-                    </div>
-                 )}
                </div>
 
                 <Input
@@ -211,7 +180,7 @@ export default function FaceEnrollmentPage() {
                     type="file"
                     accept="image/png, image/jpeg"
                     onChange={handleFileChange}
-                    disabled={!selectedStudent || isProcessing}
+                    disabled={!selectedStudent || isUploading}
                     className="w-full max-w-sm file:text-primary file:font-semibold"
                 />
                  {!selectedStudent && <Alert variant="destructive"><AlertDescription>Please select a student before uploading a photo.</AlertDescription></Alert>}
@@ -220,11 +189,11 @@ export default function FaceEnrollmentPage() {
           </Card>
           
           <div className="flex gap-4">
-            <Button size="lg" className="w-full" onClick={handleCompleteEnrollment} disabled={isProcessing || !processedPhotoFile || !selectedStudent}>
-              {isProcessing ? <Loader2 className="animate-spin" /> : <CheckCircle />}
+            <Button size="lg" className="w-full" onClick={handleCompleteEnrollment} disabled={isUploading || !selectedFile || !selectedStudent}>
+              {isUploading ? <Loader2 className="animate-spin" /> : <CheckCircle />}
               Complete Enrollment
             </Button>
-            <Button size="lg" variant="outline" className="w-full" onClick={() => router.push('/admin/students')} disabled={isProcessing}>
+            <Button size="lg" variant="outline" className="w-full" onClick={() => router.push('/admin/students')} disabled={isUploading}>
               <XCircle />
               Cancel
             </Button>

@@ -69,8 +69,9 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
     const { photoFile, ...details } = studentData;
 
-    const existingStudent = students.find(s => s.registerNumber === details.registerNumber);
-    if (existingStudent) {
+    const existingStudentQuery = query(collection(firestore, "students"), where("registerNumber", "==", details.registerNumber));
+    const querySnapshot = await getDocs(existingStudentQuery);
+    if (!querySnapshot.empty) {
         throw new Error(`A student with register number ${details.registerNumber} already exists.`);
     }
 
@@ -126,7 +127,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             });
         }
     })();
-  }, [firestore, firebaseApp, toast, students]);
+  }, [firestore, firebaseApp, toast]);
 
 
   const updateStudent = useCallback(async (
@@ -134,66 +135,71 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     studentUpdate: Partial<Student> & { newPhotoFile?: File }
   ) => {
     if (!firestore || !firebaseApp) {
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: "Database is not available. Please try again later.",
-      });
+      toast({ variant: "destructive", title: "Update Failed", description: "Database is not available." });
       return;
     }
 
     const studentDocRef = doc(firestore, 'students', registerNumber);
     const { newPhotoFile, ...otherUpdates } = studentUpdate;
 
+    // This block handles updates from the Edit Student form
     if (!newPhotoFile) {
-      try {
-        await updateDoc(studentDocRef, {...otherUpdates, updatedAt: serverTimestamp()});
-        toast({
-          title: "Student Updated",
-          description: `Details for ${registerNumber} have been saved.`,
-        });
-      } catch (error: any) {
-        console.error("Failed to update student details:", error);
-        toast({
-          variant: "destructive",
-          title: "Update Failed",
-          description: error.message || "Could not save changes.",
-        });
-      }
-      return;
-    }
-
-    const storage = getStorage(firebaseApp);
-    const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
-
-    try {
-        const processedPhoto = await resizeAndCompressImage(newPhotoFile);
-        const photoHash = await getImageHash(processedPhoto);
-
-        const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
-        const duplicateSnap = await getDocs(duplicateQuery);
-        if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== registerNumber) {
-              throw new Error(`This photo is already in use by ${duplicateSnap.docs[0].data().name}.`);
+        try {
+            await updateDoc(studentDocRef, { ...otherUpdates, updatedAt: serverTimestamp() });
+            toast({
+                title: "Student Updated",
+                description: `Details for ${registerNumber} have been saved.`,
+            });
+        } catch (error: any) {
+            console.error("Failed to update student details:", error);
+            toast({
+                variant: "destructive",
+                title: "Update Failed",
+                description: error.message || "Could not save changes.",
+            });
         }
-
-        await uploadBytes(photoRef, processedPhoto);
-        const downloadURL = await getDownloadURL(photoRef);
-        
-        const finalUpdate = {
-            ...otherUpdates,
-            profilePhotoUrl: downloadURL,
-            photoHash: photoHash,
-            photoEnrolled: true,
-            updatedAt: serverTimestamp(),
-        };
-        await updateDoc(studentDocRef, finalUpdate);
-        toast({ title: "Photo Re-enrolled", description: `New photo saved for ${registerNumber}.` });
-
-    } catch (error: any) {
-          console.error("Photo re-enrollment failed:", error);
-          toast({ variant: "destructive", title: 'Re-enrollment Failed', description: error.message });
+        return;
     }
-  }, [firestore, firebaseApp, toast]);
+
+    // This block handles updates from the Face Enrollment page (fire-and-forget)
+    await updateDoc(studentDocRef, { photoEnrolled: false, updatedAt: serverTimestamp() });
+
+    (async () => {
+        const storage = getStorage(firebaseApp);
+        const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
+        const studentName = students.find(s => s.registerNumber === registerNumber)?.name || 'the student';
+
+        try {
+            const processedPhoto = await resizeAndCompressImage(newPhotoFile);
+            const photoHash = await getImageHash(processedPhoto);
+
+            const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
+            const duplicateSnap = await getDocs(duplicateQuery);
+            if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== registerNumber) {
+                  throw new Error(`This photo is already in use by ${duplicateSnap.docs[0].data().name}.`);
+            }
+
+            await uploadBytes(photoRef, processedPhoto);
+            const downloadURL = await getDownloadURL(photoRef);
+            
+            const finalUpdate = {
+                profilePhotoUrl: downloadURL,
+                photoHash: photoHash,
+                photoEnrolled: true,
+                updatedAt: serverTimestamp(),
+            };
+            await updateDoc(studentDocRef, finalUpdate);
+        } catch (error: any) {
+              console.error("Photo re-enrollment failed:", error);
+              toast({ 
+                  variant: "destructive", 
+                  title: 'Photo Re-enrollment Failed', 
+                  description: `Could not enroll new photo for ${studentName}. Reason: ${error.message}`,
+                  duration: 9000,
+              });
+        }
+    })();
+  }, [firestore, firebaseApp, toast, students]);
   
   const deleteStudent = useCallback(async (registerNumber: string) => {
     if (!firestore || !firebaseApp) {
