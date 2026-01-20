@@ -19,13 +19,13 @@ export function AttendanceChart({ data }: AttendanceChartProps) {
                 <BarChart data={data}>
                     <XAxis
                         dataKey="date"
-                        stroke="#888888"
+                        stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
                         tickLine={false}
                         axisLine={false}
                     />
                     <YAxis
-                        stroke="#888888"
+                        stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
                         tickLine={false}
                         axisLine={false}
@@ -37,12 +37,13 @@ export function AttendanceChart({ data }: AttendanceChartProps) {
                         contentStyle={{
                             backgroundColor: 'hsl(var(--background))',
                             borderColor: 'hsl(var(--border))',
+                            borderRadius: 'var(--radius)',
                         }}
                     />
                     <Legend wrapperStyle={{fontSize: "14px"}} />
-                    <Bar dataKey="present" fill="hsl(var(--primary))" name="Present" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="present" fill="hsl(var(--chart-1))" name="Present" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="absent" fill="hsl(var(--destructive))" name="Absent" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="onLeave" fill="hsl(var(--secondary-foreground))" name="On Leave" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="onLeave" fill="hsl(var(--chart-2))" name="On Leave" radius={[4, 4, 0, 0]} />
                 </BarChart>
             </ResponsiveContainer>
         </div>

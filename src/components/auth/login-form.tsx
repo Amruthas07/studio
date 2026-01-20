@@ -67,7 +67,7 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2 text-slate-600">
+              <FormLabel className="flex items-center gap-2 text-muted-foreground">
                 <Mail className="h-4 w-4" />
                 Email Address
               </FormLabel>
@@ -75,7 +75,6 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
                 <Input
                   placeholder="Enter your email address"
                   {...field}
-                  className="bg-slate-50 border-slate-200 text-slate-800"
                 />
               </FormControl>
               <FormMessage />
@@ -87,7 +86,7 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
           name="password"
           render={({ field }) => (
             <FormItem>
-               <FormLabel className="flex items-center gap-2 text-slate-600">
+               <FormLabel className="flex items-center gap-2 text-muted-foreground">
                 <Lock className="h-4 w-4" />
                 Password
               </FormLabel>
@@ -96,7 +95,6 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
                   type="password"
                   placeholder="Enter your password"
                   {...field}
-                  className="bg-slate-50 border-slate-200 text-slate-800"
                 />
               </FormControl>
               <FormMessage />
@@ -110,13 +108,13 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
               name="department"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2 text-slate-600">
+                  <FormLabel className="flex items-center gap-2 text-muted-foreground">
                     <Building className="h-4 w-4" />
                     Department
                   </FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="bg-slate-50 border-slate-200 text-slate-800">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select your department" />
                       </SelectTrigger>
                     </FormControl>
@@ -147,7 +145,7 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
         </Button>
         
         {isAdminForm && (
-            <div className="flex items-center justify-center gap-4 text-xs text-slate-500 pt-2">
+            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground pt-2">
                 <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4"/>
                     <span>SSL Secured</span>
@@ -159,7 +157,7 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
             </div>
         )}
 
-        <div className="text-center text-sm text-slate-600">
+        <div className="text-center text-sm text-muted-foreground">
             {isAdminForm ? (
                 <>
                 Are you a student?{' '}

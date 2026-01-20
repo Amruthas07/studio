@@ -47,13 +47,13 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center p-4 bg-slate-50">
-       <div className="absolute inset-0 bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:6rem_4rem] opacity-25"></div>
+    <main className="relative flex min-h-screen flex-col items-center justify-center p-4 bg-background">
+      <div className="absolute inset-0 bg-gradient-to-br from-background to-accent/20"></div>
 
-      <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm border border-slate-200 shadow-lg z-10">
+      <Card className="w-full max-w-md bg-card/60 backdrop-blur-sm border border-border/50 shadow-lg z-10">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-3xl text-slate-800">Reset Password</CardTitle>
-          <CardDescription className="text-slate-600">
+          <CardTitle className="font-headline text-3xl text-foreground">Reset Password</CardTitle>
+          <CardDescription>
             Enter your email to receive a password reset link.
           </CardDescription>
         </CardHeader>
@@ -65,12 +65,11 @@ export default function ResetPasswordPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-600">Email</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="name@example.com"
                         {...field}
-                        className="bg-slate-50 border-slate-200 text-slate-800"
                       />
                     </FormControl>
                     <FormMessage />
@@ -88,7 +87,7 @@ export default function ResetPasswordPage() {
                 )}
               </Button>
               <div className="text-center text-sm">
-                <Link href="/" className="text-slate-600 hover:text-primary underline">
+                <Link href="/" className="text-muted-foreground hover:text-primary underline">
                   Back to Sign In
                 </Link>
               </div>
