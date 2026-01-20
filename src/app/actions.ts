@@ -2,7 +2,10 @@
 "use server";
 
 import { z } from "zod";
-import type { Student } from "@/lib/types";
+import { format } from "date-fns";
+import type { Student, AttendanceRecord } from "@/lib/types";
+import { dailyAttendanceReport, DailyAttendanceReportInput } from "@/ai/flows/daily-attendance-report";
+import { attendanceReportingWithFiltering, AttendanceReportingWithFilteringInput } from "@/ai/flows/attendance-reporting-with-filtering";
 
 const addStudentSchema = z.object({
   name: z.string(),
@@ -44,4 +47,43 @@ export async function updateStudent(formData: FormData) {
       }
       return { success: false, error: "An unexpected error occurred while updating the student." };
   }
+}
+
+export async function generateDailyReport(input: DailyAttendanceReportInput) {
+  try {
+    const result = await dailyAttendanceReport(input);
+    return { success: true, fileUrl: result.fileUrl };
+  } catch (error) {
+    console.error("Error generating daily report:", error);
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+    return { success: false, error: `Failed to generate report: ${errorMessage}` };
+  }
+}
+
+type GenerateReportFormInput = {
+    date: Date;
+    department: string;
+    students: Student[];
+    attendanceRecords: AttendanceRecord[];
+};
+
+export async function generateReport(input: GenerateReportFormInput) {
+    try {
+        const dateStr = format(input.date, 'yyyy-MM-dd');
+        
+        const flowInput: AttendanceReportingWithFilteringInput = {
+            startDate: dateStr,
+            endDate: dateStr,
+            department: input.department,
+            students: input.students,
+            attendanceRecords: input.attendanceRecords
+        };
+
+        const result = await attendanceReportingWithFiltering(flowInput);
+        return { success: true, fileUrl: result.fileUrl };
+    } catch (error) {
+        console.error("Error generating custom report:", error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        return { success: false, error: `Failed to generate report: ${errorMessage}` };
+    }
 }
