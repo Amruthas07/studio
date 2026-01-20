@@ -243,7 +243,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             description: `Successfully removed ${studentToDelete.name}.`,
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to delete student:", error);
         toast({
             variant: "destructive",
