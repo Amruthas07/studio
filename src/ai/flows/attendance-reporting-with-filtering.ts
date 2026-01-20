@@ -11,8 +11,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import type { Student, AttendanceRecord } from '@/lib/types';
-
 
 const StudentSchema = z.object({
   registerNumber: z.string(),
@@ -20,7 +18,7 @@ const StudentSchema = z.object({
   fatherName: z.string(),
   motherName: z.string(),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
-  photoURL: z.string(),
+  profilePhotoUrl: z.string(),
   email: z.string().email(),
   contact: z.string(),
   photoHash: z.string().optional(),
@@ -33,7 +31,7 @@ const AttendanceRecordSchema = z.object({
   studentRegister: z.string(),
   studentName: z.string().optional(),
   date: z.string(),
-  matched: z.boolean(),
+  status: z.enum(['present', 'on_leave']),
   timestamp: z.string(),
 });
 
@@ -98,16 +96,25 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
     const todaysRecords = input.attendanceRecords.filter(record => record.date === reportDate);
     const presentStudentRegisters = new Set(
         todaysRecords
-            .filter(r => r.matched)
+            .filter(r => r.status === 'present')
+            .map(r => r.studentRegister)
+    );
+     const onLeaveStudentRegisters = new Set(
+        todaysRecords
+            .filter(r => r.status === 'on_leave')
             .map(r => r.studentRegister)
     );
 
     // 3. Create the roll call list
     const rollCall = departmentStudents.map(student => {
         const isPresent = presentStudentRegisters.has(student.registerNumber);
+        const isOnLeave = onLeaveStudentRegisters.has(student.registerNumber);
         const attendanceRecord = todaysRecords.find(rec => rec.studentRegister === student.registerNumber);
         
-        let status = isPresent ? 'Present' : 'Absent';
+        let status = 'Absent';
+        if (isPresent) status = 'Present';
+        if (isOnLeave) status = 'On Leave';
+        
         let timestamp = 'N/A';
 
         if (attendanceRecord) {
@@ -126,7 +133,8 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
 
     // 4. Calculate summary
     const presentCount = rollCall.filter(s => s.Status === 'Present').length;
-    const absentCount = rollCall.length - presentCount;
+    const onLeaveCount = rollCall.filter(s => s.Status === 'On Leave').length;
+    const absentCount = rollCall.length - presentCount - onLeaveCount;
     
     const summaryData = [
       { metric: `Report for Date`, value: reportDate },
@@ -134,6 +142,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
       { metric: 'Total Students', value: rollCall.length },
       { metric: 'Number of Students Present', value: presentCount },
       { metric: 'Number of Students Absent', value: absentCount },
+      { metric: 'Number of Students On Leave', value: onLeaveCount },
     ];
     const summaryCsv = convertToCSV(summaryData);
     

@@ -8,7 +8,7 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, deleteDoc, query, where, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { AttendanceRecord } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
@@ -16,7 +16,10 @@ import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
-  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp'> & { photoFile?: File }) => Promise<void>;
+  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp'> & { photoFile?: File }) => Promise<string | undefined>;
+  updateAttendanceRecord: (recordId: string, updates: Partial<AttendanceRecord>) => Promise<void>;
+  deleteAttendanceRecord: (recordId: string) => Promise<void>;
+  getTodaysRecordForStudent: (studentRegister: string, date: string) => AttendanceRecord | undefined;
   loading: boolean;
 }
 
@@ -33,7 +36,6 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!firestore || studentsLoading) {
-      // Don't fetch attendance until firestore is ready and students are loaded
       return;
     }
     
@@ -67,7 +69,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
   const addAttendanceRecord = useCallback(async (
     record: Omit<AttendanceRecord, 'id' | 'timestamp'> & { photoFile?: File }
-  ) => {
+  ): Promise<string | undefined> => {
     if (!firestore || !firebaseApp) {
         throw new Error("Firebase is not initialized");
     }
@@ -83,30 +85,47 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         const storageRef = ref(storage, filePath);
         
         try {
-            console.log(`Uploading attendance photo to: ${filePath}`);
             const snapshot = await uploadBytes(storageRef, photoFile);
             finalPhotoUrl = await getDownloadURL(snapshot.ref);
-            console.log("Attendance photo uploaded successfully.");
         } catch (error) {
             console.error("Attendance photo upload error:", error);
-            // We can choose to still mark attendance even if photo upload fails
-            // Or throw an error to indicate failure. For now, we'll log and continue.
         }
     }
 
     try {
-        await addDoc(attendanceCollection, { 
+        const docRef = await addDoc(attendanceCollection, { 
             ...newRecord, 
             photoUrl: finalPhotoUrl,
             timestamp: serverTimestamp() 
         });
+        return docRef.id;
     } catch (error) {
         console.error("Firestore write error for attendance:", error);
         throw new Error("Failed to save attendance record.");
     }
   }, [firestore, firebaseApp]);
 
-  const value = { attendanceRecords, addAttendanceRecord, loading };
+  const updateAttendanceRecord = useCallback(async (
+    recordId: string,
+    updates: Partial<AttendanceRecord>
+  ) => {
+    if (!firestore) throw new Error("Firestore not initialized");
+    const recordDocRef = doc(firestore, 'attendance', recordId);
+    await updateDoc(recordDocRef, { ...updates, timestamp: serverTimestamp() });
+  }, [firestore]);
+
+  const deleteAttendanceRecord = useCallback(async (recordId: string) => {
+      if (!firestore) throw new Error("Firestore not initialized");
+      const recordDocRef = doc(firestore, 'attendance', recordId);
+      await deleteDoc(recordDocRef);
+  }, [firestore]);
+
+  const getTodaysRecordForStudent = useCallback((studentRegister: string, date: string) => {
+    return attendanceRecords.find(r => r.studentRegister === studentRegister && r.date === date);
+  }, [attendanceRecords]);
+
+
+  const value = { attendanceRecords, addAttendanceRecord, updateAttendanceRecord, deleteAttendanceRecord, getTodaysRecordForStudent, loading };
 
   return (
     <AttendanceContext.Provider value={value}>

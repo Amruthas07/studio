@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileDown, Loader2, CheckCircle } from "lucide-react";
+import { FileDown, Loader2, CheckCircle, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import React from "react";
 import { generateDailyReport } from "@/app/actions";
@@ -112,9 +112,9 @@ export default function AdminAttendancePage() {
                                     <TableCell>{record.studentRegister}</TableCell>
                                     <TableCell>{record.date}</TableCell>
                                     <TableCell>
-                                        <Badge variant={record.matched ? 'default' : 'destructive'} className="capitalize">
-                                            {record.matched ? <CheckCircle className='mr-2 h-4 w-4' /> : null}
-                                            {record.matched ? 'Present' : 'Absent'}
+                                        <Badge variant={record.status === 'present' ? 'default' : 'secondary'} className="capitalize">
+                                            {record.status === 'present' ? <CheckCircle className='mr-2 h-4 w-4' /> : <LogOut className='mr-2 h-4 w-4' />}
+                                            {record.status.replace('_', ' ')}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>

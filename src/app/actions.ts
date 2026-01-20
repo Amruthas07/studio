@@ -33,13 +33,13 @@ const reportSchema = z.object({
 // This is the data that will be passed from the client for generating reports
 type GenerateReportClientInput = z.infer<typeof reportSchema> & {
     students: Student[];
-    attendanceRecords: AttendanceRecord[];
+    attendanceRecords: Omit<AttendanceRecord, 'status'> & { status: 'present' | 'on_leave' }[];
 }
 
 type GenerateDailyReportClientInput = {
     department: string;
     students: Student[];
-    attendanceRecords: AttendanceRecord[];
+    attendanceRecords: Omit<AttendanceRecord, 'status'> & { status: 'present' | 'on_leave' }[];
 }
 
 export async function updateStudent(formData: FormData) {
@@ -75,7 +75,8 @@ export async function generateReport(values: GenerateReportClientInput) {
             students: values.students.map(s => ({
                 ...s, 
                 createdAt: s.createdAt.toISOString(), 
-                dateOfBirth: s.dateOfBirth.toISOString() 
+                dateOfBirth: s.dateOfBirth.toISOString(),
+                profilePhotoUrl: s.profilePhotoUrl || '',
             })),
             attendanceRecords: values.attendanceRecords,
         };
@@ -103,7 +104,8 @@ export async function generateDailyReport(values: GenerateDailyReportClientInput
             students: values.students.map(s => ({
                 ...s, 
                 createdAt: s.createdAt.toISOString(), 
-                dateOfBirth: s.dateOfBirth.toISOString() 
+                dateOfBirth: s.dateOfBirth.toISOString(),
+                profilePhotoUrl: s.profilePhotoUrl || '',
             })),
             attendanceRecords: values.attendanceRecords,
         };

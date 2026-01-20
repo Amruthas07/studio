@@ -11,8 +11,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import type { Student, AttendanceRecord } from '@/lib/types';
-
 
 const StudentSchema = z.object({
   registerNumber: z.string(),
@@ -20,7 +18,7 @@ const StudentSchema = z.object({
   fatherName: z.string(),
   motherName: z.string(),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
-  photoURL: z.string(),
+  profilePhotoUrl: z.string(),
   email: z.string().email(),
   contact: z.string(),
   photoHash: z.string().optional(),
@@ -33,7 +31,7 @@ const AttendanceRecordSchema = z.object({
   studentRegister: z.string(),
   studentName: z.string().optional(),
   date: z.string(),
-  matched: z.boolean(),
+  status: z.enum(['present', 'on_leave']),
   timestamp: z.string(),
 });
 
@@ -97,16 +95,25 @@ const dailyAttendanceReportFlow = ai.defineFlow(
     const todaysRecords = input.attendanceRecords.filter(record => record.date === today);
     const presentStudentRegisters = new Set(
         todaysRecords
-            .filter(r => r.matched)
+            .filter(r => r.status === 'present')
+            .map(r => r.studentRegister)
+    );
+     const onLeaveStudentRegisters = new Set(
+        todaysRecords
+            .filter(r => r.status === 'on_leave')
             .map(r => r.studentRegister)
     );
 
     // 4. Create the roll call list
     const rollCall = departmentStudents.map(student => {
         const isPresent = presentStudentRegisters.has(student.registerNumber);
+        const isOnLeave = onLeaveStudentRegisters.has(student.registerNumber);
         const attendanceRecord = todaysRecords.find(rec => rec.studentRegister === student.registerNumber);
         
-        let status = isPresent ? 'Present' : 'Absent';
+        let status = 'Absent';
+        if (isPresent) status = 'Present';
+        if (isOnLeave) status = 'On Leave';
+
         let timestamp = 'N/A';
 
         if (attendanceRecord) {

@@ -81,9 +81,10 @@
           "format": "date",
           "description": "The date of the attendance record (YYYY-MM-DD)."
         },
-        "matched": {
-          "type": "boolean",
-          "description": "Whether a student was successfully matched and attendance marked."
+        "status": {
+          "type": "string",
+          "description": "The attendance status for the student on that day.",
+          "enum": ["present", "on_leave"]
         },
         "method": {
           "type": "string",
@@ -93,10 +94,6 @@
             "manual",
             "live-photo"
           ]
-        },
-        "confidence": {
-          "type": "number",
-          "description": "The confidence score of the face match (0-100)."
         },
         "photoUrl": {
           "type": "string",
@@ -111,7 +108,7 @@
       "required": [
         "studentRegister",
         "date",
-        "matched",
+        "status",
         "method",
         "timestamp"
       ]
