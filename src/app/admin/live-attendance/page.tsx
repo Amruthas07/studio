@@ -138,7 +138,7 @@ export default function LiveAttendancePage() {
 
         if (!matchedStudentRegister || confidence < CONFIDENCE_THRESHOLD) {
             setStatus('no_match');
-            setMessage('Face not clear. Please retake photo.');
+            setMessage('Please look at the camera clearly.');
             return;
         }
         
@@ -165,9 +165,10 @@ export default function LiveAttendancePage() {
 
         await addAttendanceRecord({
             studentRegister: student.registerNumber,
+            studentName: student.name,
             date: today,
             matched: true,
-            method: 'live-photo',
+            method: 'live-face',
             confidence: confidence * 100, // Store as percentage
             photoFile: photoFile,
         });

@@ -76,24 +76,36 @@
           "type": "string",
           "description": "The registration number of the student."
         },
+        "studentName": {
+          "type": "string",
+          "description": "The name of the student for easier display."
+        },
         "date": {
           "type": "string",
           "format": "date",
           "description": "The date of the attendance record (YYYY-MM-DD)."
         },
-        "status": {
-          "type": "string",
-          "description": "The attendance status.",
-          "enum": ["present", "absent", "late", "manual", "unknown-face"]
-        },
-        "markedBy": {
-          "type": "string",
-          "description": "Identifier of who or what marked the attendance."
+        "matched": {
+          "type": "boolean",
+          "description": "Whether a student was successfully matched and attendance marked."
         },
         "method": {
-            "type": "string",
-            "description": "The method used to mark attendance.",
-            "enum": ["face-scan", "manual", "live-photo"]
+          "type": "string",
+          "description": "The method used to mark attendance.",
+          "enum": [
+            "face-scan",
+            "manual",
+            "live-photo",
+            "live-face"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "description": "The confidence score of the face match (0-100)."
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "URL to the snapshot photo used for attendance."
         },
         "timestamp": {
           "type": "string",
@@ -101,7 +113,13 @@
           "description": "The exact timestamp when the attendance was marked."
         }
       },
-      "required": ["studentRegister", "date", "status", "markedBy", "method", "timestamp"]
+      "required": [
+        "studentRegister",
+        "date",
+        "matched",
+        "method",
+        "timestamp"
+      ]
     }
   },
   "auth": {

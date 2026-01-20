@@ -22,7 +22,7 @@ export interface AttendanceRecord {
   date: string; // YYYY-MM-DD
   matched: boolean;
   timestamp: string; // Storing as ISO string for localStorage compatibility
-  method: 'face-scan' | 'manual' | 'live-photo' | 'live-camera';
+  method: 'face-scan' | 'manual' | 'live-photo' | 'live-face';
   photoUrl?: string;
   confidence?: number;
 }

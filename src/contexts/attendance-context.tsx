@@ -16,7 +16,7 @@ import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
-  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'studentName' | 'timestamp' | 'photoUrl'> & { photoFile?: File }) => Promise<void>;
+  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp'> & { photoFile?: File }) => Promise<void>;
   loading: boolean;
 }
 
@@ -49,7 +49,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
           return {
             ...data,
             id: doc.id,
-            studentName: studentMap.get(data.studentRegister) || 'Unknown Student',
+            studentName: data.studentName || studentMap.get(data.studentRegister) || 'Unknown Student',
             timestamp: timestamp,
           } as AttendanceRecord;
         });
@@ -66,7 +66,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   }, [firestore, students, studentsLoading]);
 
   const addAttendanceRecord = useCallback(async (
-    record: Omit<AttendanceRecord, 'id' | 'studentName' | 'timestamp' | 'photoUrl'> & { photoFile?: File }
+    record: Omit<AttendanceRecord, 'id' | 'timestamp'> & { photoFile?: File }
   ) => {
     if (!firestore || !firebaseApp) {
         throw new Error("Firebase is not initialized");
@@ -75,7 +75,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const { photoFile, ...newRecord } = record;
     const attendanceCollection = collection(firestore, 'attendance');
 
-    let photoUrl: string | undefined = undefined;
+    let finalPhotoUrl = newRecord.photoUrl;
 
     if (photoFile) {
         const storage = getStorage(firebaseApp);
@@ -85,7 +85,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         try {
             console.log(`Uploading attendance photo to: ${filePath}`);
             const snapshot = await uploadBytes(storageRef, photoFile);
-            photoUrl = await getDownloadURL(snapshot.ref);
+            finalPhotoUrl = await getDownloadURL(snapshot.ref);
             console.log("Attendance photo uploaded successfully.");
         } catch (error) {
             console.error("Attendance photo upload error:", error);
@@ -97,7 +97,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     try {
         await addDoc(attendanceCollection, { 
             ...newRecord, 
-            photoUrl,
+            photoUrl: finalPhotoUrl,
             timestamp: serverTimestamp() 
         });
     } catch (error) {
