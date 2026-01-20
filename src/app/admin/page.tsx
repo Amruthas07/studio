@@ -1,6 +1,6 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, UserCheck, UserX, LogOut } from "lucide-react";
+import { Users, UserCheck, UserX } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { useMemo } from "react";
@@ -16,17 +16,17 @@ export default function AdminDashboard() {
   const { attendanceRecords, loading: attendanceLoading } = useAttendance();
   const { students, loading: studentsLoading } = useStudents();
   
-  const { departmentStudents, totalStudents, presentToday, absentToday, onLeaveToday, weeklyData } = useMemo(() => {
+  const { departmentStudents, totalStudents, presentToday, absentToday, weeklyData } = useMemo(() => {
     // This calculation should only run when all data is available.
     if (authLoading || studentsLoading || attendanceLoading || !user) {
-      return { departmentStudents: [], totalStudents: 0, presentToday: 0, absentToday: 0, onLeaveToday: 0, weeklyData: [] };
+      return { departmentStudents: [], totalStudents: 0, presentToday: 0, absentToday: 0, weeklyData: [] };
     }
 
     const deptStudents = user.department === 'all' 
       ? students 
       : students.filter(s => s.department === user.department);
     
-    const today = format(new Date(), 'yyyy-MM-dd'); // Use date-fns for consistency
+    const today = format(new Date(), 'yyyy-MM-dd');
 
     const todaysAttendance = attendanceRecords.filter(record => 
       record.date === today && 
@@ -34,9 +34,8 @@ export default function AdminDashboard() {
     );
 
     const presentCount = todaysAttendance.filter(r => r.status === 'present').length;
-    const onLeaveCount = todaysAttendance.filter(r => r.status === 'on_leave').length;
     const totalDeptStudents = deptStudents.length;
-    const absentCount = totalDeptStudents - presentCount - onLeaveCount;
+    const absentCount = totalDeptStudents - presentCount;
 
     // --- Weekly data calculation ---
     const last7Days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), i)).reverse();
@@ -50,14 +49,12 @@ export default function AdminDashboard() {
         );
 
         const dailyPresent = dailyRecords.filter(r => r.status === 'present').length;
-        const dailyOnLeave = dailyRecords.filter(r => r.status === 'on_leave').length;
-        const dailyAbsent = totalDeptStudents - dailyPresent - dailyOnLeave;
+        const dailyAbsent = totalDeptStudents - dailyPresent;
         
         return {
             date: dayOfWeek,
             present: dailyPresent,
             absent: dailyAbsent > 0 ? dailyAbsent : 0,
-            onLeave: dailyOnLeave,
         };
     });
 
@@ -66,7 +63,6 @@ export default function AdminDashboard() {
       totalStudents: totalDeptStudents,
       presentToday: presentCount,
       absentToday: absentCount > 0 ? absentCount : 0, // Ensure absent is not negative
-      onLeaveToday: onLeaveCount,
       weeklyData: weeklyChartData,
     };
   }, [user, authLoading, students, studentsLoading, attendanceRecords, attendanceLoading]);
@@ -99,7 +95,7 @@ export default function AdminDashboard() {
           </Link>
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -138,21 +134,7 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{absentToday}</div>
              <p className="text-xs text-muted-foreground">
-              {totalStudents > 0 ? `${absentToday} out of ${totalStudents} absent` : 'No students enrolled.'}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              On Leave Today
-            </CardTitle>
-            <LogOut className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{onLeaveToday}</div>
-             <p className="text-xs text-muted-foreground">
-              {onLeaveToday} student(s) on leave
+              {absentToday} student(s) not present today
             </p>
           </CardContent>
         </Card>

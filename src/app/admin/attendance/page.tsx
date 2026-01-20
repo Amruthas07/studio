@@ -114,7 +114,7 @@ export default function AdminAttendancePage() {
                                     <TableCell>
                                         <Badge variant={record.status === 'present' ? 'default' : 'secondary'} className="capitalize">
                                             {record.status === 'present' ? <CheckCircle className='mr-2 h-4 w-4' /> : <LogOut className='mr-2 h-4 w-4' />}
-                                            {record.status.replace('_', ' ')}
+                                            {record.status === 'on_leave' ? 'Absent (Leave)' : record.status.replace('_', ' ')}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>

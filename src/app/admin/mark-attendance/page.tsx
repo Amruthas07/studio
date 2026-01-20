@@ -112,7 +112,7 @@ export default function MarkAttendancePage() {
         }
         toast({
             title: 'Attendance Updated',
-            description: `${student.name} marked as ${status.replace('_', ' ')}.`,
+            description: `${student.name} marked as ${status === 'on_leave' ? 'absent (on leave)' : status.replace('_', ' ')}.`,
         });
     } catch(error: any) {
         toast({
@@ -243,8 +243,8 @@ export default function MarkAttendancePage() {
                                 <TableCell>{student.registerNumber}</TableCell>
                                 <TableCell>
                                     <Badge variant={status === 'present' ? 'default' : status === 'on_leave' ? 'secondary' : 'outline'}>
-                                        {status === 'present' && <CheckCircle className="mr-1.5 h-3.5 w-3.5" />}
-                                        {status.replace('_', ' ').charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
+                                        {status === 'present' ? <CheckCircle className="mr-1.5 h-3.5 w-3.5" /> : status !== 'absent' ? <LogOut className="mr-1.5 h-3.5 w-3.5" /> : null}
+                                        {status === 'on_leave' ? 'Absent (Leave)' : (status.replace('_', ' ').charAt(0).toUpperCase() + status.slice(1))}
                                     </Badge>
                                 </TableCell>
                                 <TableCell>{record ? new Date(record.timestamp).toLocaleTimeString() : 'N/A'}</TableCell>
