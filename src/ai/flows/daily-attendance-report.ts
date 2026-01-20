@@ -136,7 +136,7 @@ const dailyAttendanceReportFlow = ai.defineFlow(
         } else { // 'on_leave'
             return {
                 ...baseDetails,
-                "Status": 'Absent (Leave)',
+                "Status": 'Absent',
                 "Method": latestRecord.method,
                 "Timestamp": new Date(latestRecord.timestamp).toLocaleString(),
                 "Leave Reason": latestRecord.reason || 'Not specified',

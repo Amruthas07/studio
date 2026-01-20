@@ -137,7 +137,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
         } else { // 'on_leave'
             return {
                 ...baseDetails,
-                "Status": 'Absent (Leave)',
+                "Status": 'Absent',
                 "Method": latestRecord.method,
                 "Timestamp": new Date(latestRecord.timestamp).toLocaleString(),
                 "Leave Reason": latestRecord.reason || 'Not specified',
@@ -147,15 +147,15 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
 
     // 4. Calculate summary
     const presentCount = rollCall.filter(s => s.Status === 'Present').length;
-    const onLeaveCount = rollCall.filter(s => s.Status === 'Absent (Leave)').length;
-    const absentCount = rollCall.length - presentCount - onLeaveCount;
+    const totalAbsentCount = rollCall.length - presentCount;
+    const onLeaveCount = rollCall.filter(s => s["Leave Reason"] !== 'N/A').length;
     
     const summaryData = [
       { metric: `Report for Date`, value: reportDate },
       { metric: `Department`, value: input.department.toUpperCase() },
       { metric: 'Total Students', value: rollCall.length },
       { metric: 'Number of Students Present', value: presentCount },
-      { metric: 'Number of Students Absent', value: absentCount + onLeaveCount },
+      { metric: 'Number of Students Absent', value: totalAbsentCount },
       { metric: 'Number of Students On Leave', value: onLeaveCount },
     ];
     const summaryCsv = convertToCSV(summaryData);
