@@ -60,21 +60,18 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [firestore]);
 
-  const addStudent = useCallback(async (
-    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoEnrolled' | 'updatedAt'> & { photoFile: File }
-  ): Promise<Student> => {
+  const addStudent = useCallback((
+    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'photoEnrolled' | 'updatedAt'> & { photoFile: File },
+    onSuccess: (newStudent: Student) => void
+  ) => {
     if (!firestore || !firebaseApp) {
-      throw new Error('Database not initialized. Please try again later.');
+      toast({ variant: 'destructive', title: 'Enrollment Failed', description: 'Database not initialized.'});
+      return;
     }
-    
+
     const { photoFile, ...studentDetails } = studentData;
-    // The `studentDetails` object still contains the `photo: File` property from the form.
-    // We must remove it before sending it to Firestore.
     const { photo, ...details } = studentDetails as any;
 
-    const studentDocRef = doc(firestore, 'students', details.registerNumber);
-
-    // Stage 1: Create student document immediately so UI can update
     const newStudent: Student = {
       ...details,
       profilePhotoUrl: '',
@@ -82,17 +79,19 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       createdAt: new Date(),
       photoEnrolled: false,
     };
-    // This is an optimistic update. We create the student record right away.
-    // `newStudent` no longer contains the illegal 'photo' property.
-    await setDoc(studentDocRef, newStudent);
+    
+    // Call success callback immediately for instant UI feedback
+    onSuccess(newStudent);
 
-    // Stage 2: Handle photo processing in the background
+    // Run all database and storage operations in the background
     (async () => {
-        const storage = getStorage(firebaseApp);
-        const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
-
+        const studentDocRef = doc(firestore, 'students', details.registerNumber);
         try {
-            console.log("Starting background enrollment: Processing image...");
+            await setDoc(studentDocRef, newStudent);
+            
+            const storage = getStorage(firebaseApp);
+            const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
+
             const processedPhoto = await resizeAndCompressImage(photoFile);
             const photoHash = await getImageHash(processedPhoto);
 
@@ -103,53 +102,38 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                  throw new Error(`This photo is already enrolled for ${duplicateStudent.name}.`);
             }
 
-            console.log(`Uploading photo for ${details.registerNumber}...`);
             const uploadTask = uploadBytesResumable(photoRef, processedPhoto);
             
             uploadTask.on('state_changed', 
-                (snapshot) => { /* Progress can be logged here */ },
+                null,
                 (error) => {
                     console.error("Firebase Storage upload failed:", error);
                     toast({
                         variant: "destructive",
                         title: `Photo Upload Failed for ${details.name}`,
-                        description: "Could not save photo to cloud storage.",
+                        description: "Could not save photo to cloud storage. You can re-enroll it later.",
                     });
                 },
                 async () => { // On success
-                    try {
-                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                        const finalUpdate = {
-                            profilePhotoUrl: downloadURL,
-                            photoHash: photoHash,
-                            photoEnrolled: true,
-                            updatedAt: serverTimestamp(),
-                        };
-                        await updateDoc(studentDocRef, finalUpdate);
-                        toast({
-                            title: "Photo Enrolled",
-                            description: `Photo for ${details.name} has been processed.`,
-                        });
-                    } catch (finalError: any) {
-                         toast({
-                            variant: "destructive",
-                            title: `Enrollment Failed for ${details.name}`,
-                            description: finalError.message || "Could not save photo details.",
-                        });
-                    }
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    const finalUpdate = {
+                        profilePhotoUrl: downloadURL,
+                        photoHash: photoHash,
+                        photoEnrolled: true,
+                        updatedAt: serverTimestamp(),
+                    };
+                    await updateDoc(studentDocRef, finalUpdate);
                 }
             );
         } catch (error: any) {
             console.error("Background enrollment failed:", error);
             toast({
                 variant: "destructive",
-                title: `Photo Enrollment Failed for ${details.name}`,
-                description: error.message || "An unexpected error occurred.",
+                title: `Enrollment Failed for ${details.name}`,
+                description: error.message || "Could not save student details. The student was not created.",
             });
         }
     })();
-    
-    return newStudent; // Return immediately after Stage 1
   }, [firestore, firebaseApp, toast]);
 
 

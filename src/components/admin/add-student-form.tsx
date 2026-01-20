@@ -75,8 +75,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    startTransition(async () => {
-        
+    startTransition(() => {
         const departmentStudentsCount = students.filter(
             (student) => student.department === values.department
         ).length;
@@ -90,24 +89,18 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           return;
         }
         
-        try {
-            const newStudent = await addStudent({
+        addStudent(
+            {
                 ...values,
                 dateOfBirth: values.dateOfBirth,
                 photoFile: values.photo,
-            });
-            
-            onStudentAdded(newStudent);
-            form.reset();
-            setPreviewUrl(null);
-
-        } catch (error: any) {
-             toast({
-                variant: "destructive",
-                title: "Enrollment Failed",
-                description: error.message || "An unexpected error occurred.",
-            });
-        }
+            },
+            (newStudent) => {
+                onStudentAdded(newStudent);
+                form.reset();
+                setPreviewUrl(null);
+            }
+        );
     });
   }
 
