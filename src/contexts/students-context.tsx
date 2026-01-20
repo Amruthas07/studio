@@ -68,23 +68,27 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     }
 
     const { photoFile, ...details } = studentData;
+
+    const existingStudent = students.find(s => s.registerNumber === details.registerNumber);
+    if (existingStudent) {
+        throw new Error(`A student with register number ${details.registerNumber} already exists.`);
+    }
+
     const studentDocRef = doc(firestore, 'students', details.registerNumber);
 
     // --- Part 1: Immediate write to Firestore ---
-    // This part is fast and is awaited by the UI.
     const initialStudentData = {
         ...details,
-        profilePhotoUrl: '', // Placeholder
-        photoHash: '', // Placeholder
+        profilePhotoUrl: '', 
+        photoHash: '', 
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        photoEnrolled: false, // Mark as not enrolled yet
+        photoEnrolled: false, 
     };
 
     await setDoc(studentDocRef, initialStudentData);
 
     // --- Part 2: Background photo processing and upload ---
-    // This part runs in the background. The UI does not wait for it.
     (async () => {
         try {
             const storage = getStorage(firebaseApp);
@@ -120,21 +124,9 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                 description: `Could not enroll photo for ${details.name}. Please try again from the student list. Reason: ${error.message}`,
                 duration: 9000,
             });
-            // The student record remains with photoEnrolled: false
         }
     })();
-
-    // --- Return immediately for a responsive UI ---
-    // The UI will get the full student object from the snapshot listener.
-    // We can return a representation of what was just saved.
-    return {
-      ...details,
-      profilePhotoUrl: '',
-      createdAt: new Date(),
-      dateOfBirth: studentData.dateOfBirth,
-      photoEnrolled: false,
-    } as Student;
-  }, [firestore, firebaseApp, toast]);
+  }, [firestore, firebaseApp, toast, students]);
 
 
   const updateStudent = useCallback(async (

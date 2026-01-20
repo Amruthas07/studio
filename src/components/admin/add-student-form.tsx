@@ -51,14 +51,13 @@ const formSchema = z.object({
 })
 
 type AddStudentFormProps = {
-    onStudentAdded: (newStudent: Student) => void;
+    onStudentAdded: () => void;
 }
 
 const DEPARTMENT_LIMIT = 700;
 
 export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const { toast } = useToast()
-  const [isPending, startTransition] = React.useTransition();
   const { addStudent, students } = useStudents();
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   
@@ -90,32 +89,32 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       return;
     }
     
-    startTransition(async () => {
-      try {
-          const { photo, ...studentDetails } = values;
+    const { photo, ...studentDetails } = values;
 
-          const newStudent = await addStudent({
-              ...studentDetails,
-              dateOfBirth: values.dateOfBirth,
-              photoFile: photo,
-          });
-
-          toast({
-              title: "Student Added",
-              description: `${newStudent.name} has been added. Photo enrollment is in progress.`,
-          });
-
-          onStudentAdded(newStudent);
-          form.reset();
-          setPreviewUrl(null);
-      } catch (error: any) {
-          toast({
-              variant: "destructive",
-              title: "Enrollment Failed",
-              description: error.message || "An unexpected error occurred.",
-          });
-      }
+    // Fire-and-forget the addStudent promise
+    addStudent({
+      ...studentDetails,
+      dateOfBirth: values.dateOfBirth,
+      photoFile: photo,
+    }).catch((error: any) => {
+      // This catch block handles errors from the initial, fast part of addStudent
+      // (e.g., duplicate registration number check).
+      toast({
+        variant: "destructive",
+        title: "Enrollment Failed",
+        description: error.message || "An unexpected error occurred during initial save.",
+      });
     });
+
+    // Optimistically update the UI immediately.
+    toast({
+      title: "Enrollment Started",
+      description: `${values.name} has been added. The photo is being enrolled in the background.`,
+    });
+
+    onStudentAdded(); // This just closes the dialog.
+    form.reset();
+    setPreviewUrl(null);
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -319,9 +318,9 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                 />
             </div>
         <div className="flex justify-end pt-4">
-            <Button type="submit" disabled={isPending}>
-                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isPending ? 'Enrolling...' : 'Enroll Student'}
+            <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Enroll Student
             </Button>
         </div>
       </form>

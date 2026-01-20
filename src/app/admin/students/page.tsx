@@ -46,7 +46,7 @@ export default function StudentsPage() {
   const [studentToDelete, setStudentToDelete] = React.useState<Student | null>(null);
 
 
-  const handleStudentAdded = (newStudent: Student) => {
+  const handleStudentAdded = () => {
     setIsAddDialogOpen(false);
   };
   
