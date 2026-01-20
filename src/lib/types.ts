@@ -27,6 +27,16 @@ export interface AttendanceRecord {
   confidence?: number;
 }
 
+export interface LiveCaptureRecord {
+  id: string;
+  studentRegister: string | null;
+  timestamp: string;
+  photoUrl: string;
+  confidence: number;
+  matchResult: 'success' | 'no_match' | 'already_marked' | 'error';
+}
+
+
 export interface RecentExport {
   fileName: string;
   generatedAt: Date;
@@ -44,4 +54,9 @@ export interface StudentsContextType {
     studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt'>> & { newPhotoFile?: File }
   ) => Promise<void>;
   deleteStudent: (registerNumber: string) => Promise<void>;
+}
+
+export interface LiveCapturesContextType {
+  liveCaptures: LiveCaptureRecord[];
+  loading: boolean;
 }

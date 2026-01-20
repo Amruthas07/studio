@@ -20,7 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/
 interface StudentsTableProps {
     students: Student[];
     onEditStudent: (student: Student) => void;
-    onEnrollFace: (student: Student) => void; // This can now be repurposed or removed
+    onEnrollFace: (student: Student) => void;
     onDeleteStudent: (student: Student) => void;
 }
 
@@ -83,6 +83,17 @@ export function StudentsTable({ students, onEditStudent, onEnrollFace, onDeleteS
                             </TableCell>
                             <TableCell className="text-right">
                                <div className="flex justify-end gap-2">
+                                     <Tooltip>
+                                        <TooltipTrigger asChild>
+                                             <Button variant="outline" size="icon" onClick={() => onEnrollFace(student)}>
+                                                <Camera className="h-4 w-4" />
+                                                <span className="sr-only">Enroll Face</span>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Enroll/Update Face</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                      <Tooltip>
                                         <TooltipTrigger asChild>
                                              <Button variant="outline" size="icon" onClick={() => onEditStudent(student)}>
