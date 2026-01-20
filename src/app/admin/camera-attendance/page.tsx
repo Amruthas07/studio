@@ -1,48 +1,94 @@
 
 'use client';
 
-import React, { useState, ChangeEvent } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, FileImage, UserCheck, UploadCloud } from 'lucide-react';
-import { useAuth } from '@/hooks/use-auth';
+import { Loader2, Camera, UserCheck, RefreshCw } from 'lucide-react';
 import { useAttendance } from '@/hooks/use-attendance';
 import { useStudents } from '@/hooks/use-students';
 import { getImageHash } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
 import Image from 'next/image';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 export default function CameraAttendancePage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
   const { attendanceRecords, addAttendanceRecord } = useAttendance();
   const { students } = useStudents();
   
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        setHasCameraPermission(true);
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
         toast({
           variant: 'destructive',
-          title: 'File Too Large',
-          description: 'Please select an image smaller than 5MB.',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use this feature.',
         });
-        return;
       }
-      setPhotoFile(file);
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
-    }
+    };
+
+    getCameraPermission();
+
+    return () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [toast]);
+
+  const handleCapturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw the current video frame onto the canvas
+    const context = canvas.getContext('2d');
+    if (!context) {
+        toast({ title: "Error", description: "Could not capture photo.", variant: "destructive"});
+        return;
+    };
+    context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+
+    // Convert canvas to a Blob, then to a File
+    canvas.toBlob((blob) => {
+        if (blob) {
+            const file = new File([blob], "attendance_capture.jpg", { type: "image/jpeg" });
+            setPhotoFile(file);
+            setPreviewUrl(URL.createObjectURL(file));
+        }
+    }, 'image/jpeg');
+  };
+
+  const handleRetake = () => {
+    setPhotoFile(null);
+    setPreviewUrl(null);
   };
 
   const handleMarkAttendance = async () => {
     if (!photoFile) {
-        toast({ title: "Error", description: "Please upload a photo to mark attendance.", variant: "destructive"});
+        toast({ title: "Error", description: "Please capture a photo to mark attendance.", variant: "destructive"});
         return;
     }
     
@@ -54,7 +100,7 @@ export default function CameraAttendancePage() {
         const matchedStudent = students.find(s => s.photoHash === currentHash);
         
         if (!matchedStudent) {
-            throw new Error("No matching student found in the database. Please ensure the correct photo is used or that the student is enrolled.");
+            throw new Error("No matching student found in the database. Please ensure the student is enrolled.");
         }
         
         const today = new Date().toISOString().split('T')[0];
@@ -77,9 +123,7 @@ export default function CameraAttendancePage() {
             description: `${matchedStudent.name} (${matchedStudent.registerNumber}) has been marked as present.`,
         });
 
-        // Reset form
-        setPhotoFile(null);
-        setPreviewUrl(null);
+        handleRetake();
 
     } catch (error: any) {
         toast({
@@ -96,55 +140,53 @@ export default function CameraAttendancePage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline">Mark Attendance</h1>
-        <p className="text-muted-foreground">Upload a student's photo to mark their attendance for today.</p>
+        <p className="text-muted-foreground">Capture a student's photo to mark their attendance for today.</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Attendance Photo Upload</CardTitle>
-          <CardDescription>Upload a clear, recent photo of the student. The system will match it against enrolled photos.</CardDescription>
+          <CardTitle>Live Camera Attendance</CardTitle>
+          <CardDescription>Position the student's face clearly in the frame and capture the photo.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-4">
           <div className="w-full max-w-2xl aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
              {previewUrl ? (
                 <Image src={previewUrl} alt="Attendance photo preview" layout="fill" objectFit="contain" />
             ) : (
-                <div className="text-center text-muted-foreground p-4 flex flex-col items-center gap-4">
-                    <UploadCloud className="mx-auto h-16 w-16" />
-                    <p className="mt-2 font-semibold">Upload a photo to mark attendance</p>
-                    <p className="text-sm">The photo will be matched against the student database.</p>
+                <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+            )}
+             {hasCameraPermission === false && (
+                 <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white p-4">
+                    <Alert variant="destructive" className="max-w-sm">
+                        <AlertTitle>Camera Access Required</AlertTitle>
+                        <AlertDescription>
+                            Please allow camera access in your browser to use this feature.
+                        </AlertDescription>
+                    </Alert>
                 </div>
+             )}
+          </div>
+          <canvas ref={canvasRef} className="hidden" />
+          
+          <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
+            {previewUrl ? (
+              <>
+                <Button size="lg" className="w-full" onClick={handleRetake} variant="outline" disabled={isProcessing}>
+                  <RefreshCw />
+                  Retake Photo
+                </Button>
+                <Button size="lg" className="w-full" onClick={handleMarkAttendance} disabled={isProcessing}>
+                  {isProcessing ? <Loader2 className="animate-spin" /> : <UserCheck />}
+                  Mark Attendance
+                </Button>
+              </>
+            ) : (
+              <Button size="lg" className="w-full" onClick={handleCapturePhoto} disabled={isProcessing || hasCameraPermission !== true}>
+                <Camera />
+                Capture Photo
+              </Button>
             )}
           </div>
-          
-           <Input
-                id="attendance-photo"
-                type="file"
-                accept="image/png, image/jpeg"
-                onChange={handleFileChange}
-                disabled={isProcessing}
-                className="w-full max-w-sm file:text-primary file:font-semibold"
-            />
-            { !photoFile && <Alert><AlertDescription>Please select a photo to begin.</AlertDescription></Alert>}
-
-            <Button 
-                size="lg"
-                onClick={handleMarkAttendance}
-                disabled={!photoFile || isProcessing}
-                className="w-full max-w-sm"
-            >
-                {isProcessing ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Matching...
-                    </>
-                ) : (
-                    <>
-                        <UserCheck />
-                        Mark Attendance
-                    </>
-                )}
-            </Button>
         </CardContent>
       </Card>
     </div>
