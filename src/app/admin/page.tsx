@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Users, UserCheck, UserX } from "lucide-react";
@@ -31,7 +30,7 @@ export default function AdminDashboard() {
       departmentStudents.some(s => s.registerNumber === record.studentRegister)
     );
 
-    const presentStudents = new Set(todaysAttendance.filter(r => r.status === 'present' || r.status === 'late').map(r => r.studentRegister));
+    const presentStudents = new Set(todaysAttendance.filter(r => r.matched).map(r => r.studentRegister));
     const presentCount = presentStudents.size;
     
     return {
