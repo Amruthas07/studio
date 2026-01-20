@@ -69,7 +69,7 @@ function convertToCSV(data: any[]): string {
   if (data.length === 0) return '';
   const headers = Object.keys(data[0]);
   const csvRows = [
-    headers.join(','),
+    headers.map(h => `"${h}"`).join(','), // Quote headers
     ...data.map(row =>
       headers
         .map(fieldName => JSON.stringify(row[fieldName] ?? ''))
@@ -116,7 +116,7 @@ const dailyAttendanceReportFlow = ai.defineFlow(
         
         let status = 'Absent';
         if (isPresent) status = 'Present';
-        if (isOnLeave) status = 'On Leave';
+        if (isOnLeave) status = 'Absent (Leave)';
 
         let timestamp = 'N/A';
         let reason = 'N/A';
@@ -129,6 +129,7 @@ const dailyAttendanceReportFlow = ai.defineFlow(
         }
 
         return {
+            "Register Number": student.registerNumber,
             "Student Name": student.name,
             "Date": today,
             "Department": student.department.toUpperCase(),

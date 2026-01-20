@@ -67,7 +67,7 @@ function convertToCSV(data: any[]): string {
   if (data.length === 0) return '';
   const headers = Object.keys(data[0]);
   const csvRows = [
-    headers.join(','),
+    headers.map(h => `"${h}"`).join(','), // Quote headers
     ...data.map(row =>
       headers
         .map(fieldName => JSON.stringify(row[fieldName] ?? ''))
@@ -117,7 +117,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
         
         let status = 'Absent';
         if (isPresent) status = 'Present';
-        if (isOnLeave) status = 'On Leave';
+        if (isOnLeave) status = 'Absent (Leave)';
         
         let timestamp = 'N/A';
         let reason = 'N/A';
@@ -142,7 +142,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
 
     // 4. Calculate summary
     const presentCount = rollCall.filter(s => s.Status === 'Present').length;
-    const onLeaveCount = rollCall.filter(s => s.Status === 'On Leave').length;
+    const onLeaveCount = rollCall.filter(s => s.Status === 'Absent (Leave)').length;
     const absentCount = rollCall.length - presentCount - onLeaveCount;
     
     const summaryData = [
@@ -150,7 +150,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
       { metric: `Department`, value: input.department.toUpperCase() },
       { metric: 'Total Students', value: rollCall.length },
       { metric: 'Number of Students Present', value: presentCount },
-      { metric: 'Number of Students Absent', value: absentCount },
+      { metric: 'Number of Students Absent', value: absentCount + onLeaveCount },
       { metric: 'Number of Students On Leave', value: onLeaveCount },
     ];
     const summaryCsv = convertToCSV(summaryData);
