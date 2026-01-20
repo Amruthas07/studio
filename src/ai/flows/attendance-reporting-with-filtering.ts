@@ -98,37 +98,35 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
     // 2. Filter attendance records for the selected date
     const reportDate = input.startDate;
     const todaysRecords = input.attendanceRecords.filter(record => record.date === reportDate);
-    const presentStudentRegisters = new Set(
-        todaysRecords
-            .filter(r => r.status === 'present')
-            .map(r => r.studentRegister)
-    );
-     const onLeaveStudentRegisters = new Set(
-        todaysRecords
-            .filter(r => r.status === 'on_leave')
-            .map(r => r.studentRegister)
-    );
-
-    // 3. Create the roll call list
+    
+    // 3. Create the roll call list using robust logic
     const rollCall = departmentStudents.map(student => {
-        const isPresent = presentStudentRegisters.has(student.registerNumber);
-        const isOnLeave = onLeaveStudentRegisters.has(student.registerNumber);
-        const attendanceRecord = todaysRecords.find(rec => rec.studentRegister === student.registerNumber);
-        
+        // Get all records for this student for the report date
+        const studentRecordsForDate = todaysRecords.filter(
+            rec => rec.studentRegister === student.registerNumber
+        );
+
+        // Sort by timestamp descending to get the latest record first
+        studentRecordsForDate.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        // The most recent record is the first one, if it exists
+        const latestRecord = studentRecordsForDate[0];
+
         let status = 'Absent';
-        if (isPresent) status = 'Present';
-        if (isOnLeave) status = 'Absent (Leave)';
-        
         let timestamp = 'N/A';
         let reason = 'N/A';
         let method = 'N/A';
 
-        if (attendanceRecord) {
-            timestamp = new Date(attendanceRecord.timestamp).toLocaleString();
-            method = attendanceRecord.method;
-            if (attendanceRecord.status === 'on_leave') {
-                reason = attendanceRecord.reason || 'Not specified';
+        // If a record exists, use it to populate details
+        if (latestRecord) {
+            if (latestRecord.status === 'present') {
+                status = 'Present';
+            } else if (latestRecord.status === 'on_leave') {
+                status = 'Absent (Leave)';
+                reason = latestRecord.reason || 'Not specified';
             }
+            timestamp = new Date(latestRecord.timestamp).toLocaleString();
+            method = latestRecord.method;
         }
 
         return {
