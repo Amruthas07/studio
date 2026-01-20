@@ -87,7 +87,18 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     (async () => {
         const studentDocRef = doc(firestore, 'students', details.registerNumber);
         try {
-            await setDoc(studentDocRef, newStudent);
+            // Firestore doesn't accept File objects.
+            const { photo, ...savableDetails } = details;
+            
+            const studentToSave = {
+              ...savableDetails,
+              profilePhotoUrl: '',
+              photoHash: '', 
+              createdAt: serverTimestamp(),
+              photoEnrolled: false,
+            };
+
+            await setDoc(studentDocRef, studentToSave);
             
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
@@ -230,6 +241,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     try {
         const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
         await deleteObject(photoRef).catch(error => {
+            // Don't throw an error if the object doesn't exist, just continue.
             if (error.code !== 'storage/object-not-found') {
                 throw error;
             }
@@ -248,9 +260,10 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         toast({
             variant: "destructive",
             title: "Delete Failed",
-            description: `Could not delete student ${registerNumber}.`,
+            description: `Could not delete ${studentToDelete.name}. ${error.message}`,
         });
-        throw error;
+        // Do not re-throw the error, as it can cause an unhandled promise rejection
+        // in the component calling this function. The toast is sufficient feedback.
     }
   }, [firestore, firebaseApp, toast, students]);
 
