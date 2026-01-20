@@ -1,6 +1,7 @@
+
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, UserCheck, UserX } from "lucide-react";
+import { Users, UserCheck, UserX, LogOut } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { useMemo } from "react";
@@ -8,18 +9,20 @@ import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { useAttendance } from "@/hooks/use-attendance";
 import { useStudents } from "@/hooks/use-students";
+import { AttendanceChart } from "@/components/admin/attendance-chart";
+import { subDays, format } from 'date-fns';
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
   const { attendanceRecords } = useAttendance();
   const { students, loading: studentsLoading } = useStudents();
   
-  const { totalStudents, presentToday, absentToday } = useMemo(() => {
+  const { departmentStudents, totalStudents, presentToday, absentToday, onLeaveToday, weeklyData } = useMemo(() => {
     if (!user || students.length === 0) {
-      return { totalStudents: 0, presentToday: 0, absentToday: 0 };
+      return { departmentStudents: [], totalStudents: 0, presentToday: 0, absentToday: 0, onLeaveToday: 0, weeklyData: [] };
     }
 
-    const departmentStudents = user.department === 'all' 
+    const deptStudents = user.department === 'all' 
       ? students 
       : students.filter(s => s.department === user.department);
     
@@ -27,16 +30,44 @@ export default function AdminDashboard() {
 
     const todaysAttendance = attendanceRecords.filter(record => 
       record.date === today && 
-      departmentStudents.some(s => s.registerNumber === record.studentRegister)
+      deptStudents.some(s => s.registerNumber === record.studentRegister)
     );
 
-    const presentStudents = new Set(todaysAttendance.filter(r => r.matched).map(r => r.studentRegister));
-    const presentCount = presentStudents.size;
-    
+    const presentCount = todaysAttendance.filter(r => r.status === 'present').length;
+    const onLeaveCount = todaysAttendance.filter(r => r.status === 'on_leave').length;
+    const totalDeptStudents = deptStudents.length;
+    const absentCount = totalDeptStudents - presentCount - onLeaveCount;
+
+    // --- Weekly data calculation ---
+    const last7Days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), i)).reverse();
+    const weeklyChartData = last7Days.map(day => {
+        const dateString = format(day, 'yyyy-MM-dd');
+        const dayOfWeek = format(day, 'EEE');
+
+        const dailyRecords = attendanceRecords.filter(record => 
+            record.date === dateString &&
+            deptStudents.some(s => s.registerNumber === record.studentRegister)
+        );
+
+        const dailyPresent = dailyRecords.filter(r => r.status === 'present').length;
+        const dailyOnLeave = dailyRecords.filter(r => r.status === 'on_leave').length;
+        const dailyAbsent = totalDeptStudents - dailyPresent - dailyOnLeave;
+        
+        return {
+            date: dayOfWeek,
+            present: dailyPresent,
+            absent: dailyAbsent > 0 ? dailyAbsent : 0,
+            onLeave: dailyOnLeave,
+        };
+    });
+
     return {
-      totalStudents: departmentStudents.length,
+      departmentStudents: deptStudents,
+      totalStudents: totalDeptStudents,
       presentToday: presentCount,
-      absentToday: departmentStudents.length - presentCount,
+      absentToday: absentCount,
+      onLeaveToday: onLeaveCount,
+      weeklyData: weeklyChartData,
     };
   }, [user, students, attendanceRecords]);
 
@@ -59,19 +90,16 @@ export default function AdminDashboard() {
             {departmentDisplay} Dashboard
           </h1>
           <p className="text-muted-foreground">
-            Overview of {departmentDisplay}.
+            Daily and weekly attendance overview for {departmentDisplay}.
           </p>
         </div>
         <div className="flex items-center space-x-2">
            <Link href="/admin/students">
             <Button>Add Student</Button>
           </Link>
-           <Link href="/admin/reports">
-            <Button variant="outline">Export Reports</Button>
-          </Link>
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -114,7 +142,31 @@ export default function AdminDashboard() {
             </p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              On Leave Today
+            </CardTitle>
+            <LogOut className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{onLeaveToday}</div>
+             <p className="text-xs text-muted-foreground">
+              {onLeaveToday} student(s) on leave
+            </p>
+          </CardContent>
+        </Card>
       </div>
+
+      <Card>
+          <CardHeader>
+              <CardTitle>Weekly Attendance Summary</CardTitle>
+              <CardDescription>A summary of attendance for the last 7 days.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AttendanceChart data={weeklyData} />
+          </CardContent>
+      </Card>
     </div>
   );
 }
