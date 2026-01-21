@@ -96,29 +96,22 @@ export default function MarkAttendancePage() {
   };
 
   const handleAction = async (student: Student, status: 'present' | 'absent', method: 'manual' | 'live-photo' = 'manual', reason?: string) => {
-    try {
-        const recordData: any = {
-            studentRegister: student.registerNumber,
-            studentName: student.name,
-            date: today,
-            status,
-            method,
-            reason: reason || '',
-        };
-
-        await saveAttendanceRecord(recordData);
-        
-        toast({
-            title: 'Attendance Updated',
-            description: `${student.name} marked as ${recordData.reason ? 'On Leave' : status}.`,
-        });
-    } catch(error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Update Failed',
-            description: error.message || 'An unexpected error occurred.',
-        });
-    }
+    const recordData: Omit<AttendanceRecord, 'id' | 'timestamp'> = {
+      studentRegister: student.registerNumber,
+      studentName: student.name,
+      date: today,
+      status,
+      method,
+      reason: reason || '',
+    };
+    
+    // The context will handle the async operation and UI updates via snapshot listener
+    saveAttendanceRecord(recordData);
+    
+    toast({
+      title: 'Attendance Updated',
+      description: `${student.name} marked as ${recordData.reason ? 'On Leave' : status}.`,
+    });
   }
 
   const handleClearAttendance = async (student: Student) => {
@@ -156,32 +149,25 @@ export default function MarkAttendancePage() {
     try {
         const photoDataUrl = canvas.toDataURL('image/jpeg');
         
-        if (photoDataUrl) {
-            const recordData = {
-                studentRegister: studentToCapture.registerNumber,
-                studentName: studentToCapture.name,
-                date: today,
-                status: 'present' as const,
-                method: 'live-photo' as const,
-                reason: '',
-            };
+        const recordData: Omit<AttendanceRecord, 'id' | 'timestamp'> = {
+            studentRegister: studentToCapture.registerNumber,
+            studentName: studentToCapture.name,
+            date: today,
+            status: 'present' as const,
+            method: 'live-photo' as const,
+            reason: '',
+        };
+        
+        await saveAttendanceRecord(recordData, photoDataUrl);
 
-            await saveAttendanceRecord(recordData, photoDataUrl);
-            
-            toast({
-                title: 'Attendance Updated',
-                description: `${studentToCapture.name} has been marked as present.`,
-            });
-            
-            setIsCameraDialogOpen(false);
-            setStudentToCapture(null);
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Capture Failed',
-                description: 'Could not create image from camera.',
-            });
-        }
+        toast({
+            title: 'Attendance Marked',
+            description: `${studentToCapture.name} has been marked as present.`,
+        });
+        
+        setIsCameraDialogOpen(false);
+        setStudentToCapture(null);
+
     } catch (error: any) {
         toast({
             variant: "destructive",
@@ -235,10 +221,10 @@ export default function MarkAttendancePage() {
                     <CardDescription>Mark students present, on leave, or capture their photo.</CardDescription>
                  </div>
                  <div className="relative w-full max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/70" />
                     <Input 
                         placeholder="Search by name or register no..." 
-                        className="pl-10"
+                        className="pl-10 placeholder:text-foreground/50"
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                     />
