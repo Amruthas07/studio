@@ -28,37 +28,46 @@ export default function AdminDashboard() {
     const today = format(new Date(), 'yyyy-MM-dd');
     const totalDeptStudents = deptStudents.length;
 
-    const todaysAttendance = attendanceRecords.filter(record => 
+    // --- Today's Data Calculation (Robust) ---
+    const todaysRecords = attendanceRecords.filter(record => 
       record.date === today && 
       deptStudents.some(s => s.registerNumber === record.studentRegister)
     );
+    
+    const presentOrOnLeaveStudents = new Set(
+        todaysRecords
+            .filter(r => r.status === 'present')
+            .map(r => r.studentRegister)
+    );
 
-    const presentCount = todaysAttendance.filter(r => r.status === 'present' && !r.reason).length;
-    const onLeaveCount = todaysAttendance.filter(r => r.status === 'present' && r.reason).length;
-    const absentCount = totalDeptStudents - presentCount - onLeaveCount;
+    const presentCount = todaysRecords.filter(r => r.status === 'present' && !r.reason).length;
+    const onLeaveCount = todaysRecords.filter(r => r.status === 'present' && r.reason).length;
+    const absentCount = totalDeptStudents - presentOrOnLeaveStudents.size;
 
-    // --- Weekly data calculation ---
+
+    // --- Weekly data calculation (Robust) ---
     const last7Days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), i)).reverse();
     const weeklyChartData = last7Days.map(day => {
-        // Set time to end of day for accurate comparison
-        day.setHours(23, 59, 59, 999);
-
         const dateString = format(day, 'yyyy-MM-dd');
         const dayOfWeek = format(day, 'EEE');
 
-        // Filter students who were enrolled by the end of that day
-        const studentsOnDay = deptStudents.filter(s => new Date(s.createdAt) <= day);
+        const studentsOnDay = deptStudents.filter(s => new Date(s.createdAt).setHours(0,0,0,0) <= day.setHours(0,0,0,0));
         const totalStudentsOnDay = studentsOnDay.length;
 
-        // Filter attendance records for that day and for students enrolled on that day
         const dailyRecords = attendanceRecords.filter(record => 
             record.date === dateString &&
             studentsOnDay.some(s => s.registerNumber === record.studentRegister)
         );
 
+        const dailyPresentOrOnLeaveStudents = new Set(
+            dailyRecords
+                .filter(r => r.status === 'present')
+                .map(r => r.studentRegister)
+        );
+        
         const dailyPresent = dailyRecords.filter(r => r.status === 'present' && !r.reason).length;
         const dailyOnLeave = dailyRecords.filter(r => r.status === 'present' && r.reason).length;
-        const dailyAbsent = totalStudentsOnDay - dailyPresent - dailyOnLeave;
+        const dailyAbsent = totalStudentsOnDay - dailyPresentOrOnLeaveStudents.size;
         
         return {
             date: dayOfWeek,
