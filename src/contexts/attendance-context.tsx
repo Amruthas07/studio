@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -73,14 +74,16 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         throw new Error("Firebase is not initialized");
     }
     
-    const { photoFile, ...newRecord } = record;
     const attendanceCollection = collection(firestore, 'attendance');
 
-    let finalRecord: { [key: string]: any } = { ...newRecord };
+    // Create a mutable copy and handle file/undefined fields
+    const finalRecord: { [key: string]: any } = { ...record };
+    const photoFile = finalRecord.photoFile as File | undefined;
+    delete finalRecord.photoFile; // Ensure File object is not sent to Firestore
 
     if (photoFile) {
         const storage = getStorage(firebaseApp);
-        const filePath = `attendance/${newRecord.date}/live_${newRecord.studentRegister}_${Date.now()}.jpg`;
+        const filePath = `attendance/${finalRecord.date}/live_${finalRecord.studentRegister}_${Date.now()}.jpg`;
         const storageRef = ref(storage, filePath);
         
         try {
@@ -115,10 +118,12 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   ) => {
     if (!firestore || !firebaseApp) throw new Error("Firestore not initialized");
 
-    const { photoFile, ...otherUpdates } = updates;
     const recordDocRef = doc(firestore, 'attendance', recordId);
-
-    let finalUpdates: { [key: string]: any } = { ...otherUpdates };
+    
+    // Create a mutable copy and handle file/undefined fields
+    const finalUpdates: { [key:string]: any } = { ...updates };
+    const photoFile = finalUpdates.photoFile as File | undefined;
+    delete finalUpdates.photoFile; // Ensure File object is not sent to Firestore
 
     if (photoFile) {
         const storage = getStorage(firebaseApp);
@@ -133,7 +138,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         }
     }
     
-    // Explicitly handle the 'reason' field for robustness
+    // If 'reason' is passed and is falsy (e.g., null, undefined, ""), remove it.
     if ('reason' in finalUpdates && !finalUpdates.reason) {
       finalUpdates.reason = deleteField();
     }
