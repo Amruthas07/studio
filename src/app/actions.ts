@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import type { Student, AttendanceRecord } from "@/lib/types";
 import { dailyAttendanceReport, DailyAttendanceReportInput } from "@/ai/flows/daily-attendance-report";
 import { attendanceReportingWithFiltering, AttendanceReportingWithFilteringInput } from "@/ai/flows/attendance-reporting-with-filtering";
+import { recognizeStudent, type FaceRecognitionInput, type FaceRecognitionOutput } from "@/ai/flows/face-recognition-flow";
 
 const addStudentSchema = z.object({
   name: z.string(),
@@ -66,10 +67,15 @@ export async function generateDailyReport(input: GenerateDailyReportActionInput)
       updatedAt: s.updatedAt?.toISOString() ?? s.createdAt.toISOString(),
     }));
 
+    const sanitizedAttendance = input.attendanceRecords.map(r => ({
+      ...r,
+      timestamp: new Date(r.timestamp).toISOString(),
+    }));
+
     const flowInput: DailyAttendanceReportInput = {
       department: input.department,
       students: sanitizedStudents,
-      attendanceRecords: input.attendanceRecords,
+      attendanceRecords: sanitizedAttendance,
     };
 
     const result = await dailyAttendanceReport(flowInput);
@@ -99,13 +105,18 @@ export async function generateReport(input: GenerateReportFormInput) {
           dateOfBirth: s.dateOfBirth.toISOString(),
           updatedAt: s.updatedAt?.toISOString() ?? s.createdAt.toISOString(),
         }));
+        
+        const sanitizedAttendance = input.attendanceRecords.map(r => ({
+            ...r,
+            timestamp: new Date(r.timestamp).toISOString(),
+        }));
 
         const flowInput: AttendanceReportingWithFilteringInput = {
             startDate: dateStr,
             endDate: dateStr,
             department: input.department,
             students: sanitizedStudents,
-            attendanceRecords: input.attendanceRecords
+            attendanceRecords: sanitizedAttendance
         };
 
         const result = await attendanceReportingWithFiltering(flowInput);
@@ -114,5 +125,17 @@ export async function generateReport(input: GenerateReportFormInput) {
         console.error("Error generating custom report:", error);
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         return { success: false, error: `Failed to generate report: ${errorMessage}` };
+    }
+}
+
+
+export async function recognizeFace(input: FaceRecognitionInput): Promise<FaceRecognitionOutput> {
+    try {
+        const result = await recognizeStudent(input);
+        return result;
+    } catch (error) {
+        console.error("Error in recognizeFace server action:", error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        return { matchStatus: 'ERROR', error: `Failed to recognize face: ${errorMessage}` };
     }
 }

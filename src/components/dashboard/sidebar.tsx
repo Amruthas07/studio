@@ -2,7 +2,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, FileClock, FileDown, User, ShieldCheck, Building, Camera } from 'lucide-react';
+import { LayoutDashboard, Users, FileClock, User, ShieldCheck, Building, Camera, ScanFace } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -22,6 +22,7 @@ const adminNavItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/profile', icon: Building, label: 'Institution' },
     { href: '/admin/students', icon: Users, label: 'Students' },
+    { href: '/admin/live-attendance', icon: ScanFace, label: 'Live Scan' },
     { href: '/admin/mark-attendance', icon: Camera, label: 'Mark Attendance' },
     { href: '/admin/attendance', icon: FileClock, label: 'Attendance Log' },
 ];
@@ -53,7 +54,7 @@ export function Sidebar() {
                                 href={item.href}
                                 className={cn(
                                     "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-accent hover:text-accent-foreground",
-                                    pathname.startsWith(item.href) && item.href !== '/admin' && !['/admin/students', '/admin/face-enrollment', '/admin/mark-attendance', '/admin/attendance', '/admin/reports'].includes(item.href) ? "bg-accent text-accent-foreground" : pathname === item.href ? "bg-accent text-accent-foreground" : ""
+                                    pathname.startsWith(item.href) && item.href !== '/admin' && !['/admin/students', '/admin/face-enrollment', '/admin/mark-attendance', '/admin/attendance', '/admin/reports', '/admin/live-attendance'].includes(item.href) ? "bg-accent text-accent-foreground" : pathname === item.href ? "bg-accent text-accent-foreground" : ""
                                 )}
                             >
                                 <item.icon className="h-4 w-4" />
@@ -87,7 +88,7 @@ export function MobileSidebarContent() {
                     href={item.href}
                     className={cn(
                         "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 hover:text-accent-foreground hover:bg-accent",
-                         pathname.startsWith(item.href) && item.href !== '/admin' && !['/admin/students', '/admin/face-enrollment', '/admin/mark-attendance', '/admin/attendance', '/admin/reports'].includes(item.href) ? "bg-accent text-accent-foreground" : pathname === item.href ? "bg-accent text-accent-foreground" : ""
+                         pathname.startsWith(item.href) && item.href !== '/admin' && !['/admin/students', '/admin/face-enrollment', '/admin/mark-attendance', '/admin/attendance', '/admin/reports', '/admin/live-attendance'].includes(item.href) ? "bg-accent text-accent-foreground" : pathname === item.href ? "bg-accent text-accent-foreground" : ""
                     )}
                 >
                     <item.icon className="h-5 w-5" />
