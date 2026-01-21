@@ -97,6 +97,7 @@ export default function MarkAttendancePage() {
 
   const handleAction = async (student: Student, status: 'present' | 'absent', method: 'manual' | 'live-photo' = 'manual', photoFile?: File, reason?: string) => {
     try {
+        // Start with the base record
         const recordData: any = {
             studentRegister: student.registerNumber,
             studentName: student.name,
@@ -105,11 +106,14 @@ export default function MarkAttendancePage() {
             method,
         };
 
-        if (reason) {
-          recordData.reason = reason;
+        // Handle the 'reason' field explicitly
+        if (status === 'present' && reason) {
+            // This is for marking 'On Leave'
+            recordData.reason = reason;
         } else {
-          // Ensure reason is not undefined when not provided
-          recordData.reason = '';
+            // For any other case (present, absent, or clearing leave),
+            // ensure the reason is an empty string.
+            recordData.reason = '';
         }
         
         await saveAttendanceRecord(recordData, photoFile);

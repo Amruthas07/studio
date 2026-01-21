@@ -75,8 +75,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const docId = `${record.date}_${record.studentRegister}`;
     const recordDocRef = doc(firestore, 'attendance', docId);
 
-    // Prepare the document. The `record` object is pre-formatted by the calling
-    // component to include `reason: ''` when no reason is provided.
+    // The `record` object is now always correctly formatted by `handleAction`.
     const recordForFirestore: { [key: string]: any } = { 
       ...record,
       timestamp: serverTimestamp()
