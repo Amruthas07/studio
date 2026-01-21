@@ -23,8 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 export default function MarkAttendancePage() {
   const { students, loading: studentsLoading } = useStudents();
   const { 
-    addAttendanceRecord,
-    updateAttendanceRecord, 
+    saveAttendanceRecord,
     deleteAttendanceRecord,
     getTodaysRecordForStudent,
     loading: attendanceLoading 
@@ -97,7 +96,6 @@ export default function MarkAttendancePage() {
   };
 
   const handleAction = async (student: Student, status: 'present' | 'absent', method: 'manual' | 'live-photo' = 'manual', photoFile?: File, reason?: string) => {
-    const existingRecord = getTodaysRecordForStudent(student.registerNumber, today);
     try {
         const recordData: any = {
             studentRegister: student.registerNumber,
@@ -110,12 +108,9 @@ export default function MarkAttendancePage() {
         if (reason) {
           recordData.reason = reason;
         }
-
-        if (existingRecord) {
-            await updateAttendanceRecord(existingRecord.id, recordData, photoFile);
-        } else {
-            await addAttendanceRecord(recordData, photoFile);
-        }
+        
+        await saveAttendanceRecord(recordData, photoFile);
+        
         toast({
             title: 'Attendance Updated',
             description: `${student.name} marked as ${reason ? 'On Leave' : status}.`,
@@ -133,7 +128,7 @@ export default function MarkAttendancePage() {
     const existingRecord = getTodaysRecordForStudent(student.registerNumber, today);
     if (!existingRecord) return;
     try {
-        await deleteAttendanceRecord(existingRecord.id);
+        await deleteAttendanceRecord(student.registerNumber, today);
         toast({
             title: 'Attendance Cleared',
             description: `Attendance for ${student.name} has been reset.`,

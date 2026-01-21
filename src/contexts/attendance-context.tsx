@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, {
@@ -8,7 +7,7 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, deleteDoc, deleteField } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { AttendanceRecord } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
@@ -16,9 +15,8 @@ import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
-  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp'>, photoFile?: File) => Promise<string | undefined>;
-  updateAttendanceRecord: (recordId: string, updates: Partial<AttendanceRecord>, photoFile?: File) => Promise<void>;
-  deleteAttendanceRecord: (recordId: string) => Promise<void>;
+  saveAttendanceRecord: (record: Partial<Omit<AttendanceRecord, 'id'>> & { studentRegister: string, date: string }, photoFile?: File) => Promise<void>;
+  deleteAttendanceRecord: (studentRegister: string, date: string) => Promise<void>;
   getTodaysRecordForStudent: (studentRegister: string, date: string) => AttendanceRecord | undefined;
   loading: boolean;
 }
@@ -67,26 +65,21 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [firestore, students, studentsLoading]);
 
-  const addAttendanceRecord = useCallback(async (
-    record: Omit<AttendanceRecord, 'id' | 'timestamp'>, 
+  const saveAttendanceRecord = useCallback(async (
+    record: Partial<Omit<AttendanceRecord, 'id'>> & { studentRegister: string, date: string },
     photoFile?: File
-  ): Promise<string | undefined> => {
-    if (!firestore || !firebaseApp) {
-        throw new Error("Firebase is not initialized");
-    }
+  ) => {
+    if (!firestore || !firebaseApp) throw new Error("Firebase not initialized");
     
-    const { reason, ...otherRecordData } = record;
-    const recordForFirestore: { [key: string]: any } = { ...otherRecordData };
+    const docId = `${record.date}_${record.studentRegister}`;
+    const recordDocRef = doc(firestore, 'attendance', docId);
 
-    if (reason && typeof reason === 'string' && reason.trim().length > 0) {
-        recordForFirestore.reason = reason;
-    }
+    const recordForFirestore: { [key: string]: any } = { ...record };
 
     if (photoFile) {
         const storage = getStorage(firebaseApp);
-        const filePath = `attendance/${recordForFirestore.date}/live_${recordForFirestore.studentRegister}_${Date.now()}.jpg`;
+        const filePath = `attendance/${record.date}/live_${record.studentRegister}_${Date.now()}.jpg`;
         const storageRef = ref(storage, filePath);
-        
         try {
             const snapshot = await uploadBytes(storageRef, photoFile);
             recordForFirestore.photoUrl = await getDownloadURL(snapshot.ref);
@@ -94,75 +87,34 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
             console.error("Attendance photo upload error:", error);
         }
     }
-
-    try {
-        const attendanceCollection = collection(firestore, 'attendance');
-        const docRef = await addDoc(attendanceCollection, { 
-            ...recordForFirestore, 
-            timestamp: serverTimestamp() 
-        });
-        return docRef.id;
-    } catch (error) {
-        console.error("Firestore write error for attendance:", error);
-        throw new Error("Failed to save attendance record. The data might be invalid.");
-    }
-  }, [firestore, firebaseApp]);
-
-  const updateAttendanceRecord = useCallback(async (
-    recordId: string,
-    updates: Partial<AttendanceRecord>,
-    photoFile?: File
-  ) => {
-    if (!firestore || !firebaseApp) throw new Error("Firestore not initialized");
-
-    const recordDocRef = doc(firestore, 'attendance', recordId);
     
-    const { reason, ...otherUpdates } = updates;
-    const updatesForFirestore: { [key: string]: any } = { ...otherUpdates };
-
-    if (reason && typeof reason === 'string' && reason.trim().length > 0) {
-        updatesForFirestore.reason = reason;
-    } else {
-        updatesForFirestore.reason = deleteField();
+    if (!recordForFirestore.reason) {
+        recordForFirestore.reason = deleteField();
     }
-
-
-    if (photoFile) {
-        const storage = getStorage(firebaseApp);
-        const filePath = `attendance/${updates.date || new Date().toISOString().split('T')[0]}/live_${updates.studentRegister || 'unknown'}_${Date.now()}.jpg`;
-        const storageRef = ref(storage, filePath);
-        
-        try {
-            const snapshot = await uploadBytes(storageRef, photoFile);
-            updatesForFirestore.photoUrl = await getDownloadURL(snapshot.ref);
-        } catch (error) {
-            console.error("Attendance photo upload error on update:", error);
-        }
-    }
-
+    
     try {
-      await updateDoc(recordDocRef, { ...updatesForFirestore, timestamp: serverTimestamp() });
+        await setDoc(recordDocRef, { ...recordForFirestore, timestamp: serverTimestamp() }, { merge: true });
     } catch(error) {
-       console.error("Firestore update error for attendance:", error);
-       throw new Error("Failed to update attendance record.");
+       console.error("Firestore save error for attendance:", error);
+       throw new Error("Failed to save attendance record.");
     }
   }, [firestore, firebaseApp]);
+  
 
-  const deleteAttendanceRecord = useCallback(async (recordId: string) => {
+  const deleteAttendanceRecord = useCallback(async (studentRegister: string, date: string) => {
       if (!firestore) throw new Error("Firestore not initialized");
-      const recordDocRef = doc(firestore, 'attendance', recordId);
+      const docId = `${date}_${studentRegister}`;
+      const recordDocRef = doc(firestore, 'attendance', docId);
       await deleteDoc(recordDocRef);
   }, [firestore]);
 
   const getTodaysRecordForStudent = useCallback((studentRegister: string, date: string) => {
-    const records = attendanceRecords
-      .filter(r => r.studentRegister === studentRegister && r.date === date)
-      .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    return records[0] || undefined;
+    const docId = `${date}_${studentRegister}`;
+    return attendanceRecords.find(r => r.id === docId);
   }, [attendanceRecords]);
 
 
-  const value = { attendanceRecords, addAttendanceRecord, updateAttendanceRecord, deleteAttendanceRecord, getTodaysRecordForStudent, loading };
+  const value = { attendanceRecords, saveAttendanceRecord, deleteAttendanceRecord, getTodaysRecordForStudent, loading };
 
   return (
     <AttendanceContext.Provider value={value}>
