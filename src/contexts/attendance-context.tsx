@@ -70,34 +70,34 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl'>,
     photoFile?: File
   ) => {
-    if (!firestore || !firebaseApp) throw new Error("Firebase not initialized");
-    
+    if (!firestore || !firebaseApp) throw new Error("Firebase not initialized.");
+
     const docId = `${record.date}_${record.studentRegister}`;
     const recordDocRef = doc(firestore, 'attendance', docId);
 
-    const recordForFirestore: { [key: string]: any } = { 
+    const recordToSave: { [key: string]: any } = {
       ...record,
-      timestamp: serverTimestamp()
+      timestamp: serverTimestamp(),
     };
 
     if (photoFile) {
-        const storage = getStorage(firebaseApp);
-        const filePath = `attendance/${record.date}/live_${record.studentRegister}_${Date.now()}.jpg`;
-        const storageRef = ref(storage, filePath);
-        try {
-            const snapshot = await uploadBytes(storageRef, photoFile);
-            recordForFirestore.photoUrl = await getDownloadURL(snapshot.ref);
-        } catch (error) {
-            console.error("Attendance photo upload error:", error);
-            throw new Error("Failed to upload attendance photo.");
-        }
+      const storage = getStorage(firebaseApp);
+      const filePath = `attendance/${record.date}/live_${record.studentRegister}_${Date.now()}.jpg`;
+      const storageRef = ref(storage, filePath);
+      try {
+        const snapshot = await uploadBytes(storageRef, photoFile);
+        recordToSave.photoUrl = await getDownloadURL(snapshot.ref);
+      } catch (uploadError: any) {
+        console.error("Firebase Storage upload failed:", uploadError);
+        throw new Error(`Photo upload failed: ${uploadError.message}`);
+      }
     }
-    
+
     try {
-        await setDoc(recordDocRef, recordForFirestore, { merge: true });
-    } catch(error) {
-       console.error("Firestore save error for attendance:", error);
-       throw new Error("Failed to save attendance record.");
+      await setDoc(recordDocRef, recordToSave, { merge: true });
+    } catch (firestoreError: any) {
+      console.error("Firestore setDoc failed:", firestoreError);
+      throw new Error(`Database update failed: ${firestoreError.message}`);
     }
   }, [firestore, firebaseApp]);
   
