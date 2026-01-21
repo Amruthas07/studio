@@ -9,14 +9,14 @@ import React, {
   useCallback,
 } from 'react';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 import type { AttendanceRecord } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
 import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
-  saveAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl'>, photoFile?: File) => Promise<void>;
+  saveAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl'>, photoDataUrl?: string) => Promise<void>;
   deleteAttendanceRecord: (studentRegister: string, date: string) => Promise<void>;
   getTodaysRecordForStudent: (studentRegister: string, date: string) => AttendanceRecord | undefined;
   loading: boolean;
@@ -68,7 +68,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
   const saveAttendanceRecord = useCallback(async (
     record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl'>,
-    photoFile?: File
+    photoDataUrl?: string
   ) => {
     if (!firestore || !firebaseApp) throw new Error("Firebase not initialized.");
 
@@ -80,12 +80,12 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       timestamp: serverTimestamp(),
     };
 
-    if (photoFile) {
+    if (photoDataUrl) {
       const storage = getStorage(firebaseApp);
       const filePath = `attendance/${record.date}/live_${record.studentRegister}_${Date.now()}.jpg`;
       const storageRef = ref(storage, filePath);
       try {
-        const snapshot = await uploadBytes(storageRef, photoFile);
+        const snapshot = await uploadString(storageRef, photoDataUrl, 'data_url');
         recordToSave.photoUrl = await getDownloadURL(snapshot.ref);
       } catch (uploadError: any) {
         console.error("Firebase Storage upload failed:", uploadError);
@@ -110,8 +110,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   }, [firestore]);
 
   const getTodaysRecordForStudent = useCallback((studentRegister: string, date: string) => {
-    const docId = `${date}_${studentRegister}`;
-    return attendanceRecords.find(r => r.id === docId);
+    return attendanceRecords.find(r => r.studentRegister === studentRegister && r.date === date);
   }, [attendanceRecords]);
 
 
@@ -123,5 +122,3 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     </AttendanceContext.Provider>
   );
 }
-
-    

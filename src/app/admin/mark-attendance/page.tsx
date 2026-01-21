@@ -103,13 +103,8 @@ export default function MarkAttendancePage() {
             date: today,
             status,
             method,
+            reason: reason || '',
         };
-
-        if (reason) {
-            recordData.reason = reason;
-        } else {
-            recordData.reason = ''; 
-        }
 
         await saveAttendanceRecord(recordData);
         
@@ -123,7 +118,6 @@ export default function MarkAttendancePage() {
             title: 'Update Failed',
             description: error.message || 'An unexpected error occurred.',
         });
-        throw error;
     }
   }
 
@@ -160,11 +154,9 @@ export default function MarkAttendancePage() {
     context.drawImage(videoRef.current, 0, 0);
 
     try {
-        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg'));
-
-        if (blob) {
-            const photoFile = new File([blob], `${studentToCapture.registerNumber}_${today}.jpg`, { type: 'image/jpeg' });
-            
+        const photoDataUrl = canvas.toDataURL('image/jpeg');
+        
+        if (photoDataUrl) {
             const recordData = {
                 studentRegister: studentToCapture.registerNumber,
                 studentName: studentToCapture.name,
@@ -174,7 +166,7 @@ export default function MarkAttendancePage() {
                 reason: '',
             };
 
-            await saveAttendanceRecord(recordData, photoFile);
+            await saveAttendanceRecord(recordData, photoDataUrl);
             
             toast({
                 title: 'Attendance Updated',
@@ -187,7 +179,7 @@ export default function MarkAttendancePage() {
             toast({
                 variant: 'destructive',
                 title: 'Capture Failed',
-                description: 'Could not create image file from camera.',
+                description: 'Could not create image from camera.',
             });
         }
     } catch (error: any) {
@@ -400,5 +392,3 @@ export default function MarkAttendancePage() {
     </div>
   );
 }
-
-    
