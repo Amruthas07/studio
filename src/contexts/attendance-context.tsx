@@ -74,12 +74,13 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         throw new Error("Firebase is not initialized");
     }
     
-    const attendanceCollection = collection(firestore, 'attendance');
+    const { photoFile, reason, ...restOfRecord } = record;
+    
+    const finalRecord: { [key: string]: any } = { ...restOfRecord };
 
-    // Create a mutable copy and handle file/undefined fields
-    const finalRecord: { [key: string]: any } = { ...record };
-    const photoFile = finalRecord.photoFile as File | undefined;
-    delete finalRecord.photoFile; // Ensure File object is not sent to Firestore
+    if (reason) {
+        finalRecord.reason = reason;
+    }
 
     if (photoFile) {
         const storage = getStorage(firebaseApp);
@@ -91,16 +92,12 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
             finalRecord.photoUrl = await getDownloadURL(snapshot.ref);
         } catch (error) {
             console.error("Attendance photo upload error:", error);
-            // Don't throw, just log. The record will be saved without the photo.
+            // Don't throw, just log. The record can be saved without the photo.
         }
     }
 
-    // Explicitly handle the 'reason' field to prevent 'undefined' values.
-    if (!finalRecord.reason) {
-      delete finalRecord.reason;
-    }
-
     try {
+        const attendanceCollection = collection(firestore, 'attendance');
         const docRef = await addDoc(attendanceCollection, { 
             ...finalRecord, 
             timestamp: serverTimestamp() 
@@ -108,7 +105,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         return docRef.id;
     } catch (error) {
         console.error("Firestore write error for attendance:", error);
-        throw new Error("Failed to save attendance record.");
+        throw new Error("Failed to save attendance record. The data might be invalid.");
     }
   }, [firestore, firebaseApp]);
 
@@ -120,10 +117,16 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
     const recordDocRef = doc(firestore, 'attendance', recordId);
     
-    // Create a mutable copy and handle file/undefined fields
-    const finalUpdates: { [key:string]: any } = { ...updates };
-    const photoFile = finalUpdates.photoFile as File | undefined;
-    delete finalUpdates.photoFile; // Ensure File object is not sent to Firestore
+    const { photoFile, reason, ...restOfUpdates } = updates;
+
+    const finalUpdates: { [key: string]: any } = { ...restOfUpdates };
+
+    if (reason) {
+        finalUpdates.reason = reason;
+    } else if ('reason' in updates) { // Reason was intentionally cleared by passing null/undefined
+        finalUpdates.reason = deleteField();
+    }
+    // If 'reason' is not in the updates object at all, it's left untouched in the DB.
 
     if (photoFile) {
         const storage = getStorage(firebaseApp);
@@ -137,12 +140,6 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
             console.error("Attendance photo upload error on update:", error);
         }
     }
-    
-    // If 'reason' is passed and is falsy (e.g., null, undefined, ""), remove it.
-    if ('reason' in finalUpdates && !finalUpdates.reason) {
-      finalUpdates.reason = deleteField();
-    }
-
 
     try {
       await updateDoc(recordDocRef, { ...finalUpdates, timestamp: serverTimestamp() });
@@ -159,7 +156,11 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   }, [firestore]);
 
   const getTodaysRecordForStudent = useCallback((studentRegister: string, date: string) => {
-    return attendanceRecords.find(r => r.studentRegister === studentRegister && r.date === date);
+    // Find the most recent record for that student on that day
+    const records = attendanceRecords
+      .filter(r => r.studentRegister === studentRegister && r.date === date)
+      .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return records[0] || undefined;
   }, [attendanceRecords]);
 
 

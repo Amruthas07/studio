@@ -70,8 +70,10 @@ export default function MarkAttendancePage() {
       getCameraPermission();
 
       return () => {
-        const stream = videoRef.current?.srcObject as MediaStream;
-        stream?.getTracks().forEach(track => track.stop());
+        if(videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream?.getTracks().forEach(track => track.stop());
+        }
       }
     }
   }, [isCameraDialogOpen, toast]);
@@ -158,8 +160,15 @@ export default function MarkAttendancePage() {
         if (blob) {
             const photoFile = new File([blob], `${studentToCapture.registerNumber}_${today}.jpg`, { type: 'image/jpeg' });
             await handleAction(studentToCapture, 'present', 'live-photo', photoFile);
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Capture Failed',
+                description: 'Could not create image file from camera.',
+            });
         }
     }, 'image/jpeg');
+
     setIsCameraDialogOpen(false);
     setStudentToCapture(null);
   }
@@ -173,6 +182,7 @@ export default function MarkAttendancePage() {
         });
         return;
     }
+    // "On Leave" is recorded as "present" but with a reason
     await handleAction(studentForLeave, 'present', 'manual', undefined, leaveReason);
     setIsLeaveDialogOpen(false);
     setStudentForLeave(null);
@@ -249,9 +259,9 @@ export default function MarkAttendancePage() {
                                         <span className="text-muted-foreground">Not Marked</span>
                                     ) : (
                                         <Badge variant={record.reason ? 'secondary' : record.status === 'present' ? 'default' : 'destructive'}>
-                                            {record.reason && <LogOut className="mr-1.5 h-3.5 w-3.5" />}
-                                            {record.status === 'present' && !record.reason && <CheckCircle className="mr-1.5 h-3.5 w-3.5" />}
-                                            {record.status === 'absent' && <XCircle className="mr-1.5 h-3.5 w-3.5" />}
+                                            {record.reason ? <LogOut className="mr-1.5 h-3.5 w-3.5" /> : null}
+                                            {record.status === 'present' && !record.reason ? <CheckCircle className="mr-1.5 h-3.5 w-3.5" /> : null}
+                                            {record.status === 'absent' ? <XCircle className="mr-1.5 h-3.5 w-3.5" /> : null}
                                             {record.reason ? 'On Leave' : (record.status.charAt(0).toUpperCase() + record.status.slice(1))}
                                         </Badge>
                                     )}
@@ -265,7 +275,7 @@ export default function MarkAttendancePage() {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => handleAction(student, 'present', 'manual')}>
+                                            <DropdownMenuItem onClick={() => handleAction(student, 'present', 'manual', undefined, undefined)}>
                                                 <UserCheck className="mr-2 h-4 w-4" /> Mark Present
                                             </DropdownMenuItem>
                                              <DropdownMenuItem onClick={() => { setStudentToCapture(student); setIsCameraDialogOpen(true); }}>
@@ -314,7 +324,8 @@ export default function MarkAttendancePage() {
                             className="w-full aspect-video rounded-md" 
                             autoPlay 
                             muted
-                            onLoadedMetadata={() => setIsCameraReady(true)}
+                            playsInline
+                            onLoadedData={() => setIsCameraReady(true)}
                         />
                        <canvas ref={canvasRef} className="hidden" />
                     </div>
