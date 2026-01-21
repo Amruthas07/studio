@@ -19,7 +19,7 @@ export interface AttendanceRecord {
   studentRegister: string;
   studentName?: string; // For easier display
   date: string; // YYYY-MM-DD
-  status: 'present' | 'on_leave' | 'absent';
+  status: 'present' | 'absent';
   timestamp: string; // Storing as ISO string for localStorage compatibility
   method: 'face-scan' | 'manual' | 'live-photo';
   photoUrl?: string;

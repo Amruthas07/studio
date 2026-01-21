@@ -32,7 +32,7 @@ const AttendanceRecordSchema = z.object({
   studentRegister: z.string(),
   studentName: z.string().optional(),
   date: z.string(),
-  status: z.enum(['present', 'on_leave', 'absent']),
+  status: z.enum(['present', 'absent']),
   timestamp: z.string(),
   reason: z.string().optional(),
   method: z.enum(["face-scan", "manual", "live-photo"]),
@@ -128,12 +128,12 @@ const dailyAttendanceReportFlow = ai.defineFlow(
         if (latestRecord.status === 'present') {
             return {
                 ...baseDetails,
-                "Status": 'Present',
+                "Status": latestRecord.reason ? 'On Leave' : 'Present',
                 "Method": latestRecord.method,
                 "Timestamp": new Date(latestRecord.timestamp).toLocaleString(),
-                "Leave Reason": 'N/A',
+                "Leave Reason": latestRecord.reason || 'N/A',
             };
-        } else { // 'on_leave' or 'absent'
+        } else { // 'absent'
             return {
                 ...baseDetails,
                 "Status": 'Absent',

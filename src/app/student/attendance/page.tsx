@@ -51,11 +51,11 @@ export default function StudentAttendancePage() {
                                 <TableRow key={record.id}>
                                     <TableCell>{record.date}</TableCell>
                                     <TableCell>
-                                        <Badge variant={record.status === 'present' ? 'default' : record.status === 'on_leave' ? 'secondary' : 'destructive'} className="capitalize">
-                                            {record.status === 'present' && <CheckCircle className='mr-2 h-4 w-4' />}
-                                            {record.status === 'on_leave' && <LogOut className='mr-2 h-4 w-4' />}
+                                        <Badge variant={record.reason ? 'secondary' : record.status === 'present' ? 'default' : 'destructive'} className="capitalize">
+                                            {record.status === 'present' && !record.reason && <CheckCircle className='mr-2 h-4 w-4' />}
+                                            {record.reason && <LogOut className='mr-2 h-4 w-4' />}
                                             {record.status === 'absent' && <XCircle className='mr-2 h-4 w-4' />}
-                                            {record.status === 'on_leave' ? 'On Leave' : record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                                            {record.reason ? 'On Leave' : record.status.charAt(0).toUpperCase() + record.status.slice(1)}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>

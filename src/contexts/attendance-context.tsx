@@ -75,10 +75,11 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         throw new Error("Firebase is not initialized");
     }
     
-    const recordForFirestore: { [key: string]: any } = { ...record };
+    const { reason, ...otherRecordData } = record;
+    const recordForFirestore: { [key: string]: any } = { ...otherRecordData };
 
-    if (typeof recordForFirestore.reason !== 'string' || recordForFirestore.reason.trim().length === 0) {
-        delete recordForFirestore.reason;
+    if (reason && typeof reason === 'string' && reason.trim().length > 0) {
+        recordForFirestore.reason = reason;
     }
 
     if (photoFile) {
@@ -116,18 +117,13 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
     const recordDocRef = doc(firestore, 'attendance', recordId);
     
-    const updatesForFirestore: { [key: string]: any } = { ...updates };
+    const { reason, ...otherUpdates } = updates;
+    const updatesForFirestore: { [key: string]: any } = { ...otherUpdates };
 
-    if ('reason' in updatesForFirestore) {
-        if (typeof updatesForFirestore.reason === 'string' && updatesForFirestore.reason.trim().length > 0) {
-            // Reason is valid, keep it.
-        } else {
-            updatesForFirestore.reason = deleteField();
-        }
+    if (reason && typeof reason === 'string' && reason.trim().length > 0) {
+        updatesForFirestore.reason = reason;
     } else {
-        if (updates.status && updates.status !== 'on_leave') {
-            updatesForFirestore.reason = deleteField();
-        }
+        updatesForFirestore.reason = deleteField();
     }
 
 
