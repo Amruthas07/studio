@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserCheck, Camera, MoreVertical, LogOut, CheckCircle, Search } from 'lucide-react';
+import { Loader2, UserCheck, Camera, MoreVertical, LogOut, CheckCircle, Search, XCircle } from 'lucide-react';
 import { useAttendance } from '@/hooks/use-attendance';
 import { useStudents } from '@/hooks/use-students';
 import { useAuth } from '@/hooks/use-auth';
@@ -92,7 +92,7 @@ export default function MarkAttendancePage() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  const handleAction = async (student: Student, status: 'present' | 'on_leave', method: 'manual' | 'live-photo' = 'manual', photoFile?: File, reason?: string) => {
+  const handleAction = async (student: Student, status: 'present' | 'on_leave' | 'absent', method: 'manual' | 'live-photo' = 'manual', photoFile?: File, reason?: string) => {
     const existingRecord = getTodaysRecordForStudent(student.registerNumber, today);
     try {
         const recordData = {
@@ -112,7 +112,7 @@ export default function MarkAttendancePage() {
         }
         toast({
             title: 'Attendance Updated',
-            description: `${student.name} marked as ${status === 'on_leave' ? 'absent (on leave)' : status.replace('_', ' ')}.`,
+            description: `${student.name} marked as ${status === 'on_leave' ? 'on leave' : status}.`,
         });
     } catch(error: any) {
         toast({
@@ -226,8 +226,6 @@ export default function MarkAttendancePage() {
                 <TableBody>
                     {departmentStudents.length > 0 ? departmentStudents.map(student => {
                         const record = getTodaysRecordForStudent(student.registerNumber, today);
-                        let status: 'present' | 'absent' | 'on_leave' = 'absent';
-                        if (record) status = record.status;
 
                         return (
                             <TableRow key={student.registerNumber}>
@@ -242,10 +240,16 @@ export default function MarkAttendancePage() {
                                 </TableCell>
                                 <TableCell>{student.registerNumber}</TableCell>
                                 <TableCell>
-                                    <Badge variant={status === 'present' ? 'default' : status === 'on_leave' ? 'secondary' : 'outline'}>
-                                        {status === 'present' ? <CheckCircle className="mr-1.5 h-3.5 w-3.5" /> : status !== 'absent' ? <LogOut className="mr-1.5 h-3.5 w-3.5" /> : null}
-                                        {status === 'on_leave' ? 'Absent (Leave)' : (status.replace('_', ' ').charAt(0).toUpperCase() + status.slice(1))}
-                                    </Badge>
+                                    {!record ? (
+                                        <span className="text-muted-foreground">Not Marked</span>
+                                    ) : (
+                                        <Badge variant={record.status === 'present' ? 'default' : record.status === 'on_leave' ? 'secondary' : 'destructive'}>
+                                            {record.status === 'present' && <CheckCircle className="mr-1.5 h-3.5 w-3.5" />}
+                                            {record.status === 'on_leave' && <LogOut className="mr-1.5 h-3.5 w-3.5" />}
+                                            {record.status === 'absent' && <XCircle className="mr-1.5 h-3.5 w-3.5" />}
+                                            {record.status === 'on_leave' ? 'On Leave' : (record.status.charAt(0).toUpperCase() + record.status.slice(1))}
+                                        </Badge>
+                                    )}
                                 </TableCell>
                                 <TableCell>{record ? new Date(record.timestamp).toLocaleTimeString() : 'N/A'}</TableCell>
                                 <TableCell className="text-right">
@@ -264,6 +268,9 @@ export default function MarkAttendancePage() {
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => { setStudentForLeave(student); setIsLeaveDialogOpen(true); }}>
                                                 <LogOut className="mr-2 h-4 w-4" /> Mark On Leave
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleAction(student, 'absent', 'manual')}>
+                                                <XCircle className="mr-2 h-4 w-4" /> Mark Absent
                                             </DropdownMenuItem>
                                             {record && (
                                                 <DropdownMenuItem onClick={() => handleClearAttendance(student)} className="text-destructive">

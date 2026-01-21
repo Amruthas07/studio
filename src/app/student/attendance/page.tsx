@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, CheckCircle, LogOut } from "lucide-react";
+import { Loader2, CheckCircle, LogOut, XCircle } from "lucide-react";
 import React from "react";
 import { useAttendance } from "@/hooks/use-attendance";
 
@@ -51,9 +51,11 @@ export default function StudentAttendancePage() {
                                 <TableRow key={record.id}>
                                     <TableCell>{record.date}</TableCell>
                                     <TableCell>
-                                        <Badge variant={record.status === 'present' ? 'default' : 'secondary'} className="capitalize">
-                                            {record.status === 'present' ? <CheckCircle className='mr-2 h-4 w-4' /> : <LogOut className='mr-2 h-4 w-4' />}
-                                            {record.status === 'on_leave' ? 'Absent (Leave)' : record.status.replace('_', ' ')}
+                                        <Badge variant={record.status === 'present' ? 'default' : record.status === 'on_leave' ? 'secondary' : 'destructive'} className="capitalize">
+                                            {record.status === 'present' && <CheckCircle className='mr-2 h-4 w-4' />}
+                                            {record.status === 'on_leave' && <LogOut className='mr-2 h-4 w-4' />}
+                                            {record.status === 'absent' && <XCircle className='mr-2 h-4 w-4' />}
+                                            {record.status === 'on_leave' ? 'On Leave' : record.status.charAt(0).toUpperCase() + record.status.slice(1)}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>

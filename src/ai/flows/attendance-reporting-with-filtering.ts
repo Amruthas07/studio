@@ -32,7 +32,7 @@ const AttendanceRecordSchema = z.object({
   studentRegister: z.string(),
   studentName: z.string().optional(),
   date: z.string(),
-  status: z.enum(['present', 'on_leave']),
+  status: z.enum(['present', 'on_leave', 'absent']),
   timestamp: z.string(),
   reason: z.string().optional(),
   method: z.enum(["face-scan", "manual", "live-photo"]),
@@ -134,7 +134,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
                 "Timestamp": new Date(latestRecord.timestamp).toLocaleString(),
                 "Leave Reason": 'N/A',
             };
-        } else { // 'on_leave'
+        } else { // 'on_leave' or 'absent'
             return {
                 ...baseDetails,
                 "Status": 'Absent',
@@ -148,7 +148,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
     // 4. Calculate summary
     const presentCount = rollCall.filter(s => s.Status === 'Present').length;
     const totalAbsentCount = rollCall.length - presentCount;
-    const onLeaveCount = rollCall.filter(s => s["Leave Reason"] !== 'N/A').length;
+    const onLeaveCount = rollCall.filter(s => s["Leave Reason"] !== 'N/A' && s["Leave Reason"] !== 'Not specified').length;
     
     const summaryData = [
       { metric: `Report for Date`, value: reportDate },
