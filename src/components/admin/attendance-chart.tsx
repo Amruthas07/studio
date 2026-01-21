@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
@@ -8,6 +7,7 @@ interface AttendanceChartProps {
         date: string;
         present: number;
         absent: number;
+        onLeave: number;
     }[];
 }
 
@@ -41,6 +41,7 @@ export function AttendanceChart({ data }: AttendanceChartProps) {
                     />
                     <Legend wrapperStyle={{fontSize: "14px"}} />
                     <Bar dataKey="present" fill="hsl(var(--chart-1))" name="Present" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="onLeave" fill="hsl(var(--chart-3))" name="On Leave" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="absent" fill="hsl(var(--destructive))" name="Absent" radius={[4, 4, 0, 0]} />
                 </BarChart>
             </ResponsiveContainer>
