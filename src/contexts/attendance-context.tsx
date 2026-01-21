@@ -78,7 +78,9 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     
     const finalRecord: { [key: string]: any } = { ...restOfRecord };
 
-    if (reason) {
+    // Only add the 'reason' field if it is a valid, non-empty string.
+    // This prevents `reason: undefined` from being sent to Firestore.
+    if (typeof reason === 'string' && reason.trim().length > 0) {
         finalRecord.reason = reason;
     }
 
@@ -121,9 +123,11 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
     const finalUpdates: { [key: string]: any } = { ...restOfUpdates };
 
-    if (reason) {
+    // If a valid reason is provided, add it.
+    if (typeof reason === 'string' && reason.trim().length > 0) {
         finalUpdates.reason = reason;
-    } else if ('reason' in updates) { // Reason was intentionally cleared by passing null/undefined
+    } else if ('reason' in updates) { 
+        // If 'reason' exists in the update object but is empty/null/undefined, remove it from Firestore.
         finalUpdates.reason = deleteField();
     }
     // If 'reason' is not in the updates object at all, it's left untouched in the DB.
