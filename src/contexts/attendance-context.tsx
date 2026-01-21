@@ -82,7 +82,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
     if (photoDataUrl) {
       const storage = getStorage(firebaseApp);
-      const filePath = `attendance/${record.date}/live_${record.studentRegister}_${Date.now()}.jpg`;
+      const filePath = `students/${record.studentRegister}/attendance_${record.date}_${Date.now()}.jpg`;
       const storageRef = ref(storage, filePath);
       try {
         const snapshot = await uploadString(storageRef, photoDataUrl, 'data_url');
