@@ -9,7 +9,7 @@ import { Loader2, UserCheck, Camera, MoreVertical, LogOut, CheckCircle, Search, 
 import { useAttendance } from '@/hooks/use-attendance';
 import { useStudents } from '@/hooks/use-students';
 import { useAuth } from '@/hooks/use-auth';
-import type { Student } from '@/lib/types';
+import type { Student, AttendanceRecord } from '@/lib/types';
 import { format } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -105,7 +105,6 @@ export default function MarkAttendancePage() {
             date: today,
             status,
             method,
-            photoFile,
         };
 
         if (reason) {
@@ -113,9 +112,9 @@ export default function MarkAttendancePage() {
         }
 
         if (existingRecord) {
-            await updateAttendanceRecord(existingRecord.id, recordData);
+            await updateAttendanceRecord(existingRecord.id, recordData, photoFile);
         } else {
-            await addAttendanceRecord(recordData);
+            await addAttendanceRecord(recordData, photoFile);
         }
         toast({
             title: 'Attendance Updated',
@@ -182,7 +181,6 @@ export default function MarkAttendancePage() {
         });
         return;
     }
-    // "On Leave" is recorded as "present" but with a reason
     await handleAction(studentForLeave, 'present', 'manual', undefined, leaveReason);
     setIsLeaveDialogOpen(false);
     setStudentForLeave(null);

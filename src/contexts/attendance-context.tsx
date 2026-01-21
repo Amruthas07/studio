@@ -16,8 +16,8 @@ import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
-  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp'> & { photoFile?: File }) => Promise<string | undefined>;
-  updateAttendanceRecord: (recordId: string, updates: Partial<AttendanceRecord> & { photoFile?: File }) => Promise<void>;
+  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp'>, photoFile?: File) => Promise<string | undefined>;
+  updateAttendanceRecord: (recordId: string, updates: Partial<AttendanceRecord>, photoFile?: File) => Promise<void>;
   deleteAttendanceRecord: (recordId: string) => Promise<void>;
   getTodaysRecordForStudent: (studentRegister: string, date: string) => AttendanceRecord | undefined;
   loading: boolean;
@@ -68,17 +68,15 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   }, [firestore, students, studentsLoading]);
 
   const addAttendanceRecord = useCallback(async (
-    record: Omit<AttendanceRecord, 'id' | 'timestamp'> & { photoFile?: File }
+    record: Omit<AttendanceRecord, 'id' | 'timestamp'>, 
+    photoFile?: File
   ): Promise<string | undefined> => {
     if (!firestore || !firebaseApp) {
         throw new Error("Firebase is not initialized");
     }
     
     const recordForFirestore: { [key: string]: any } = { ...record };
-    const photoFile = recordForFirestore.photoFile;
 
-    // Explicitly delete the File object and any undefined reason before sending to Firestore.
-    delete recordForFirestore.photoFile;
     if (typeof recordForFirestore.reason !== 'string' || recordForFirestore.reason.trim().length === 0) {
         delete recordForFirestore.reason;
     }
@@ -111,28 +109,22 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
   const updateAttendanceRecord = useCallback(async (
     recordId: string,
-    updates: Partial<AttendanceRecord> & { photoFile?: File }
+    updates: Partial<AttendanceRecord>,
+    photoFile?: File
   ) => {
     if (!firestore || !firebaseApp) throw new Error("Firestore not initialized");
 
     const recordDocRef = doc(firestore, 'attendance', recordId);
     
     const updatesForFirestore: { [key: string]: any } = { ...updates };
-    const photoFile = updatesForFirestore.photoFile;
-    
-    // Explicitly delete the file object before sending to Firestore
-    delete updatesForFirestore.photoFile;
 
-    // Handle the 'reason' field explicitly to avoid 'undefined' errors or to remove it.
     if ('reason' in updatesForFirestore) {
         if (typeof updatesForFirestore.reason === 'string' && updatesForFirestore.reason.trim().length > 0) {
             // Reason is valid, keep it.
         } else {
-            // Reason is empty, null, or undefined. Remove it from the database.
             updatesForFirestore.reason = deleteField();
         }
     } else {
-        // If status is being set to 'present' or 'absent', ensure reason is removed.
         if (updates.status && updates.status !== 'on_leave') {
             updatesForFirestore.reason = deleteField();
         }
@@ -167,7 +159,6 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   }, [firestore]);
 
   const getTodaysRecordForStudent = useCallback((studentRegister: string, date: string) => {
-    // Find the most recent record for that student on that day
     const records = attendanceRecords
       .filter(r => r.studentRegister === studentRegister && r.date === date)
       .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
