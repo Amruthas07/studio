@@ -74,14 +74,14 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         throw new Error("Firebase is not initialized");
     }
     
-    const { photoFile, reason, ...restOfRecord } = record;
+    const { photoFile, ...restOfRecord } = record;
     
+    // Create a clean record for Firestore, excluding the raw photo file.
     const finalRecord: { [key: string]: any } = { ...restOfRecord };
 
-    // Only add the 'reason' field if it is a valid, non-empty string.
-    // This prevents `reason: undefined` from being sent to Firestore.
-    if (typeof reason === 'string' && reason.trim().length > 0) {
-        finalRecord.reason = reason;
+    // Explicitly delete reason if it's not a valid string. This prevents `undefined` errors.
+    if (typeof finalRecord.reason !== 'string' || finalRecord.reason.trim().length === 0) {
+        delete finalRecord.reason;
     }
 
     if (photoFile) {
@@ -94,7 +94,6 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
             finalRecord.photoUrl = await getDownloadURL(snapshot.ref);
         } catch (error) {
             console.error("Attendance photo upload error:", error);
-            // Don't throw, just log. The record can be saved without the photo.
         }
     }
 
@@ -119,18 +118,20 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
     const recordDocRef = doc(firestore, 'attendance', recordId);
     
-    const { photoFile, reason, ...restOfUpdates } = updates;
+    const { photoFile, ...restOfUpdates } = updates;
 
+    // Create a clean update object for Firestore.
     const finalUpdates: { [key: string]: any } = { ...restOfUpdates };
 
-    // If a valid reason is provided, add it.
-    if (typeof reason === 'string' && reason.trim().length > 0) {
-        finalUpdates.reason = reason;
-    } else if ('reason' in updates) { 
-        // If 'reason' exists in the update object but is empty/null/undefined, remove it from Firestore.
-        finalUpdates.reason = deleteField();
+    // Handle the 'reason' field explicitly to avoid 'undefined' errors.
+    if ('reason' in finalUpdates) {
+        if (typeof finalUpdates.reason === 'string' && finalUpdates.reason.trim().length > 0) {
+            // Reason is valid, keep it.
+        } else {
+            // Reason is empty, null, or undefined. Remove it from the database.
+            finalUpdates.reason = deleteField();
+        }
     }
-    // If 'reason' is not in the updates object at all, it's left untouched in the DB.
 
     if (photoFile) {
         const storage = getStorage(firebaseApp);
