@@ -93,6 +93,15 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         }
     }
 
+    // Explicitly handle the 'reason' field to prevent 'undefined' values.
+    if (finalRecord.status === 'on_leave') {
+        // If status is 'on_leave', ensure reason is a string.
+        finalRecord.reason = finalRecord.reason || "";
+    } else {
+        // Otherwise, completely remove the reason field before saving.
+        delete finalRecord.reason;
+    }
+
     try {
         const docRef = await addDoc(attendanceCollection, { 
             ...finalRecord, 
