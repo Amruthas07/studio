@@ -51,7 +51,13 @@ export default function AdminDashboard() {
         const dateString = format(day, 'yyyy-MM-dd');
         const dayOfWeek = format(day, 'EEE');
 
-        const studentsOnDay = deptStudents.filter(s => new Date(s.createdAt).setHours(0,0,0,0) <= day.setHours(0,0,0,0));
+        // Create a new date object for the end of the day to avoid mutation
+        const endOfDay = new Date(day);
+        endOfDay.setHours(23, 59, 59, 999);
+        const endOfDayTime = endOfDay.getTime();
+
+        // Filter students enrolled by the end of that specific day
+        const studentsOnDay = deptStudents.filter(s => new Date(s.createdAt).getTime() <= endOfDayTime);
         const totalStudentsOnDay = studentsOnDay.length;
 
         const dailyRecords = attendanceRecords.filter(record => 
