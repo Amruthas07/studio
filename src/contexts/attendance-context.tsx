@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -7,7 +8,7 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, deleteField } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, updateDoc, deleteField } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { AttendanceRecord } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
@@ -74,8 +75,17 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const docId = `${record.date}_${record.studentRegister}`;
     const recordDocRef = doc(firestore, 'attendance', docId);
 
-    const recordForFirestore: { [key: string]: any } = { ...record };
+    // Start with the core data.
+    const recordForFirestore: { [key: string]: any } = { 
+      studentRegister: record.studentRegister,
+      studentName: record.studentName,
+      date: record.date,
+      status: record.status,
+      method: record.method,
+      timestamp: serverTimestamp()
+    };
 
+    // Handle photo upload and get URL
     if (photoFile) {
         const storage = getStorage(firebaseApp);
         const filePath = `attendance/${record.date}/live_${record.studentRegister}_${Date.now()}.jpg`;
@@ -85,15 +95,20 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
             recordForFirestore.photoUrl = await getDownloadURL(snapshot.ref);
         } catch (error) {
             console.error("Attendance photo upload error:", error);
+            throw new Error("Failed to upload attendance photo.");
         }
     }
-    
-    if (!recordForFirestore.reason) {
-        recordForFirestore.reason = deleteField();
+
+    // Handle the 'reason' field
+    if (record.reason) {
+      recordForFirestore.reason = record.reason;
+    } else {
+      // If no reason is provided, ensure it's removed from the document in Firestore
+      recordForFirestore.reason = deleteField();
     }
     
     try {
-        await setDoc(recordDocRef, { ...recordForFirestore, timestamp: serverTimestamp() }, { merge: true });
+        await setDoc(recordDocRef, recordForFirestore, { merge: true });
     } catch(error) {
        console.error("Firestore save error for attendance:", error);
        throw new Error("Failed to save attendance record.");

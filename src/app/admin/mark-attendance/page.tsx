@@ -107,13 +107,16 @@ export default function MarkAttendancePage() {
 
         if (reason) {
           recordData.reason = reason;
+        } else {
+          // Ensure reason is not undefined when not provided
+          recordData.reason = '';
         }
         
         await saveAttendanceRecord(recordData, photoFile);
         
         toast({
             title: 'Attendance Updated',
-            description: `${student.name} marked as ${reason ? 'On Leave' : status}.`,
+            description: `${student.name} marked as ${recordData.reason ? 'On Leave' : status}.`,
         });
     } catch(error: any) {
         toast({
@@ -121,6 +124,8 @@ export default function MarkAttendancePage() {
             title: 'Update Failed',
             description: error.message || 'An unexpected error occurred.',
         });
+        // re-throw to be caught by handleCaptureAndMark if needed
+        throw error;
     }
   }
 
@@ -142,18 +147,31 @@ export default function MarkAttendancePage() {
     }
   }
 
-  const handleCaptureAndMark = () => {
+  const handleCaptureAndMark = async () => {
     if (!videoRef.current || !canvasRef.current || !studentToCapture) return;
 
     const canvas = canvasRef.current;
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
-    canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0);
+    const context = canvas.getContext('2d');
 
-    canvas.toBlob(async (blob) => {
+    if (!context) {
+        toast({ variant: 'destructive', title: 'Capture Failed', description: 'Could not get canvas context.' });
+        return;
+    }
+    context.drawImage(videoRef.current, 0, 0);
+
+    try {
+        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg'));
+
         if (blob) {
             const photoFile = new File([blob], `${studentToCapture.registerNumber}_${today}.jpg`, { type: 'image/jpeg' });
+            // Wait for the action to complete before closing the dialog
             await handleAction(studentToCapture, 'present', 'live-photo', photoFile);
+            
+            // On success, close the dialog
+            setIsCameraDialogOpen(false);
+            setStudentToCapture(null);
         } else {
             toast({
                 variant: 'destructive',
@@ -161,10 +179,10 @@ export default function MarkAttendancePage() {
                 description: 'Could not create image file from camera.',
             });
         }
-    }, 'image/jpeg');
-
-    setIsCameraDialogOpen(false);
-    setStudentToCapture(null);
+    } catch (error) {
+        // Error toast is already shown in handleAction, so we just log it here.
+        console.error("Capture and mark failed:", error);
+    }
   }
 
   const handleMarkOnLeave = async () => {
