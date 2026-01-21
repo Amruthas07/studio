@@ -15,7 +15,7 @@ import {z} from 'genkit';
 const StudentPhotoSchema = z.object({
   registerNumber: z.string(),
   name: z.string(),
-  profilePhotoUri: z.string().describe("A data URI of the student's profile photo."),
+  profilePhotoUrl: z.string().describe("A public URL of the student's profile photo."),
 });
 
 const FaceRecognitionInputSchema = z.object({
@@ -51,7 +51,7 @@ const prompt = ai.definePrompt({
 {{#each students}}
   - Student Name: {{this.name}}
   - Register Number: {{this.registerNumber}}
-  - Reference Photo: {{media url=this.profilePhotoUri}}
+  - Reference Photo: {{media url=this.profilePhotoUrl}}
 {{/each}}
 
 Analyze the main photo. Follow these rules strictly:

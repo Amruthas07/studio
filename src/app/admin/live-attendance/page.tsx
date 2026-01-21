@@ -28,20 +28,6 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 
-// Helper to convert a URL to a data URI
-async function urlToDataUri(url: string): Promise<string> {
-  const response = await fetch(url);
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
-
-type StudentWithPhotoData = Student & { profilePhotoDataUri?: string };
 type ScanLogEntry = {
     id: string;
     timestamp: Date;
@@ -63,10 +49,7 @@ export default function LiveAttendancePage() {
     const scannerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const [isScanning, setIsScanning] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [loadingMessage, setLoadingMessage] = useState("Initializing...");
     const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-    const [studentsWithPhotos, setStudentsWithPhotos] = useState<StudentWithPhotoData[]>([]);
     const [scanLog, setScanLog] = useState<ScanLogEntry[]>([]);
     const [selectedDepartment, setSelectedDepartment] = useState('all');
     
@@ -85,30 +68,6 @@ export default function LiveAttendancePage() {
         return students.filter(s => s.department === selectedDepartment);
     }, [students, selectedDepartment]);
 
-    // Prepare student data with data URIs for their photos
-    useEffect(() => {
-        if (students.length > 0) {
-            setLoadingMessage(`Preparing ${students.length} student profiles for recognition...`);
-            Promise.all(students.map(async (student) => {
-                if (student.profilePhotoUrl) {
-                    try {
-                        const dataUri = await urlToDataUri(student.profilePhotoUrl);
-                        return { ...student, profilePhotoDataUri: dataUri };
-                    } catch (error) {
-                        console.error(`Failed to load image for ${student.name}:`, error);
-                        return student; // return student without data uri on error
-                    }
-                }
-                return student;
-            })).then(studentsWithData => {
-                setStudentsWithPhotos(studentsWithData.filter(s => s.profilePhotoDataUri));
-                setIsLoading(false);
-                setLoadingMessage("");
-            });
-        } else if (!studentsLoading) {
-            setIsLoading(false); // No students to load
-        }
-    }, [students, studentsLoading]);
 
     // Setup and teardown camera
     useEffect(() => {
@@ -153,12 +112,14 @@ export default function LiveAttendancePage() {
     };
 
     const runScan = useCallback(async () => {
+        const eligibleStudents = students.filter(s => s.profilePhotoUrl);
+
         const studentsForScan = selectedDepartment === 'all'
-            ? studentsWithPhotos
-            : studentsWithPhotos.filter(s => s.department === selectedDepartment);
+            ? eligibleStudents
+            : eligibleStudents.filter(s => s.department === selectedDepartment);
 
         if (!videoRef.current || !canvasRef.current || studentsForScan.length === 0 || !videoRef.current.srcObject) {
-            if (isScanning) logScan('No students enrolled for recognition in this department.', 'info');
+            if (isScanning) logScan('No students with enrolled photos in this department.', 'info');
             return;
         }
         
@@ -174,7 +135,7 @@ export default function LiveAttendancePage() {
         try {
             const result = await recognizeFace({
                 cameraPhotoUri,
-                students: studentsForScan.map(({registerNumber, name, profilePhotoDataUri}) => ({registerNumber, name, profilePhotoUri: profilePhotoDataUri!}))
+                students: studentsForScan.map(({registerNumber, name, profilePhotoUrl}) => ({registerNumber, name, profilePhotoUrl: profilePhotoUrl!}))
             });
 
             if (result.matchStatus === 'MATCH' && result.registerNumber) {
@@ -213,11 +174,11 @@ export default function LiveAttendancePage() {
             logScan('An error occurred during scan.', 'error');
         }
 
-    }, [studentsWithPhotos, addAttendanceRecord, getTodaysRecordForStudent, students, toast, selectedDepartment, isScanning]);
+    }, [students, addAttendanceRecord, getTodaysRecordForStudent, toast, selectedDepartment, isScanning]);
 
     // Scanning loop
     useEffect(() => {
-        if (isScanning && !isLoading && hasCameraPermission) {
+        if (isScanning && !studentsLoading && hasCameraPermission) {
             scannerTimeoutRef.current = setInterval(runScan, SCAN_INTERVAL);
         } else {
             if (scannerTimeoutRef.current) {
@@ -230,7 +191,7 @@ export default function LiveAttendancePage() {
                 clearInterval(scannerTimeoutRef.current);
             }
         };
-    }, [isScanning, isLoading, hasCameraPermission, runScan]);
+    }, [isScanning, studentsLoading, hasCameraPermission, runScan]);
     
     const getInitials = (name: string) => {
         const names = name.split(' ');
@@ -254,7 +215,7 @@ export default function LiveAttendancePage() {
                     <p className="text-muted-foreground">The system will automatically detect and mark students present.</p>
                 </div>
                  <div className="flex items-center space-x-2">
-                    <Switch id="scan-toggle" checked={isScanning} onCheckedChange={setIsScanning} disabled={isLoading} />
+                    <Switch id="scan-toggle" checked={isScanning} onCheckedChange={setIsScanning} disabled={studentsLoading} />
                     <Label htmlFor="scan-toggle" className="text-lg">{isScanning ? "Scanning..." : "Scanner Off"}</Label>
                 </div>
             </div>
@@ -274,12 +235,6 @@ export default function LiveAttendancePage() {
                                     <div className="text-center text-muted-foreground p-4">
                                         <VideoOff className="mx-auto h-16 w-16" />
                                         <p className="mt-4">Camera is off. Toggle the switch to start scanning.</p>
-                                    </div>
-                                )}
-                                {isLoading && isScanning && (
-                                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white">
-                                        <Loader2 className="h-8 w-8 animate-spin" />
-                                        <p className="mt-2">{loadingMessage}</p>
                                     </div>
                                 )}
                                 {hasCameraPermission === false && (
