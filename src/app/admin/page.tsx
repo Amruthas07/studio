@@ -10,6 +10,7 @@ import { useAttendance } from "@/hooks/use-attendance";
 import { useStudents } from "@/hooks/use-students";
 import { AttendanceChart } from "@/components/admin/attendance-chart";
 import { subDays, format } from 'date-fns';
+import type { AttendanceRecord } from "@/lib/types";
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -28,52 +29,56 @@ export default function AdminDashboard() {
     const today = format(new Date(), 'yyyy-MM-dd');
     const totalDeptStudents = deptStudents.length;
 
-    // --- Today's Data Calculation (Robust) ---
+    // --- Today's Data Calculation (More Robust) ---
+    // We need to find the LATEST record for each student for today, in case their status changed.
     const todaysRecords = attendanceRecords.filter(record => 
       record.date === today && 
       deptStudents.some(s => s.registerNumber === record.studentRegister)
     );
     
-    const presentOrOnLeaveStudents = new Set(
-        todaysRecords
-            .filter(r => r.status === 'present')
-            .map(r => r.studentRegister)
-    );
+    const latestTodaysRecordsMap = new Map<string, AttendanceRecord>();
+    for (const record of todaysRecords) {
+        if (!latestTodaysRecordsMap.has(record.studentRegister) || new Date(record.timestamp) > new Date(latestTodaysRecordsMap.get(record.studentRegister)!.timestamp)) {
+            latestTodaysRecordsMap.set(record.studentRegister, record);
+        }
+    }
+    const latestTodaysRecords = Array.from(latestTodaysRecordsMap.values());
+    
+    const presentCount = latestTodaysRecords.filter(r => r.status === 'present' && !r.reason).length;
+    const onLeaveCount = latestTodaysRecords.filter(r => r.status === 'present' && r.reason).length;
+    const attendedCount = presentCount + onLeaveCount;
+    const absentCount = totalDeptStudents - attendedCount;
 
-    const presentCount = todaysRecords.filter(r => r.status === 'present' && !r.reason).length;
-    const onLeaveCount = todaysRecords.filter(r => r.status === 'present' && r.reason).length;
-    const absentCount = totalDeptStudents - presentOrOnLeaveStudents.size;
 
-
-    // --- Weekly data calculation (Robust) ---
+    // --- Weekly data calculation (More Robust) ---
     const last7Days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), i)).reverse();
     const weeklyChartData = last7Days.map(day => {
         const dateString = format(day, 'yyyy-MM-dd');
         const dayOfWeek = format(day, 'EEE');
 
-        // Create a new date object for the end of the day to avoid mutation
         const endOfDay = new Date(day);
         endOfDay.setHours(23, 59, 59, 999);
-        const endOfDayTime = endOfDay.getTime();
-
-        // Filter students enrolled by the end of that specific day
-        const studentsOnDay = deptStudents.filter(s => new Date(s.createdAt).getTime() <= endOfDayTime);
+        
+        const studentsOnDay = deptStudents.filter(s => new Date(s.createdAt) <= endOfDay);
         const totalStudentsOnDay = studentsOnDay.length;
 
         const dailyRecords = attendanceRecords.filter(record => 
             record.date === dateString &&
             studentsOnDay.some(s => s.registerNumber === record.studentRegister)
         );
-
-        const dailyPresentOrOnLeaveStudents = new Set(
-            dailyRecords
-                .filter(r => r.status === 'present')
-                .map(r => r.studentRegister)
-        );
         
-        const dailyPresent = dailyRecords.filter(r => r.status === 'present' && !r.reason).length;
-        const dailyOnLeave = dailyRecords.filter(r => r.status === 'present' && r.reason).length;
-        const dailyAbsent = totalStudentsOnDay - dailyPresentOrOnLeaveStudents.size;
+        const latestDailyRecordsMap = new Map<string, AttendanceRecord>();
+        for (const record of dailyRecords) {
+            if (!latestDailyRecordsMap.has(record.studentRegister) || new Date(record.timestamp) > new Date(latestDailyRecordsMap.get(record.studentRegister)!.timestamp)) {
+                latestDailyRecordsMap.set(record.studentRegister, record);
+            }
+        }
+        const latestDailyRecords = Array.from(latestDailyRecordsMap.values());
+
+        const dailyPresent = latestDailyRecords.filter(r => r.status === 'present' && !r.reason).length;
+        const dailyOnLeave = latestDailyRecords.filter(r => r.status === 'present' && r.reason).length;
+        const dailyAttendedCount = dailyPresent + dailyOnLeave;
+        const dailyAbsent = totalStudentsOnDay - dailyAttendedCount;
         
         return {
             date: dayOfWeek,
