@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -35,6 +36,7 @@ export default function MarkAttendancePage() {
   const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
   const [studentToCapture, setStudentToCapture] = useState<Student | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [isCameraReady, setIsCameraReady] = useState(false);
   const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
   const [studentForLeave, setStudentForLeave] = useState<Student | null>(null);
   const [leaveReason, setLeaveReason] = useState("");
@@ -46,6 +48,7 @@ export default function MarkAttendancePage() {
 
   useEffect(() => {
     if (isCameraDialogOpen) {
+      setIsCameraReady(false); // Reset camera ready state
       const getCameraPermission = async () => {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -101,8 +104,11 @@ export default function MarkAttendancePage() {
             status,
             method,
             photoFile,
-            reason,
         };
+
+        if (reason) {
+          recordData.reason = reason;
+        }
 
         if (existingRecord) {
             await updateAttendanceRecord(existingRecord.id, recordData);
@@ -111,7 +117,7 @@ export default function MarkAttendancePage() {
         }
         toast({
             title: 'Attendance Updated',
-            description: `${student.name} marked as ${reason ? 'present (on leave)' : status}.`,
+            description: `${student.name} marked as ${reason ? 'On Leave' : status}.`,
         });
     } catch(error: any) {
         toast({
@@ -303,7 +309,13 @@ export default function MarkAttendancePage() {
                 </DialogHeader>
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-full aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
-                       <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted />
+                       <video 
+                            ref={videoRef} 
+                            className="w-full aspect-video rounded-md" 
+                            autoPlay 
+                            muted
+                            onLoadedMetadata={() => setIsCameraReady(true)}
+                        />
                        <canvas ref={canvasRef} className="hidden" />
                     </div>
                      {hasCameraPermission === false && (
@@ -315,8 +327,13 @@ export default function MarkAttendancePage() {
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setIsCameraDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleCaptureAndMark} disabled={!hasCameraPermission}>
-                        <Camera className="mr-2" /> Capture and Mark Present
+                    <Button onClick={handleCaptureAndMark} disabled={!hasCameraPermission || !isCameraReady}>
+                        {!isCameraReady ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Camera className="mr-2" />
+                        )}
+                        {!isCameraReady ? 'Initializing Camera...' : 'Capture and Mark Present'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
