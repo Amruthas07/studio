@@ -16,7 +16,7 @@ import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
-  saveAttendanceRecord: (record: Partial<Omit<AttendanceRecord, 'id'>> & { studentRegister: string, date: string }, photoFile?: File) => Promise<void>;
+  saveAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl'>, photoFile?: File) => Promise<void>;
   deleteAttendanceRecord: (studentRegister: string, date: string) => Promise<void>;
   getTodaysRecordForStudent: (studentRegister: string, date: string) => AttendanceRecord | undefined;
   loading: boolean;
@@ -67,7 +67,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   }, [firestore, students, studentsLoading]);
 
   const saveAttendanceRecord = useCallback(async (
-    record: Partial<Omit<AttendanceRecord, 'id'>> & { studentRegister: string, date: string },
+    record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl'>,
     photoFile?: File
   ) => {
     if (!firestore || !firebaseApp) throw new Error("Firebase not initialized");
@@ -75,13 +75,11 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const docId = `${record.date}_${record.studentRegister}`;
     const recordDocRef = doc(firestore, 'attendance', docId);
 
-    // The `record` object is now always correctly formatted by `handleAction`.
     const recordForFirestore: { [key: string]: any } = { 
       ...record,
       timestamp: serverTimestamp()
     };
 
-    // Handle photo upload and get URL, adding it to the document
     if (photoFile) {
         const storage = getStorage(firebaseApp);
         const filePath = `attendance/${record.date}/live_${record.studentRegister}_${Date.now()}.jpg`;
@@ -96,7 +94,6 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     }
     
     try {
-        // Use setDoc with merge:true to create or update the record.
         await setDoc(recordDocRef, recordForFirestore, { merge: true });
     } catch(error) {
        console.error("Firestore save error for attendance:", error);
@@ -126,3 +123,5 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     </AttendanceContext.Provider>
   );
 }
+
+    

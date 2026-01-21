@@ -95,9 +95,8 @@ export default function MarkAttendancePage() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  const handleAction = async (student: Student, status: 'present' | 'absent', method: 'manual' | 'live-photo' = 'manual', photoFile?: File, reason?: string) => {
+  const handleAction = async (student: Student, status: 'present' | 'absent', method: 'manual' | 'live-photo' = 'manual', reason?: string) => {
     try {
-        // Start with the base record
         const recordData: any = {
             studentRegister: student.registerNumber,
             studentName: student.name,
@@ -106,17 +105,13 @@ export default function MarkAttendancePage() {
             method,
         };
 
-        // Handle the 'reason' field explicitly
-        if (status === 'present' && reason) {
-            // This is for marking 'On Leave'
+        if (reason) {
             recordData.reason = reason;
         } else {
-            // For any other case (present, absent, or clearing leave),
-            // ensure the reason is an empty string.
-            recordData.reason = '';
+            recordData.reason = ''; 
         }
-        
-        await saveAttendanceRecord(recordData, photoFile);
+
+        await saveAttendanceRecord(recordData);
         
         toast({
             title: 'Attendance Updated',
@@ -128,7 +123,6 @@ export default function MarkAttendancePage() {
             title: 'Update Failed',
             description: error.message || 'An unexpected error occurred.',
         });
-        // re-throw to be caught by handleCaptureAndMark if needed
         throw error;
     }
   }
@@ -170,10 +164,23 @@ export default function MarkAttendancePage() {
 
         if (blob) {
             const photoFile = new File([blob], `${studentToCapture.registerNumber}_${today}.jpg`, { type: 'image/jpeg' });
-            // Wait for the action to complete before closing the dialog
-            await handleAction(studentToCapture, 'present', 'live-photo', photoFile);
             
-            // On success, close the dialog
+            const recordData = {
+                studentRegister: studentToCapture.registerNumber,
+                studentName: studentToCapture.name,
+                date: today,
+                status: 'present' as const,
+                method: 'live-photo' as const,
+                reason: '',
+            };
+
+            await saveAttendanceRecord(recordData, photoFile);
+            
+            toast({
+                title: 'Attendance Updated',
+                description: `${studentToCapture.name} has been marked as present.`,
+            });
+            
             setIsCameraDialogOpen(false);
             setStudentToCapture(null);
         } else {
@@ -183,8 +190,12 @@ export default function MarkAttendancePage() {
                 description: 'Could not create image file from camera.',
             });
         }
-    } catch (error) {
-        // Error toast is already shown in handleAction, so we just log it here.
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Update Failed",
+            description: error.message || "An unexpected error occurred while marking attendance.",
+        });
         console.error("Capture and mark failed:", error);
     }
   }
@@ -198,7 +209,7 @@ export default function MarkAttendancePage() {
         });
         return;
     }
-    await handleAction(studentForLeave, 'present', 'manual', undefined, leaveReason);
+    await handleAction(studentForLeave, 'present', 'manual', leaveReason);
     setIsLeaveDialogOpen(false);
     setStudentForLeave(null);
     setLeaveReason("");
@@ -290,7 +301,7 @@ export default function MarkAttendancePage() {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => handleAction(student, 'present', 'manual', undefined, undefined)}>
+                                            <DropdownMenuItem onClick={() => handleAction(student, 'present', 'manual')}>
                                                 <UserCheck className="mr-2 h-4 w-4" /> Mark Present
                                             </DropdownMenuItem>
                                              <DropdownMenuItem onClick={() => { setStudentToCapture(student); setIsCameraDialogOpen(true); }}>
@@ -339,7 +350,6 @@ export default function MarkAttendancePage() {
                             className="w-full aspect-video rounded-md" 
                             autoPlay 
                             muted
-                            playsInline
                             onLoadedData={() => setIsCameraReady(true)}
                         />
                        <canvas ref={canvasRef} className="hidden" />
@@ -390,3 +400,5 @@ export default function MarkAttendancePage() {
     </div>
   );
 }
+
+    
