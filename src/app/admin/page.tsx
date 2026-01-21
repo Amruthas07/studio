@@ -40,17 +40,25 @@ export default function AdminDashboard() {
     // --- Weekly data calculation ---
     const last7Days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), i)).reverse();
     const weeklyChartData = last7Days.map(day => {
+        // Set time to end of day for accurate comparison
+        day.setHours(23, 59, 59, 999);
+
         const dateString = format(day, 'yyyy-MM-dd');
         const dayOfWeek = format(day, 'EEE');
 
+        // Filter students who were enrolled by the end of that day
+        const studentsOnDay = deptStudents.filter(s => new Date(s.createdAt) <= day);
+        const totalStudentsOnDay = studentsOnDay.length;
+
+        // Filter attendance records for that day and for students enrolled on that day
         const dailyRecords = attendanceRecords.filter(record => 
             record.date === dateString &&
-            deptStudents.some(s => s.registerNumber === record.studentRegister)
+            studentsOnDay.some(s => s.registerNumber === record.studentRegister)
         );
 
         const dailyPresent = dailyRecords.filter(r => r.status === 'present' && !r.reason).length;
         const dailyOnLeave = dailyRecords.filter(r => r.status === 'present' && r.reason).length;
-        const dailyAbsent = totalDeptStudents - dailyPresent - dailyOnLeave;
+        const dailyAbsent = totalStudentsOnDay - dailyPresent - dailyOnLeave;
         
         return {
             date: dayOfWeek,
