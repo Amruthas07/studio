@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, {
@@ -94,12 +93,8 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     }
 
     // Explicitly handle the 'reason' field to prevent 'undefined' values.
-    if (finalRecord.status === 'on_leave') {
-        // If status is 'on_leave', ensure reason is a string.
-        finalRecord.reason = finalRecord.reason || "";
-    } else {
-        // Otherwise, completely remove the reason field before saving.
-        delete finalRecord.reason;
+    if (!finalRecord.reason) {
+      delete finalRecord.reason;
     }
 
     try {
@@ -139,12 +134,8 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     }
     
     // Explicitly handle the 'reason' field for robustness
-    if (finalUpdates.status === 'on_leave') {
-        // Ensure reason is set, even if it's an empty string from the form
-        finalUpdates.reason = finalUpdates.reason || "";
-    } else {
-        // If status is not 'on_leave' (e.g., 'present'), remove the reason field
-        finalUpdates.reason = deleteField();
+    if ('reason' in finalUpdates && !finalUpdates.reason) {
+      finalUpdates.reason = deleteField();
     }
 
 

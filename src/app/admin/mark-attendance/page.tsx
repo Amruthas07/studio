@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -92,17 +91,17 @@ export default function MarkAttendancePage() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  const handleAction = async (student: Student, status: 'present' | 'on_leave' | 'absent', method: 'manual' | 'live-photo' = 'manual', photoFile?: File, reason?: string) => {
+  const handleAction = async (student: Student, status: 'present' | 'absent', method: 'manual' | 'live-photo' = 'manual', photoFile?: File, reason?: string) => {
     const existingRecord = getTodaysRecordForStudent(student.registerNumber, today);
     try {
-        const recordData = {
+        const recordData: any = {
             studentRegister: student.registerNumber,
             studentName: student.name,
             date: today,
             status,
             method,
             photoFile,
-            reason: status === 'on_leave' ? reason : undefined,
+            reason,
         };
 
         if (existingRecord) {
@@ -112,7 +111,7 @@ export default function MarkAttendancePage() {
         }
         toast({
             title: 'Attendance Updated',
-            description: `${student.name} marked as ${status === 'on_leave' ? 'on leave' : status}.`,
+            description: `${student.name} marked as ${reason ? 'present (on leave)' : status}.`,
         });
     } catch(error: any) {
         toast({
@@ -168,7 +167,7 @@ export default function MarkAttendancePage() {
         });
         return;
     }
-    await handleAction(studentForLeave, 'on_leave', 'manual', undefined, leaveReason);
+    await handleAction(studentForLeave, 'present', 'manual', undefined, leaveReason);
     setIsLeaveDialogOpen(false);
     setStudentForLeave(null);
     setLeaveReason("");
@@ -243,11 +242,11 @@ export default function MarkAttendancePage() {
                                     {!record ? (
                                         <span className="text-muted-foreground">Not Marked</span>
                                     ) : (
-                                        <Badge variant={record.status === 'present' ? 'default' : record.status === 'on_leave' ? 'secondary' : 'destructive'}>
-                                            {record.status === 'present' && <CheckCircle className="mr-1.5 h-3.5 w-3.5" />}
-                                            {record.status === 'on_leave' && <LogOut className="mr-1.5 h-3.5 w-3.5" />}
+                                        <Badge variant={record.reason ? 'secondary' : record.status === 'present' ? 'default' : 'destructive'}>
+                                            {record.reason && <LogOut className="mr-1.5 h-3.5 w-3.5" />}
+                                            {record.status === 'present' && !record.reason && <CheckCircle className="mr-1.5 h-3.5 w-3.5" />}
                                             {record.status === 'absent' && <XCircle className="mr-1.5 h-3.5 w-3.5" />}
-                                            {record.status === 'on_leave' ? 'On Leave' : (record.status.charAt(0).toUpperCase() + record.status.slice(1))}
+                                            {record.reason ? 'On Leave' : (record.status.charAt(0).toUpperCase() + record.status.slice(1))}
                                         </Badge>
                                     )}
                                 </TableCell>
