@@ -1,11 +1,11 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserCheck, Camera, MoreVertical, LogOut, CheckCircle, Search, XCircle } from 'lucide-react';
+import { Loader2, UserCheck, MoreVertical, LogOut, CheckCircle, Search, XCircle } from 'lucide-react';
 import { useAttendance } from '@/hooks/use-attendance';
 import { useStudents } from '@/hooks/use-students';
 import { useAuth } from '@/hooks/use-auth';
@@ -17,7 +17,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 
 export default function MarkAttendancePage() {
@@ -32,50 +31,11 @@ export default function MarkAttendancePage() {
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
-  const [studentToCapture, setStudentToCapture] = useState<Student | null>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const [isCameraReady, setIsCameraReady] = useState(false);
   const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
   const [studentForLeave, setStudentForLeave] = useState<Student | null>(null);
   const [leaveReason, setLeaveReason] = useState("");
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
   const today = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
-
-  useEffect(() => {
-    if (isCameraDialogOpen) {
-      setIsCameraReady(false); // Reset camera ready state
-      const getCameraPermission = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          setHasCameraPermission(true);
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        } catch (error) {
-          console.error('Error accessing camera:', error);
-          setHasCameraPermission(false);
-          toast({
-            variant: 'destructive',
-            title: 'Camera Access Denied',
-            description: 'Please enable camera permissions in your browser settings.',
-          });
-          setIsCameraDialogOpen(false);
-        }
-      };
-      getCameraPermission();
-
-      return () => {
-        if(videoRef.current && videoRef.current.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            stream?.getTracks().forEach(track => track.stop());
-        }
-      }
-    }
-  }, [isCameraDialogOpen, toast]);
 
   const departmentStudents = useMemo(() => {
     if (!user?.department || !students) return [];
@@ -95,7 +55,7 @@ export default function MarkAttendancePage() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  const handleAction = async (student: Student, status: 'present' | 'absent', method: 'manual' | 'live-photo' = 'manual', reason?: string) => {
+  const handleAction = async (student: Student, status: 'present' | 'absent', method: 'manual' = 'manual', reason?: string) => {
     const recordData: Omit<AttendanceRecord, 'id' | 'timestamp'> = {
       studentRegister: student.registerNumber,
       studentName: student.name,
@@ -129,52 +89,6 @@ export default function MarkAttendancePage() {
             title: 'Update Failed',
             description: error.message || 'An unexpected error occurred.',
         });
-    }
-  }
-
-  const handleCaptureAndMark = async () => {
-    if (!videoRef.current || !canvasRef.current || !studentToCapture) return;
-
-    const canvas = canvasRef.current;
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    const context = canvas.getContext('2d');
-
-    if (!context) {
-        toast({ variant: 'destructive', title: 'Capture Failed', description: 'Could not get canvas context.' });
-        return;
-    }
-    context.drawImage(videoRef.current, 0, 0);
-
-    try {
-        const photoDataUrl = canvas.toDataURL('image/jpeg');
-        
-        const recordData: Omit<AttendanceRecord, 'id' | 'timestamp'> = {
-            studentRegister: studentToCapture.registerNumber,
-            studentName: studentToCapture.name,
-            date: today,
-            status: 'present' as const,
-            method: 'live-photo' as const,
-            reason: '',
-        };
-        
-        await saveAttendanceRecord(recordData, photoDataUrl);
-
-        toast({
-            title: 'Attendance Marked',
-            description: `${studentToCapture.name} has been marked as present.`,
-        });
-        
-        setIsCameraDialogOpen(false);
-        setStudentToCapture(null);
-
-    } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "Update Failed",
-            description: error.message || "An unexpected error occurred while marking attendance.",
-        });
-        console.error("Capture and mark failed:", error);
     }
   }
 
@@ -218,7 +132,7 @@ export default function MarkAttendancePage() {
             <div className="flex items-center justify-between">
                  <div>
                     <CardTitle>Student List</CardTitle>
-                    <CardDescription>Mark students present, on leave, or capture their photo.</CardDescription>
+                    <CardDescription>Mark students present, on leave, or absent.</CardDescription>
                  </div>
                  <div className="relative w-full max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/70" />
@@ -282,9 +196,6 @@ export default function MarkAttendancePage() {
                                             <DropdownMenuItem onClick={() => handleAction(student, 'present', 'manual')}>
                                                 <UserCheck className="mr-2 h-4 w-4" /> Mark Present
                                             </DropdownMenuItem>
-                                             <DropdownMenuItem onClick={() => { setStudentToCapture(student); setIsCameraDialogOpen(true); }}>
-                                                <Camera className="mr-2 h-4 w-4" /> Mark with Camera
-                                            </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => { setStudentForLeave(student); setIsLeaveDialogOpen(true); }}>
                                                 <LogOut className="mr-2 h-4 w-4" /> Mark On Leave
                                             </DropdownMenuItem>
@@ -312,46 +223,6 @@ export default function MarkAttendancePage() {
             </Table>
         </CardContent>
       </Card>
-
-       <Dialog open={isCameraDialogOpen} onOpenChange={setIsCameraDialogOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Capture Photo for {studentToCapture?.name}</DialogTitle>
-                    <DialogDescription>
-                        Position the student's face in the frame and click capture.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-full aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
-                       <video 
-                            ref={videoRef} 
-                            className="w-full aspect-video rounded-md" 
-                            autoPlay 
-                            muted
-                            onLoadedData={() => setIsCameraReady(true)}
-                        />
-                       <canvas ref={canvasRef} className="hidden" />
-                    </div>
-                     {hasCameraPermission === false && (
-                        <Alert variant="destructive">
-                            <AlertTitle>Camera Access Required</AlertTitle>
-                            <AlertDescription>Please allow camera access to use this feature.</AlertDescription>
-                        </Alert>
-                    )}
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsCameraDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleCaptureAndMark} disabled={!hasCameraPermission || !isCameraReady}>
-                        {!isCameraReady ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Camera className="mr-2" />
-                        )}
-                        {!isCameraReady ? 'Initializing Camera...' : 'Capture and Mark Present'}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
 
         <Dialog open={isLeaveDialogOpen} onOpenChange={setIsLeaveDialogOpen}>
             <DialogContent>
