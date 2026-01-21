@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Camera, UserCheck, Users, XCircle, VideoOff } from 'lucide-react';
+import { Loader2, Camera, UserCheck, Users, XCircle, VideoOff, CheckCircle } from 'lucide-react';
 import { useStudents } from '@/hooks/use-students';
 import { useAttendance } from '@/hooks/use-attendance';
 import type { Student } from '@/lib/types';
@@ -14,6 +14,19 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/hooks/use-auth';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
 
 // Helper to convert a URL to a data URI
 async function urlToDataUri(url: string): Promise<string> {
@@ -40,6 +53,7 @@ type ScanLogEntry = {
 const SCAN_INTERVAL = 3000; // Scan every 3 seconds
 
 export default function LiveAttendancePage() {
+    const { user } = useAuth();
     const { students, loading: studentsLoading } = useStudents();
     const { addAttendanceRecord, getTodaysRecordForStudent } = useAttendance();
     const { toast } = useToast();
@@ -54,6 +68,22 @@ export default function LiveAttendancePage() {
     const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
     const [studentsWithPhotos, setStudentsWithPhotos] = useState<StudentWithPhotoData[]>([]);
     const [scanLog, setScanLog] = useState<ScanLogEntry[]>([]);
+    const [selectedDepartment, setSelectedDepartment] = useState('all');
+    
+    const today = React.useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
+    
+    useEffect(() => {
+        if (user && user.department !== 'all') {
+            setSelectedDepartment(user.department);
+        }
+    }, [user]);
+
+    const departmentStudents = React.useMemo(() => {
+        if (selectedDepartment === 'all') {
+            return students;
+        }
+        return students.filter(s => s.department === selectedDepartment);
+    }, [students, selectedDepartment]);
 
     // Prepare student data with data URIs for their photos
     useEffect(() => {
@@ -123,7 +153,12 @@ export default function LiveAttendancePage() {
     };
 
     const runScan = useCallback(async () => {
-        if (!videoRef.current || !canvasRef.current || studentsWithPhotos.length === 0 || !videoRef.current.srcObject) {
+        const studentsForScan = selectedDepartment === 'all'
+            ? studentsWithPhotos
+            : studentsWithPhotos.filter(s => s.department === selectedDepartment);
+
+        if (!videoRef.current || !canvasRef.current || studentsForScan.length === 0 || !videoRef.current.srcObject) {
+            if (isScanning) logScan('No students enrolled for recognition in this department.', 'info');
             return;
         }
         
@@ -139,7 +174,7 @@ export default function LiveAttendancePage() {
         try {
             const result = await recognizeFace({
                 cameraPhotoUri,
-                students: studentsWithPhotos.map(({registerNumber, name, profilePhotoDataUri}) => ({registerNumber, name, profilePhotoUri: profilePhotoDataUri!}))
+                students: studentsForScan.map(({registerNumber, name, profilePhotoDataUri}) => ({registerNumber, name, profilePhotoUri: profilePhotoDataUri!}))
             });
 
             if (result.matchStatus === 'MATCH' && result.registerNumber) {
@@ -178,7 +213,7 @@ export default function LiveAttendancePage() {
             logScan('An error occurred during scan.', 'error');
         }
 
-    }, [studentsWithPhotos, addAttendanceRecord, getTodaysRecordForStudent, students, toast]);
+    }, [studentsWithPhotos, addAttendanceRecord, getTodaysRecordForStudent, students, toast, selectedDepartment, isScanning]);
 
     // Scanning loop
     useEffect(() => {
@@ -196,6 +231,12 @@ export default function LiveAttendancePage() {
             }
         };
     }, [isScanning, isLoading, hasCameraPermission, runScan]);
+    
+    const getInitials = (name: string) => {
+        const names = name.split(' ');
+        if (names.length > 1) return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+        return name.substring(0, 2).toUpperCase();
+    };
 
     if (studentsLoading) {
         return (
@@ -218,66 +259,144 @@ export default function LiveAttendancePage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Camera Feed</CardTitle>
-                        <CardDescription>Position student faces clearly in the video frame.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="w-full aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
-                            {isScanning ? (
-                                <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                            ) : (
-                                <div className="text-center text-muted-foreground p-4">
-                                    <VideoOff className="mx-auto h-16 w-16" />
-                                    <p className="mt-4">Camera is off. Toggle the switch to start scanning.</p>
-                                </div>
-                            )}
-                             {isLoading && isScanning && (
-                                <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white">
-                                    <Loader2 className="h-8 w-8 animate-spin" />
-                                    <p className="mt-2">{loadingMessage}</p>
-                                </div>
-                            )}
-                            {hasCameraPermission === false && (
-                                <Alert variant="destructive" className="absolute bottom-4 left-4 right-4 w-auto">
-                                    <AlertTitle>Camera Access Required</AlertTitle>
-                                    <AlertDescription>Please allow camera access to use this feature.</AlertDescription>
-                                </Alert>
-                            )}
-                        </div>
-                        <canvas ref={canvasRef} className="hidden" />
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Scan Log</CardTitle>
-                        <CardDescription>A log of the most recent scan events.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        {scanLog.length === 0 && (
-                            <div className="text-center text-muted-foreground py-8">
-                                <Users className="mx-auto h-8 w-8" />
-                                <p className="mt-2">No scans yet. Start the scanner.</p>
-                            </div>
-                        )}
-                        {scanLog.map(log => (
-                            <div key={log.id} className="flex items-start gap-3">
-                                <div className="mt-1">
-                                    {log.status === 'success' && <UserCheck className="h-5 w-5 text-green-500" />}
-                                    {log.status === 'info' && <Camera className="h-5 w-5 text-blue-500" />}
-                                    {log.status === 'error' && <XCircle className="h-5 w-5 text-destructive" />}
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium">{log.message}</p>
-                                    <p className="text-xs text-muted-foreground">{format(log.timestamp, 'hh:mm:ss a')}</p>
-                                </div>
-                                {log.student?.profilePhotoUrl && (
-                                    <Image src={log.student.profilePhotoUrl} alt={log.student.name} width={40} height={40} className="rounded-full" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <div className="flex flex-col gap-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Camera Feed</CardTitle>
+                            <CardDescription>Position student faces clearly in the video frame.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="w-full aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
+                                {isScanning ? (
+                                    <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                                ) : (
+                                    <div className="text-center text-muted-foreground p-4">
+                                        <VideoOff className="mx-auto h-16 w-16" />
+                                        <p className="mt-4">Camera is off. Toggle the switch to start scanning.</p>
+                                    </div>
+                                )}
+                                {isLoading && isScanning && (
+                                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white">
+                                        <Loader2 className="h-8 w-8 animate-spin" />
+                                        <p className="mt-2">{loadingMessage}</p>
+                                    </div>
+                                )}
+                                {hasCameraPermission === false && (
+                                    <Alert variant="destructive" className="absolute bottom-4 left-4 right-4 w-auto">
+                                        <AlertTitle>Camera Access Required</AlertTitle>
+                                        <AlertDescription>Please allow camera access to use this feature.</AlertDescription>
+                                    </Alert>
                                 )}
                             </div>
-                        ))}
+                            <canvas ref={canvasRef} className="hidden" />
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Scan Log</CardTitle>
+                            <CardDescription>A log of the most recent scan events.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3 h-[300px] overflow-y-auto">
+                            {scanLog.length === 0 && (
+                                <div className="text-center text-muted-foreground pt-8">
+                                    <Users className="mx-auto h-8 w-8" />
+                                    <p className="mt-2">No scans yet. Start the scanner.</p>
+                                </div>
+                            )}
+                            {scanLog.map(log => (
+                                <div key={log.id} className="flex items-start gap-3">
+                                    <div className="mt-1">
+                                        {log.status === 'success' && <UserCheck className="h-5 w-5 text-green-500" />}
+                                        {log.status === 'info' && <Camera className="h-5 w-5 text-blue-500" />}
+                                        {log.status === 'error' && <XCircle className="h-5 w-5 text-destructive" />}
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium">{log.message}</p>
+                                        <p className="text-xs text-muted-foreground">{format(log.timestamp, 'hh:mm:ss a')}</p>
+                                    </div>
+                                    {log.student?.profilePhotoUrl && (
+                                        <Image src={log.student.profilePhotoUrl} alt={log.student.name} width={40} height={40} className="rounded-full" />
+                                    )}
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <Card className="h-full">
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle>Registered Students</CardTitle>
+                                <CardDescription>Students in the selected department.</CardDescription>
+                            </div>
+                            {user?.department === 'all' && (
+                                <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                                    <SelectTrigger className="w-[200px]">
+                                        <SelectValue placeholder="Select Department" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Departments</SelectItem>
+                                        <SelectItem value="cs">Computer Science (CS)</SelectItem>
+                                        <SelectItem value="ce">Civil Engineering (CE)</SelectItem>
+                                        <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
+                                        <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
+                                        <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
+                                        <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <ScrollArea className="h-[calc(100vh-250px)]">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Student</TableHead>
+                                        <TableHead className="text-right">Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {departmentStudents.length > 0 ? departmentStudents.map((student) => {
+                                        const record = getTodaysRecordForStudent(student.registerNumber, today);
+                                        return (
+                                        <TableRow key={student.registerNumber}>
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-10 w-10">
+                                                        <AvatarImage src={student.profilePhotoUrl} alt={student.name} />
+                                                        <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <div className="font-medium">{student.name}</div>
+                                                        <div className="text-sm text-muted-foreground">{student.registerNumber}</div>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {record?.status === 'present' ? (
+                                                    <Badge>
+                                                        <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+                                                        Present
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="outline">Pending</Badge>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                        );
+                                    }) : (
+                                        <TableRow>
+                                            <TableCell colSpan={2} className="h-24 text-center">
+                                                No students found for this department.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
                     </CardContent>
                 </Card>
             </div>
