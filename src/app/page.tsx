@@ -20,7 +20,7 @@ export default function Home() {
              </div>
             <div>
               <h1 className="text-4xl font-bold font-headline text-foreground">SmartAttend</h1>
-              <p className="text-lg text-foreground">Smart Attendance Management System</p>
+              <p className="text-2xl text-foreground">Smart Attendance Management System</p>
             </div>
           </div>
           

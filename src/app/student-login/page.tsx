@@ -16,7 +16,7 @@ export default function StudentLoginPage() {
             </div>
             <div>
               <h1 className="text-4xl font-bold font-headline text-foreground">SmartAttend</h1>
-              <p className="text-lg text-foreground">Smart Attendance Management System</p>
+              <p className="text-2xl text-foreground">Smart Attendance Management System</p>
             </div>
         </div>
         <Card className="w-full bg-card/60 backdrop-blur-sm border-border/50 shadow-lg">
