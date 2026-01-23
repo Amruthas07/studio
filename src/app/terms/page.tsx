@@ -12,7 +12,7 @@ export default function TermsPage() {
             <CardTitle className="text-3xl font-bold font-headline text-foreground">Terms and Conditions</CardTitle>
             <CardDescription>Legal terms for using SmartAttend</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 text-muted-foreground prose dark:prose-invert max-w-none">
+          <CardContent className="space-y-4 prose prose-invert max-w-none">
             <p>Welcome to SmartAttend!</p>
             <p>These terms and conditions outline the rules and regulations for the use of SmartAttend's Website, located at this domain.</p>
             <p>By accessing this website we assume you accept these terms and conditions. Do not continue to use SmartAttend if you do not agree to take all of the terms and conditions stated on this page.</p>

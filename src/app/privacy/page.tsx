@@ -12,7 +12,7 @@ export default function PrivacyPage() {
             <CardTitle className="text-3xl font-bold font-headline text-foreground">Privacy Policy</CardTitle>
             <CardDescription>Our policy on data collection and usage.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 text-muted-foreground prose dark:prose-invert max-w-none">
+          <CardContent className="space-y-4 prose prose-invert max-w-none">
             <p>SmartAttend ("us", "we", or "our") operates this website (the "Service").</p>
             <p>This page informs you of our policies regarding the collection, use, and disclosure of personal data when you use our Service and the choices you have associated with that data. We use your data to provide and improve the Service. By using the Service, you agree to the collection and use of information in accordance with this policy.</p>
             <h3 className="text-xl font-semibold text-card-foreground"><strong>Information Collection and Use</strong></h3>
