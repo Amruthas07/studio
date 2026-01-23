@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -67,7 +68,7 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2 text-muted-foreground">
+              <FormLabel className="flex items-center gap-2 text-card-foreground/80">
                 <Mail className="h-4 w-4" />
                 Email Address
               </FormLabel>
@@ -86,7 +87,7 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
           name="password"
           render={({ field }) => (
             <FormItem>
-               <FormLabel className="flex items-center gap-2 text-muted-foreground">
+               <FormLabel className="flex items-center gap-2 text-card-foreground/80">
                 <Lock className="h-4 w-4" />
                 Password
               </FormLabel>
@@ -108,7 +109,7 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
               name="department"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2 text-muted-foreground">
+                  <FormLabel className="flex items-center gap-2 text-card-foreground/80">
                     <Building className="h-4 w-4" />
                     Department
                   </FormLabel>
@@ -145,7 +146,7 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
         </Button>
         
         {isAdminForm && (
-            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground pt-2">
+            <div className="flex items-center justify-center gap-4 text-xs text-card-foreground/60 pt-2">
                 <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4"/>
                     <span>SSL Secured</span>
@@ -157,7 +158,7 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
             </div>
         )}
 
-        <div className="text-center text-sm text-muted-foreground">
+        <div className="text-center text-sm text-card-foreground/80">
             {isAdminForm ? (
                 <>
                 Are you a student?{' '}

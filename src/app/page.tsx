@@ -26,30 +26,30 @@ export default function Home() {
           
           <Card className="bg-card/60 backdrop-blur-sm border-border/50 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-xl font-semibold text-foreground">Educational Institution</CardTitle>
-              <CardDescription>Efficient Smart attendance tracking and reporting for students</CardDescription>
+              <CardTitle className="text-xl font-semibold text-card-foreground">Educational Institution</CardTitle>
+              <CardDescription className="text-card-foreground/80">Efficient Smart attendance tracking and reporting for students</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                <div className="space-y-4 text-sm">
                 <div className="flex items-start gap-4">
-                  <MapPin className="h-5 w-5 mt-1 text-muted-foreground flex-shrink-0" />
+                  <MapPin className="h-5 w-5 mt-1 text-card-foreground/60 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-card-foreground">Campus Address</h4>
-                    <p className="text-muted-foreground">Mysore-Ooty Road</p>
+                    <p className="text-card-foreground/80">Mysore-Ooty Road</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <Phone className="h-5 w-5 mt-1 text-muted-foreground flex-shrink-0" />
+                  <Phone className="h-5 w-5 mt-1 text-card-foreground/60 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-card-foreground">Contact</h4>
-                    <p className="text-muted-foreground">+91 (800) 123-4567</p>
+                    <p className="text-card-foreground/80">+91 (800) 123-4567</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <Mail className="h-5 w-5 mt-1 text-muted-foreground flex-shrink-0" />
+                  <Mail className="h-5 w-5 mt-1 text-card-foreground/60 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-card-foreground">Email</h4>
-                    <p className="text-muted-foreground">info@smartattend.edu</p>
+                    <p className="text-card-foreground/80">info@smartattend.edu</p>
                   </div>
                 </div>
               </div>
@@ -57,16 +57,16 @@ export default function Home() {
               <hr className="border-border/50"/>
 
               <div className="space-y-4">
-                <div className="flex items-center gap-3 text-sm text-foreground">
-                    <div className="p-2 bg-muted rounded-full"><UserCheck className="h-4 w-4 text-muted-foreground" /></div>
+                <div className="flex items-center gap-3 text-sm text-card-foreground">
+                    <div className="p-2 bg-muted rounded-full"><UserCheck className="h-4 w-4 text-card-foreground/80" /></div>
                     <span>Simplified Manual Entry</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-foreground">
-                    <div className="p-2 bg-muted rounded-full"><ShieldCheck className="h-4 w-4 text-muted-foreground" /></div>
+                <div className="flex items-center gap-3 text-sm text-card-foreground">
+                    <div className="p-2 bg-muted rounded-full"><ShieldCheck className="h-4 w-4 text-card-foreground/80" /></div>
                     <span>Secure role-based access</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-foreground">
-                    <div className="p-2 bg-muted rounded-full"><BarChart className="h-4 w-4 text-muted-foreground" /></div>
+                <div className="flex items-center gap-3 text-sm text-card-foreground">
+                    <div className="p-2 bg-muted rounded-full"><BarChart className="h-4 w-4 text-card-foreground/80" /></div>
                     <span>Comprehensive reporting</span>
                 </div>
               </div>
@@ -78,10 +78,10 @@ export default function Home() {
         <div className="flex items-center justify-center">
             <Card className="w-full max-w-md bg-card/60 backdrop-blur-sm border-border/50 shadow-lg">
                 <CardHeader>
-                <CardTitle className="text-2xl font-bold text-foreground">
+                <CardTitle className="text-2xl font-bold text-card-foreground">
                     Administrator Login
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-card-foreground/80">
                     Access the attendance management system
                 </CardDescription>
                 </CardHeader>

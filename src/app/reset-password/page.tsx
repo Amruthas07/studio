@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -52,8 +53,8 @@ export default function ResetPasswordPage() {
 
       <Card className="w-full max-w-md bg-card/60 backdrop-blur-sm border border-border/50 shadow-lg z-10">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-3xl text-foreground">Reset Password</CardTitle>
-          <CardDescription>
+          <CardTitle className="font-headline text-3xl text-card-foreground">Reset Password</CardTitle>
+          <CardDescription className="text-card-foreground/80">
             Enter your email to receive a password reset link.
           </CardDescription>
         </CardHeader>
@@ -65,7 +66,7 @@ export default function ResetPasswordPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-card-foreground/80">Email</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="name@example.com"
@@ -87,7 +88,7 @@ export default function ResetPasswordPage() {
                 )}
               </Button>
               <div className="text-center text-sm">
-                <Link href="/" className="text-muted-foreground hover:text-primary underline">
+                <Link href="/" className="text-card-foreground/80 hover:text-primary underline">
                   Back to Sign In
                 </Link>
               </div>

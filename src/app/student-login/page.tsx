@@ -21,10 +21,10 @@ export default function StudentLoginPage() {
         </div>
         <Card className="w-full bg-card/60 backdrop-blur-sm border-border/50 shadow-lg">
             <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-foreground">
+            <CardTitle className="text-2xl font-bold text-card-foreground">
                 Student Login
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-card-foreground/80">
                 Enter your credentials to access your attendance
             </CardDescription>
             </CardHeader>
