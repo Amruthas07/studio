@@ -35,8 +35,9 @@ export default function StudentLoginPage() {
       </div>
 
       <footer className="absolute bottom-4 text-center w-full text-xs text-foreground z-10">
-        <div className="flex justify-center gap-4 mb-2">
+        <div className="flex justify-center items-center gap-4 mb-2">
             <Link href="/terms" className="hover:text-primary">Terms & Conditions</Link>
+            <span className="text-muted-foreground">|</span>
             <Link href="/privacy" className="hover:text-primary">Privacy Policy</Link>
         </div>
         <p>&copy; 2026 SmartAttend. All rights reserved.</p>
