@@ -1,7 +1,7 @@
 
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu } from 'lucide-react';
+import { Menu, BrainCircuit } from 'lucide-react';
 import Link from 'next/link';
 import { UserNav } from './user-nav';
 import type { ReactNode } from 'react';
@@ -10,9 +10,9 @@ function Logo() {
   return (
     <div className="flex items-center gap-2 text-lg font-semibold md:text-base text-primary-foreground">
       <div className="bg-primary p-2 rounded-md">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary-foreground))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-scan-face"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01"/><path d="M15 9h.01"/></svg>
+        <BrainCircuit className="w-5 h-5 text-primary-foreground" />
       </div>
-      <span className="font-headline text-primary-foreground">FaceAttend</span>
+      <span className="font-headline text-primary-foreground">SmartAttend</span>
     </div>
   )
 }

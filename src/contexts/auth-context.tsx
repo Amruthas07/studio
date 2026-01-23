@@ -41,14 +41,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem('faceattend_user');
+      const storedUser = localStorage.getItem('smartattend_user');
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
       }
     } catch (error) {
       console.error('Failed to parse user from localStorage', error);
-      localStorage.removeItem('faceattend_user');
+      localStorage.removeItem('smartattend_user');
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             dateOfBirth: new Date(),
           };
           setUser(adminUser);
-          localStorage.setItem('faceattend_user', JSON.stringify(adminUser));
+          localStorage.setItem('smartattend_user', JSON.stringify(adminUser));
           router.push('/admin');
           return;
         } else {
@@ -115,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             dateOfBirth: foundStudent.dateOfBirth?.toDate ? foundStudent.dateOfBirth.toDate() : new Date(foundStudent.dateOfBirth),
         };
         setUser(studentUser);
-        localStorage.setItem('faceattend_user', JSON.stringify(studentUser));
+        localStorage.setItem('smartattend_user', JSON.stringify(studentUser));
         router.push('/student');
       } else {
         throw new Error('Invalid email or password.');
@@ -129,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('faceattend_user');
+    localStorage.removeItem('smartattend_user');
     router.push('/');
   };
 
