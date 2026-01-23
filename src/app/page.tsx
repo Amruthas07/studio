@@ -2,7 +2,7 @@
 import { LoginFormDynamic } from '@/components/auth/login-form-dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Mail, MapPin, Phone, ShieldCheck, Cpu, BarChart, BrainCircuit } from 'lucide-react';
+import { Mail, MapPin, Phone, ShieldCheck, UserCheck, BarChart, BrainCircuit } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
@@ -20,14 +20,14 @@ export default function Home() {
              </div>
             <div>
               <h1 className="text-3xl font-bold font-headline text-foreground">SmartAttend</h1>
-              <p className="text-foreground">AI-Powered Attendance Management</p>
+              <p className="text-foreground">Manual Attendance Management System</p>
             </div>
           </div>
           
           <Card className="bg-card/60 backdrop-blur-sm border-border/50 shadow-lg">
             <CardHeader>
               <CardTitle className="text-xl font-semibold text-foreground">Educational Institution</CardTitle>
-              <CardDescription>Advanced facial recognition technology for seamless attendance tracking</CardDescription>
+              <CardDescription>Efficient manual attendance tracking and reporting for students</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                <div className="space-y-4 text-sm">
@@ -58,8 +58,8 @@ export default function Home() {
 
               <div className="space-y-4">
                 <div className="flex items-center gap-3 text-sm text-foreground">
-                    <div className="p-2 bg-muted rounded-full"><Cpu className="h-4 w-4 text-muted-foreground" /></div>
-                    <span>Real-time face recognition</span>
+                    <div className="p-2 bg-muted rounded-full"><UserCheck className="h-4 w-4 text-muted-foreground" /></div>
+                    <span>Simplified Manual Entry</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-foreground">
                     <div className="p-2 bg-muted rounded-full"><ShieldCheck className="h-4 w-4 text-muted-foreground" /></div>
