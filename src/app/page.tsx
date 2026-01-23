@@ -20,14 +20,14 @@ export default function Home() {
              </div>
             <div>
               <h1 className="text-3xl font-bold font-headline text-foreground">SmartAttend</h1>
-              <p className="text-foreground">Manual Attendance Management System</p>
+              <p className="text-foreground">Smart Attendance Management System</p>
             </div>
           </div>
           
           <Card className="bg-card/60 backdrop-blur-sm border-border/50 shadow-lg">
             <CardHeader>
               <CardTitle className="text-xl font-semibold text-foreground">Educational Institution</CardTitle>
-              <CardDescription>Efficient manual attendance tracking and reporting for students</CardDescription>
+              <CardDescription>Efficient Smart attendance tracking and reporting for students</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                <div className="space-y-4 text-sm">
