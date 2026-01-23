@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from "react"
@@ -38,7 +37,7 @@ const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   email: z.string().email(),
-  contact: z.string().length(10, "Contact number must be exactly 10 digits."),
+  contact: z.string().length(10, "Contact number must be exactly 10 digits.").regex(/^[0-9]+$/, "Contact number must only contain digits."),
   fatherName: z.string().min(2, "Father's name is required."),
   motherName: z.string().min(2, "Mother's name is required."),
   dateOfBirth: z.date({
