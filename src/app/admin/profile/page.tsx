@@ -60,7 +60,7 @@ export default function AdminProfilePage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline">Institution Profile</h1>
-        <p className="text-muted-foreground">Information about the college and department.</p>
+        <p className="text-foreground">Information about the college and department.</p>
       </div>
 
       <Card className='overflow-hidden'>
