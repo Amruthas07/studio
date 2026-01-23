@@ -97,7 +97,7 @@ export default function Home() {
             <Link href="/terms" className="hover:text-primary">Terms & Conditions</Link>
             <Link href="/privacy" className="hover:text-primary">Privacy Policy</Link>
         </div>
-        <p>&copy; 2024 SmartAttend. All rights reserved.</p>
+        <p>&copy; 2026 SmartAttend. All rights reserved.</p>
       </footer>
     </main>
   );
