@@ -92,6 +92,13 @@ export default function Home() {
         </div>
 
       </div>
+       <footer className="absolute bottom-4 text-center w-full text-xs text-muted-foreground z-10">
+        <div className="flex justify-center gap-4 mb-2">
+            <Link href="/terms" className="hover:text-primary">Terms & Conditions</Link>
+            <Link href="/privacy" className="hover:text-primary">Privacy Policy</Link>
+        </div>
+        <p>&copy; 2024 SmartAttend. All rights reserved.</p>
+      </footer>
     </main>
   );
 }

@@ -2,6 +2,7 @@
 import { LoginFormDynamic } from '@/components/auth/login-form-dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BrainCircuit } from 'lucide-react';
+import Link from 'next/link';
 
 export default function StudentLoginPage() {
   return (
@@ -32,6 +33,14 @@ export default function StudentLoginPage() {
             </CardContent>
         </Card>
       </div>
+
+      <footer className="absolute bottom-4 text-center w-full text-xs text-muted-foreground z-10">
+        <div className="flex justify-center gap-4 mb-2">
+            <Link href="/terms" className="hover:text-primary">Terms & Conditions</Link>
+            <Link href="/privacy" className="hover:text-primary">Privacy Policy</Link>
+        </div>
+        <p>&copy; 2024 SmartAttend. All rights reserved.</p>
+      </footer>
     </main>
   );
 }
