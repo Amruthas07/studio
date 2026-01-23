@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -55,7 +56,7 @@ export default function ReportsPage() {
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Export Attendance Reports
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-foreground">
           Generate and download attendance reports for the {user?.department.toUpperCase()} department.
         </p>
       </div>

@@ -92,7 +92,7 @@ export default function StudentsPage() {
           <h1 className="text-3xl font-bold tracking-tight font-headline">
             Student Management
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-foreground">
             View, add, and manage student records for the {user?.department.toUpperCase()} department.
           </p>
         </div>

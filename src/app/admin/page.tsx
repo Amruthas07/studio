@@ -1,3 +1,4 @@
+
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Users, UserCheck, UserX, LogOut } from "lucide-react";
@@ -115,7 +116,7 @@ export default function AdminDashboard() {
            <h1 className="text-3xl font-bold tracking-tight font-headline">
             {departmentDisplay} Dashboard
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-foreground">
             Daily and weekly attendance overview for {departmentDisplay}.
           </p>
         </div>

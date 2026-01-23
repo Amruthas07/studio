@@ -123,7 +123,7 @@ export default function FaceEnrollmentPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight font-headline">Face Enrollment</h1>
-          <p className="text-muted-foreground">Upload a student's photo to enroll their face for attendance.</p>
+          <p className="text-foreground">Upload a student's photo to enroll their face for attendance.</p>
         </div>
         <Select onValueChange={handleStudentSelect} value={selectedStudent?.registerNumber ?? ""}>
           <SelectTrigger className="w-[280px]">

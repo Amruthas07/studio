@@ -1,3 +1,4 @@
+
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,7 +29,7 @@ export default function StudentAttendancePage() {
                 <h1 className="text-3xl font-bold tracking-tight font-headline">
                     My Attendance
                 </h1>
-                <p className="text-muted-foreground">
+                <p className="text-foreground">
                     Your complete attendance history and analysis.
                 </p>
             </div>

@@ -40,7 +40,7 @@ export default function StudentProfilePage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline">My Profile</h1>
-        <p className="text-muted-foreground">Your personal and academic information.</p>
+        <p className="text-foreground">Your personal and academic information.</p>
       </div>
 
       <Card>

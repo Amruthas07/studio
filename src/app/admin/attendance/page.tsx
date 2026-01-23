@@ -80,7 +80,7 @@ export default function AdminAttendancePage() {
                     <h1 className="text-3xl font-bold tracking-tight font-headline">
                         Attendance Log
                     </h1>
-                    <p className="text-muted-foreground">
+                    <p className="text-foreground">
                         A complete history of all attendance records for the {user.department.toUpperCase()} department.
                     </p>
                 </div>

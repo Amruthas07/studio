@@ -122,7 +122,7 @@ export default function MarkAttendancePage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline">Mark Attendance</h1>
-        <p className="text-muted-foreground">
+        <p className="text-foreground">
           Manage attendance for {user?.department.toUpperCase()} on {format(new Date(), 'PPP')}.
         </p>
       </div>
