@@ -9,11 +9,11 @@ import { useAuth } from '@/hooks/use-auth';
 
 function Logo() {
   return (
-    <div className="flex items-center gap-2 text-lg font-semibold md:text-base text-primary-foreground">
+    <div className="flex items-center gap-2 text-lg font-semibold md:text-base">
       <div className="bg-primary p-2 rounded-md">
         <BrainCircuit className="w-5 h-5 text-primary-foreground" />
       </div>
-      <span className="font-headline text-primary-foreground">SmartAttend</span>
+      <span className="font-headline text-primary">SmartAttend</span>
     </div>
   )
 }
