@@ -14,7 +14,7 @@ interface AuthUser extends Omit<Student, 'department'> {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, pass: string, department?: string) => Promise<void>;
+  login: (email: string, pass: string, department?: string, isAdminForm?: boolean) => Promise<void>;
   logout: () => void;
 }
 

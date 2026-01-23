@@ -49,7 +49,7 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-        await login(values.email, values.password, values.department);
+        await login(values.email, values.password, values.department, isAdminForm);
     } catch (error: any) {
       toast({
         variant: 'destructive',
