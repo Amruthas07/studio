@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,12 +6,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { Loader2, CheckCircle, LogOut, XCircle } from "lucide-react";
 import React from "react";
 import { useAttendance } from "@/hooks/use-attendance";
+import { StudentAttendanceAnalysis } from "@/components/student/student-attendance-analysis";
 
 export default function StudentAttendancePage() {
     const { user, loading } = useAuth();
-    const { attendanceRecords } = useAttendance();
+    const { attendanceRecords, loading: attendanceLoading } = useAttendance();
     
-    if (loading || !user) {
+    if (loading || attendanceLoading || !user) {
         return (
           <div className="flex h-full w-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -29,9 +29,15 @@ export default function StudentAttendancePage() {
                     My Attendance
                 </h1>
                 <p className="text-muted-foreground">
-                    Your complete attendance history.
+                    Your complete attendance history and analysis.
                 </p>
             </div>
+
+            <StudentAttendanceAnalysis 
+                studentRecords={studentAttendanceRecords} 
+                allRecords={attendanceRecords} 
+            />
+
             <Card>
                 <CardHeader>
                     <CardTitle>Attendance Records</CardTitle>
