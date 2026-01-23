@@ -9,7 +9,7 @@ export default function TermsPage() {
       <div className="relative w-full max-w-4xl z-10 py-12">
         <Card className="bg-card/60 backdrop-blur-sm border-border/50 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-3xl font-bold font-headline text-foreground">Terms and Conditions</CardTitle>
+            <CardTitle className="text-3xl font-bold font-headline text-primary">Terms and Conditions</CardTitle>
             <CardDescription className="text-primary">Legal terms for using SmartAttend</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 prose prose-invert max-w-none">

@@ -9,7 +9,7 @@ export default function PrivacyPage() {
       <div className="relative w-full max-w-4xl z-10 py-12">
         <Card className="bg-card/60 backdrop-blur-sm border-border/50 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-3xl font-bold font-headline text-foreground">Privacy Policy</CardTitle>
+            <CardTitle className="text-3xl font-bold font-headline text-primary">Privacy Policy</CardTitle>
             <CardDescription className="text-primary">Our policy on data collection and usage.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 prose prose-invert max-w-none">
