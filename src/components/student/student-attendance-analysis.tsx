@@ -10,28 +10,46 @@ import { cn } from '@/lib/utils';
 interface StudentAttendanceAnalysisProps {
   studentRecords: AttendanceRecord[];
   allRecords: AttendanceRecord[];
+  enrollmentDate: Date;
 }
 
-export function StudentAttendanceAnalysis({ studentRecords, allRecords }: StudentAttendanceAnalysisProps) {
+export function StudentAttendanceAnalysis({ studentRecords, allRecords, enrollmentDate }: StudentAttendanceAnalysisProps) {
     const { percentage, totalDays, presentDays } = React.useMemo(() => {
-        // Find all unique days someone in the entire institution had a record.
-        const uniqueWorkingDays = new Set(allRecords.map(r => r.date)).size;
+        // 1. Get all unique days where attendance was taken FOR ANYONE.
+        const allWorkingDayStrings = new Set(allRecords.map(r => r.date));
 
-        // Find all unique days this student was present or on leave.
+        // 2. Filter these working days to only include those since the student's enrollment.
+        // We compare dates by resetting time part to avoid timezone issues.
+        const enrollmentDayStart = new Date(enrollmentDate);
+        enrollmentDayStart.setHours(0, 0, 0, 0);
+
+        const studentWorkingDays = Array.from(allWorkingDayStrings).filter(dateStr => {
+            // The date string is YYYY-MM-DD. Adding T00:00:00 makes it a clean local date.
+            const recordDate = new Date(`${dateStr}T00:00:00`);
+            return recordDate >= enrollmentDayStart;
+        });
+
+        const totalDays = studentWorkingDays.length;
+
+        // 3. Find all unique days THIS student was present or on leave.
         const presentAndOnLeaveDays = new Set(
             studentRecords
-                .filter(r => r.status === 'present') // 'On Leave' is also status 'present' but with a reason
+                .filter(r => r.status === 'present') // 'On Leave' is also 'present' but with a reason
                 .map(r => r.date)
         ).size;
         
-        if (uniqueWorkingDays === 0) {
+        if (totalDays === 0) {
             return { percentage: 100, totalDays: 0, presentDays: 0 };
         }
 
-        const attendancePercentage = Math.round((presentAndOnLeaveDays / uniqueWorkingDays) * 100);
+        const attendancePercentage = Math.round((presentAndOnLeaveDays / totalDays) * 100);
 
-        return { percentage: attendancePercentage > 100 ? 100 : attendancePercentage, totalDays: uniqueWorkingDays, presentDays: presentAndOnLeaveDays };
-    }, [studentRecords, allRecords]);
+        return { 
+            percentage: attendancePercentage > 100 ? 100 : attendancePercentage, 
+            totalDays: totalDays, 
+            presentDays: presentAndOnLeaveDays 
+        };
+    }, [studentRecords, allRecords, enrollmentDate]);
 
     const getStatus = () => {
         if (percentage >= 75) {

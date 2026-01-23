@@ -36,6 +36,7 @@ export default function StudentAttendancePage() {
             <StudentAttendanceAnalysis 
                 studentRecords={studentAttendanceRecords} 
                 allRecords={attendanceRecords} 
+                enrollmentDate={user.createdAt}
             />
 
             <Card>
