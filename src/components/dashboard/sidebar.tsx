@@ -2,7 +2,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, FileClock, User, ShieldCheck, Building, BrainCircuit, UserCheck } from 'lucide-react';
+import { LayoutDashboard, Users, FileClock, User, ShieldCheck, Building, BrainCircuit, UserCheck, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -24,6 +24,8 @@ const adminNavItems = [
     { href: '/admin/students', icon: Users, label: 'Students' },
     { href: '/admin/mark-attendance', icon: UserCheck, label: 'Mark Attendance' },
     { href: '/admin/attendance', icon: FileClock, label: 'Attendance Log' },
+    { href: '/admin/reports', icon: FileText, label: 'Reports' },
+    { href: '/admin/face-enrollment', icon: Users, label: 'Face Enrollment'}
 ];
 
 const studentNavItems = [
@@ -31,11 +33,24 @@ const studentNavItems = [
     { href: '/student/attendance', icon: ShieldCheck, label: 'My Attendance' },
 ];
 
+const teacherNavItems = [
+    { href: '/teacher/profile', icon: User, label: 'My Profile' },
+];
+
+function getNavItems(role?: 'admin' | 'student' | 'teacher') {
+    switch (role) {
+        case 'admin': return adminNavItems;
+        case 'student': return studentNavItems;
+        case 'teacher': return teacherNavItems;
+        default: return [];
+    }
+}
+
 export function Sidebar() {
     const pathname = usePathname();
     const { user } = useAuth();
     
-    const navItems = user?.role === 'admin' ? adminNavItems : studentNavItems;
+    const navItems = getNavItems(user?.role);
 
     return (
         <div className="hidden border-r bg-sidebar-bg md:block text-muted-foreground">
@@ -53,7 +68,7 @@ export function Sidebar() {
                                 href={item.href}
                                 className={cn(
                                     "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-accent hover:text-accent-foreground",
-                                    pathname.startsWith(item.href) && item.href !== '/admin' && !['/admin/students', '/admin/face-enrollment', '/admin/mark-attendance', '/admin/attendance', '/admin/reports'].includes(item.href) ? "bg-accent text-accent-foreground" : pathname === item.href ? "bg-accent text-accent-foreground" : ""
+                                    pathname === item.href ? "bg-accent text-accent-foreground" : ""
                                 )}
                             >
                                 <item.icon className="h-4 w-4" />
@@ -71,7 +86,7 @@ export function MobileSidebarContent() {
     const pathname = usePathname();
     const { user } = useAuth();
     
-    const navItems = user?.role === 'admin' ? adminNavItems : studentNavItems;
+    const navItems = getNavItems(user?.role);
 
      return (
         <nav className="grid gap-2 text-lg font-medium p-4 text-muted-foreground">
@@ -87,7 +102,7 @@ export function MobileSidebarContent() {
                     href={item.href}
                     className={cn(
                         "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 hover:text-accent-foreground hover:bg-accent",
-                         pathname.startsWith(item.href) && item.href !== '/admin' && !['/admin/students', '/admin/face-enrollment', '/admin/mark-attendance', '/admin/attendance', '/admin/reports'].includes(item.href) ? "bg-accent text-accent-foreground" : pathname === item.href ? "bg-accent text-accent-foreground" : ""
+                         pathname === item.href ? "bg-accent text-accent-foreground" : ""
                     )}
                 >
                     <item.icon className="h-5 w-5" />

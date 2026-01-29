@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
@@ -12,7 +13,7 @@ import {
 import { useFirestore } from '@/hooks/use-firebase';
 import type { Student } from '@/lib/types';
 
-type Role = 'admin' | 'student';
+type Role = 'admin' | 'student' | 'teacher';
 
 type Department = 'cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec';
 
@@ -24,7 +25,7 @@ interface AuthUser extends Omit<Student, 'department'> {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, pass: string, department?: string, isAdminForm?: boolean) => Promise<void>;
+  login: (email: string, pass: string, role: Role, department?: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -53,15 +54,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, pass: string, department?: string, isAdminForm?: boolean) => {
+  const login = async (email: string, pass: string, role: Role, department?: string) => {
     setLoading(true);
     
     try {
-      const isAttemptingAdminLogin = email.toLowerCase() === 'jsspn324@gmail.com';
-
-      if (isAdminForm) {
-          if (!isAttemptingAdminLogin) {
-              throw new Error("This form is for administrators only. Please use the Student Login page.");
+      if (role === 'admin') {
+          if (email.toLowerCase() !== 'jsspn324@gmail.com') {
+              throw new Error("Invalid admin email address.");
           }
           if (pass === '571301') {
             const adminUser: AuthUser = {
@@ -85,11 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             throw new Error('Invalid admin credentials.');
           }
-      } else { // Student Login
-          if (isAttemptingAdminLogin) {
-              throw new Error("Administrators must use the Admin Login page.");
-          }
-          
+      } else if (role === 'student') {
           if (!firestore) {
               throw new Error("Database service is not ready.");
           }
@@ -122,6 +117,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             router.push('/student');
           } else {
             throw new Error('Invalid email or password.');
+          }
+      } else if (role === 'teacher') {
+          if (!firestore) {
+              throw new Error("Database service is not ready.");
+          }
+          const teachersRef = collection(firestore, 'teachers');
+          const q = query(teachersRef, where('email', '==', email.toLowerCase()), limit(1));
+          const querySnapshot = await getDocs(q);
+
+          if (querySnapshot.empty) {
+              throw new Error("No teacher found with this email address.");
+          }
+
+          const teacherDoc = querySnapshot.docs[0];
+          const foundTeacher = teacherDoc.data();
+
+          // NOTE: In a real app, passwords should be hashed. This is for prototype purposes.
+          if (foundTeacher && pass === foundTeacher.password) {
+                const teacherUser: AuthUser = {
+                  name: foundTeacher.name,
+                  email: foundTeacher.email,
+                  role: 'teacher',
+                  department: foundTeacher.department,
+                  // Filling in dummy data to satisfy the `AuthUser` type which extends `Student`
+                  registerNumber: foundTeacher.teacherId || foundTeacher.email,
+                  fatherName: 'N/A',
+                  motherName: 'N/A',
+                  profilePhotoUrl: foundTeacher.profilePhotoUrl || 'https://picsum.photos/seed/teacher/100/100',
+                  contact: 'N/A',
+                  createdAt: foundTeacher.createdAt?.toDate ? foundTeacher.createdAt.toDate() : new Date(foundTeacher.createdAt),
+                  dateOfBirth: new Date(), // dummy date
+                };
+              setUser(teacherUser);
+              localStorage.setItem('smartattend_user', JSON.stringify(teacherUser));
+              router.push('/teacher');
+          } else {
+              throw new Error('Invalid email or password.');
           }
       }
     } catch(error) {

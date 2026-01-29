@@ -32,7 +32,14 @@ export function UserNav() {
     return name.substring(0, 2).toUpperCase();
   };
   
-  const profileLink = user.role === 'admin' ? '/admin/profile' : '/student/profile';
+  let profileLink = '/';
+  if (user.role === 'admin') {
+    profileLink = '/admin/profile';
+  } else if (user.role === 'student') {
+    profileLink = '/student/profile';
+  } else if (user.role === 'teacher') {
+    profileLink = '/teacher/profile';
+  }
 
   return (
     <DropdownMenu>

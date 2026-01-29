@@ -116,6 +116,59 @@
         "method",
         "timestamp"
       ]
+    },
+    "teacher": {
+      "title": "Teacher",
+      "description": "Represents a teacher or faculty member.",
+      "type": "object",
+      "properties": {
+        "teacherId": {
+          "type": "string",
+          "description": "Unique ID for the teacher, can be their email."
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the teacher."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The teacher's email address, used for login."
+        },
+        "password": {
+          "type": "string",
+          "description": "The teacher's password for login."
+        },
+        "department": {
+          "type": "string",
+          "description": "The department the teacher belongs to.",
+          "enum": [
+            "cs",
+            "ce",
+            "me",
+            "ee",
+            "mce",
+            "ec"
+          ]
+        },
+        "profilePhotoUrl": {
+          "type": "string",
+          "description": "URL of the teacher's profile photo."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the teacher was added."
+        }
+      },
+      "required": [
+        "teacherId",
+        "name",
+        "email",
+        "password",
+        "department",
+        "createdAt"
+      ]
     }
   },
   "auth": {
@@ -133,6 +186,12 @@
         "$ref": "#/entities/attendanceRecord"
       },
       "description": "Stores individual attendance records."
+    },
+    "/teachers/{teacherId}": {
+      "schema": {
+        "$ref": "#/entities/teacher"
+      },
+      "description": "Stores individual teacher documents, keyed by their email."
     }
   }
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -51,8 +52,9 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    const role = isAdminForm ? 'admin' : (pathname === '/teacher-login' ? 'teacher' : 'student');
     try {
-        await login(values.email, values.password, values.department, isAdminForm);
+        await login(values.email, values.password, role, values.department);
     } catch (error: any) {
       toast({
         variant: 'destructive',

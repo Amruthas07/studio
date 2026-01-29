@@ -26,6 +26,15 @@ export interface AttendanceRecord {
   reason?: string;
 }
 
+export interface Teacher {
+  teacherId: string;
+  name: string;
+  department: 'cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec';
+  profilePhotoUrl: string;
+  email: string;
+  createdAt: Date;
+}
+
 export interface RecentExport {
   fileName: string;
   generatedAt: Date;

@@ -4,7 +4,7 @@ import { useContext } from 'react';
 import { AuthContext } from '@/contexts/auth-context';
 import type { Student } from '@/lib/types';
 
-type Role = 'admin' | 'student';
+type Role = 'admin' | 'student' | 'teacher';
 
 interface AuthUser extends Omit<Student, 'department'> {
     role: Role;
@@ -14,7 +14,7 @@ interface AuthUser extends Omit<Student, 'department'> {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, pass: string, department?: string, isAdminForm?: boolean) => Promise<void>;
+  login: (email: string, pass: string, role: Role, department?: string) => Promise<void>;
   logout: () => void;
 }
 

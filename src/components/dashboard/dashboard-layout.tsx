@@ -10,7 +10,7 @@ import { Header } from './header';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  allowedRoles: ('admin' | 'student')[];
+  allowedRoles: ('admin' | 'student' | 'teacher')[];
 }
 
 export function DashboardLayout({ children, allowedRoles }: DashboardLayoutProps) {
