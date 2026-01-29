@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -20,6 +19,7 @@ import { Loader2, Mail, Lock, Building, Shield, Fingerprint } from 'lucide-react
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { usePathname } from 'next/navigation';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -34,6 +34,8 @@ export interface LoginFormProps {
 export function LoginForm({ isAdminForm }: LoginFormProps) {
   const { login, loading } = useAuth();
   const { toast } = useToast();
+  const pathname = usePathname();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -159,18 +161,37 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
         )}
 
         <div className="text-center text-sm text-card-foreground/80">
-            {isAdminForm ? (
+            {pathname === '/' ? (
                 <>
-                Are you a student?{' '}
+                Are you a student or teacher?{' '}
                 <Link href="/student-login" className="font-semibold text-primary hover:underline">
                     Student Login
+                </Link>
+                {' | '}
+                <Link href="/teacher-login" className="font-semibold text-primary hover:underline">
+                    Teacher Login
+                </Link>
+                </>
+            ) : pathname === '/student-login' ? (
+                 <>
+                Are you an administrator or teacher?{' '}
+                <Link href="/" className="font-semibold text-primary hover:underline">
+                    Admin Login
+                </Link>
+                 {' | '}
+                <Link href="/teacher-login" className="font-semibold text-primary hover:underline">
+                    Teacher Login
                 </Link>
                 </>
             ) : (
                  <>
-                Are you an administrator?{' '}
+                Are you an administrator or student?{' '}
                 <Link href="/" className="font-semibold text-primary hover:underline">
                     Admin Login
+                </Link>
+                 {' | '}
+                <Link href="/student-login" className="font-semibold text-primary hover:underline">
+                    Student Login
                 </Link>
                 </>
             )}
