@@ -42,7 +42,7 @@ export default function AdminProfilePage() {
         address: "123 Innovation Drive, Electronic City, Bengaluru",
         contact: "+1 (800) 123-4567",
         email: "info@smartattend.edu",
-        coverImageUrl: "https://picsum.photos/seed/college-campus/1920/1080"
+        coverImageUrl: "https://picsum.photos/seed/university/1920/1080"
     };
 
   const loading = authLoading || profileLoading;
@@ -70,11 +70,11 @@ export default function AdminProfilePage() {
       <Card className='overflow-hidden'>
         <div className='relative h-60 w-full'>
             <Image 
-                src={collegeDetails.coverImageUrl || "https://picsum.photos/seed/college-campus/1920/1080"}
+                src={collegeDetails.coverImageUrl || "https://picsum.photos/seed/university/1920/1080"}
                 alt={`${collegeDetails.name} campus`}
                 fill
                 className='object-cover'
-                data-ai-hint="college campus"
+                data-ai-hint="university building"
                 priority
             />
         </div>
