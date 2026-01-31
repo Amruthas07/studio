@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
@@ -59,13 +58,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     try {
       if (role === 'admin') {
-          if (email.toLowerCase() !== 'jsspn324@gmail.com') {
+          if (email.toLowerCase() !== 'apdd46@gmail.com') {
               throw new Error("Invalid admin email address.");
           }
-          if (pass === '571301') {
+          if (pass === 'sixth@sem') {
             const adminUser: AuthUser = {
               name: 'JSS Admin',
-              email: 'jsspn324@gmail.com',
+              email: 'apdd46@gmail.com',
               role: 'admin',
               department: (department as Department) || 'cs',
               registerNumber: 'ADMIN_001',

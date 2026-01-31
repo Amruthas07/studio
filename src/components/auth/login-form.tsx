@@ -46,7 +46,7 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
   });
 
   const emailValue = form.watch("email");
-  const isPotentiallyAdmin = emailValue.toLowerCase() === 'jsspn324@gmail.com';
+  const isPotentiallyAdmin = emailValue.toLowerCase() === 'apdd46@gmail.com';
   const showDepartmentSelector = isAdminForm && isPotentiallyAdmin;
 
 
