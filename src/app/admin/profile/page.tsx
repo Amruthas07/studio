@@ -1,3 +1,4 @@
+
 'use client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,7 +40,7 @@ export default function AdminProfilePage() {
         address: "123 Innovation Drive, Electronic City, Bengaluru",
         contact: "+1 (800) 123-4567",
         email: "info@smartattend.edu",
-        photoUrl: "https://picsum.photos/seed/institute/1920/1080"
+        photoUrl: "https://picsum.photos/seed/college-building/1920/1080"
     };
 
   if (loading || !user) {
@@ -69,7 +70,7 @@ export default function AdminProfilePage() {
                 alt={`${collegeDetails.name} campus`}
                 fill
                 className='object-cover'
-                data-ai-hint="university campus"
+                data-ai-hint="college building"
                 priority
             />
         </div>
