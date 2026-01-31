@@ -38,10 +38,10 @@ export default function AdminProfilePage() {
     const { institutionProfile, loading: profileLoading } = useInstitutionProfile();
 
     const collegeDetails = institutionProfile || {
-        name: "SmartAttend Institute",
+        name: "Smart Institute",
         address: "123 Innovation Drive, Electronic City, Bengaluru",
         contact: "+1 (800) 123-4567",
-        email: "info@smartattend.edu",
+        email: "info@smartinstitute.edu",
         coverImageUrl: "https://picsum.photos/seed/university/1920/1080"
     };
 
@@ -74,7 +74,7 @@ export default function AdminProfilePage() {
                 alt={`${collegeDetails.name} campus`}
                 fill
                 className='object-cover'
-                data-ai-hint="university building"
+                data-ai-hint="university campus"
                 priority
             />
         </div>

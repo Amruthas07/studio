@@ -27,7 +27,7 @@ const fontSourceCodePro = Source_Code_Pro({
 });
 
 export const metadata: Metadata = {
-  title: 'SmartAttend | AI-Powered Attendance Management',
+  title: 'Smart Institute | AI-Powered Attendance Management',
   description: 'A Smart Face Recognition Attendance System',
 };
 

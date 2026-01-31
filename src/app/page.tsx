@@ -11,10 +11,10 @@ export default function Home() {
   const { institutionProfile, loading } = useInstitutionProfile();
 
   const details = institutionProfile || {
-      name: "SmartAttend",
+      name: "Smart Institute",
       address: "123 Innovation Drive, Electronic City, Bengaluru",
       contact: "+1 (800) 123-4567",
-      email: "info@smartattend.edu",
+      email: "info@smartinstitute.edu",
   };
   
   return (
@@ -115,7 +115,7 @@ export default function Home() {
             <span className="text-muted-foreground">|</span>
             <Link href="/privacy" className="hover:text-primary">Privacy Policy</Link>
         </div>
-        <p>&copy; 2026 SmartAttend. All rights reserved.</p>
+        <p>&copy; 2026 Smart Institute. All rights reserved.</p>
       </footer>
     </main>
   );

@@ -12,7 +12,7 @@ function Logo() {
       <div className="bg-primary p-2 rounded-md">
         <BrainCircuit className="w-5 h-5 text-primary-foreground" />
       </div>
-      <span className="font-headline text-primary">SmartAttend</span>
+      <span className="font-headline text-primary">Smart Institute</span>
     </div>
   )
 }

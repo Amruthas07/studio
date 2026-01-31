@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
@@ -63,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           if (pass === 'sixth@sem') {
             const adminUser: AuthUser = {
-              name: 'SmartAttend Admin',
+              name: 'Smart Institute Admin',
               email: 'apdd46@gmail.com',
               role: 'admin',
               department: (department as Department) || 'cs',

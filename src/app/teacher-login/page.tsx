@@ -15,7 +15,7 @@ export default function TeacherLoginPage() {
                <BrainCircuit className="w-8 h-8 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold font-headline text-foreground">SmartAttend</h1>
+              <h1 className="text-4xl font-bold font-headline text-foreground">Smart Institute</h1>
               <p className="text-2xl text-foreground">Smart Attendance Management System</p>
             </div>
         </div>
@@ -40,7 +40,7 @@ export default function TeacherLoginPage() {
             <span className="text-muted-foreground">|</span>
             <Link href="/privacy" className="hover:text-primary">Privacy Policy</Link>
         </div>
-        <p>&copy; 2026 SmartAttend. All rights reserved.</p>
+        <p>&copy; 2026 Smart Institute. All rights reserved.</p>
       </footer>
     </main>
   );

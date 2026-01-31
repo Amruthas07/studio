@@ -11,10 +11,10 @@ export const InstitutionProfileContext = createContext<InstitutionProfileContext
 
 const defaultProfile: InstitutionProfile = {
     id: 'profile',
-    name: "SmartAttend Institute",
+    name: "Smart Institute",
     address: "123 Innovation Drive, Electronic City, Bengaluru",
     contact: "+1 (800) 123-4567",
-    email: "info@smartattend.edu",
+    email: "info@smartinstitute.edu",
     coverImageUrl: "https://picsum.photos/seed/university/1920/1080",
 };
 
