@@ -25,7 +25,6 @@ const adminNavItems = [
     { href: '/admin/mark-attendance', icon: UserCheck, label: 'Mark Attendance' },
     { href: '/admin/attendance', icon: FileClock, label: 'Attendance Log' },
     { href: '/admin/reports', icon: FileText, label: 'Reports' },
-    { href: '/admin/face-enrollment', icon: Users, label: 'Face Enrollment'}
 ];
 
 const studentNavItems = [
