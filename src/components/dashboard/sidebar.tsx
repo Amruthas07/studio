@@ -1,4 +1,3 @@
-
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -22,7 +21,6 @@ const adminNavItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/profile', icon: Building, label: 'Institution' },
     { href: '/admin/students', icon: Users, label: 'Students' },
-    { href: '/admin/attendance', icon: FileClock, label: 'Attendance Log' },
     { href: '/admin/reports', icon: FileText, label: 'Reports' },
 ];
 
