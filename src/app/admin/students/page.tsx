@@ -21,27 +21,31 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, PlusCircle } from "lucide-react";
+import { Loader2, PlusCircle, Search } from "lucide-react";
 import { AddStudentForm } from "@/components/admin/add-student-form";
 import { EditStudentForm } from "@/components/admin/edit-student-form";
 import { StudentsTable } from "@/components/admin/students-table";
 import type { Student } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useStudents } from '@/hooks/use-students';
+import { Input } from '@/components/ui/input';
+import { StudentProfileCard } from '@/components/shared/student-profile-card';
 
 
 export default function StudentsPage() {
-  const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const { students, loading: studentsLoading, deleteStudent } = useStudents();
+  
+  const [searchTerm, setSearchTerm] = React.useState('');
 
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = React.useState(false);
   
   const [studentToEdit, setStudentToEdit] = React.useState<Student | null>(null);
   const [studentToDelete, setStudentToDelete] = React.useState<Student | null>(null);
+  const [studentToView, setStudentToView] = React.useState<Student | null>(null);
 
 
   const handleStudentAdded = () => {
@@ -61,6 +65,11 @@ export default function StudentsPage() {
     setStudentToDelete(null);
   }
 
+  const openViewDialog = (student: Student) => {
+    setStudentToView(student);
+    setIsViewDialogOpen(true);
+  };
+
   const openEditDialog = (student: Student) => {
     setStudentToEdit(student);
     setIsEditDialogOpen(true);
@@ -71,11 +80,25 @@ export default function StudentsPage() {
     setIsDeleteDialogOpen(true);
   }
   
-  const departmentStudents = React.useMemo(() => {
-      if (!user?.department) return [];
-      if (user.department === 'all') return students;
-      return students.filter(student => student.department === user.department);
-  }, [students, user]);
+  const filteredStudents = React.useMemo(() => {
+      let departmentStudents = [];
+      if (user?.department) {
+        if (user.department === 'all') {
+            departmentStudents = students;
+        } else {
+            departmentStudents = students.filter(student => student.department === user.department);
+        }
+      }
+      
+      if (!searchTerm) {
+          return departmentStudents;
+      }
+
+      return departmentStudents.filter(student => 
+        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.registerNumber.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+  }, [students, user, searchTerm]);
 
   if (authLoading || studentsLoading) {
       return (
@@ -87,13 +110,13 @@ export default function StudentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight font-headline">
             Student Management
           </h1>
           <p className="text-foreground">
-            View, add, and manage student records for the {user?.department.toUpperCase()} department.
+            View, add, and manage student records.
           </p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -115,11 +138,32 @@ export default function StudentsPage() {
         </Dialog>
       </div>
 
+      <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input 
+              placeholder="Search by name or register number..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+          />
+      </div>
+
       <StudentsTable 
-        students={departmentStudents} 
+        students={filteredStudents} 
+        onViewStudent={openViewDialog}
         onEditStudent={openEditDialog}
         onDeleteStudent={openDeleteDialog}
       />
+
+       {/* View Student Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="sm:max-w-[625px]">
+              <DialogHeader>
+                  <DialogTitle className="font-headline text-2xl">Student Profile</DialogTitle>
+              </DialogHeader>
+              {studentToView && <StudentProfileCard student={studentToView} />}
+          </DialogContent>
+      </Dialog>
 
       {/* Edit Student Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

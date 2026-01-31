@@ -31,6 +31,7 @@ const studentNavItems = [
 
 const teacherNavItems = [
     { href: '/teacher/profile', icon: User, label: 'My Profile' },
+    { href: '/teacher/students', icon: Users, label: 'Students' },
 ];
 
 function getNavItems(role?: 'admin' | 'student' | 'teacher') {

@@ -13,17 +13,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import type { Student } from "@/lib/types";
 import { Button } from "../ui/button";
-import { Pencil, Trash } from "lucide-react";
+import { Pencil, Trash, Eye } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 
 interface StudentsTableProps {
     students: Student[];
-    onEditStudent: (student: Student) => void;
-    onDeleteStudent: (student: Student) => void;
+    onViewStudent: (student: Student) => void;
+    onEditStudent?: (student: Student) => void;
+    onDeleteStudent?: (student: Student) => void;
+    readOnly?: boolean;
 }
 
-export function StudentsTable({ students, onEditStudent, onDeleteStudent }: StudentsTableProps) {
+export function StudentsTable({ students, onViewStudent, onEditStudent, onDeleteStudent, readOnly = false }: StudentsTableProps) {
     
     const getInitials = (name: string) => {
         const names = name.split(' ');
@@ -37,12 +39,12 @@ export function StudentsTable({ students, onEditStudent, onDeleteStudent }: Stud
         <Card>
             <CardHeader>
                 <CardTitle>All Students</CardTitle>
-                <CardDescription>A list of all registered students in the system.</CardDescription>
+                <CardDescription>A list of all registered students.</CardDescription>
             </CardHeader>
             <CardContent>
                 <TooltipProvider>
                  <Table>
-                    {students.length === 0 && <TableCaption>No students have been added yet.</TableCaption>}
+                    {students.length === 0 && <TableCaption>No students found.</TableCaption>}
                     <TableHeader>
                         <TableRow>
                             <TableHead>Student</TableHead>
@@ -76,6 +78,18 @@ export function StudentsTable({ students, onEditStudent, onDeleteStudent }: Stud
                                <div className="flex justify-end gap-2">
                                      <Tooltip>
                                         <TooltipTrigger asChild>
+                                             <Button variant="outline" size="icon" onClick={() => onViewStudent(student)}>
+                                                <Eye className="h-4 w-4" />
+                                                <span className="sr-only">View Details</span>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>View Details</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                   {!readOnly && onEditStudent && (
+                                     <Tooltip>
+                                        <TooltipTrigger asChild>
                                              <Button variant="outline" size="icon" onClick={() => onEditStudent(student)}>
                                                 <Pencil className="h-4 w-4" />
                                                 <span className="sr-only">Edit Details</span>
@@ -85,6 +99,8 @@ export function StudentsTable({ students, onEditStudent, onDeleteStudent }: Stud
                                             <p>Edit Details</p>
                                         </TooltipContent>
                                     </Tooltip>
+                                   )}
+                                    {!readOnly && onDeleteStudent && (
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                              <Button variant="destructive" size="icon" onClick={() => onDeleteStudent(student)}>
@@ -96,6 +112,7 @@ export function StudentsTable({ students, onEditStudent, onDeleteStudent }: Stud
                                             <p>Delete Student</p>
                                         </TooltipContent>
                                     </Tooltip>
+                                    )}
                                </div>
                             </TableCell>
                         </TableRow>
