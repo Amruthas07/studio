@@ -5,27 +5,27 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
+    --foreground: 330 3% 13%;
 
-    --sidebar-bg: 328 30% 12%; /* Dark Purple */
+    --sidebar-bg: 330 3% 13%; /* Dark Purple */
 
     --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
+    --card-foreground: 330 3% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
+    --popover-foreground: 330 3% 13%;
 
     --primary: 328 29% 40%; /* #85486C */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 28 32% 94%; /* Light Beige from #D4BCAE */
-    --secondary-foreground: 224 71.4% 4.1%;
+    --secondary-foreground: 330 3% 13%;
 
     --muted: 28 32% 94%;
     --muted-foreground: 240 5% 65%;
 
     --accent: 28 32% 90%; /* Slightly darker beige */
-    --accent-foreground: 224 71.4% 4.1%;
+    --accent-foreground: 330 3% 13%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
@@ -36,7 +36,7 @@
 
     --chart-1: 328 29% 40%; /* #85486C */
     --chart-2: 181 29% 49%; /* #5AA0A1 */
-    --chart-3: 0 14% 64%; /* #9D7979 */
+    --chart-3: 0 14% 54%; /* #9D7979 */
     --chart-4: 328 29% 60%;
     --chart-5: 181 29% 35%;
 
@@ -44,19 +44,19 @@
   }
 
   .dark {
-    --background: 240 10% 3.9%;
+    --background: 330 3% 13%;
     --foreground: 0 0% 98%;
 
-    --sidebar-bg: 240 10% 3.9%;
+    --sidebar-bg: 330 3% 13%;
     
-    --card: 240 4% 10%;
+    --card: 330 3% 16%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 4% 10%;
+    --popover: 330 3% 16%;
     --popover-foreground: 0 0% 98%;
 
     --primary: 328 40% 65%; /* Lighter #85486C */
-    --primary-foreground: 328 30% 10%;
+    --primary-foreground: 330 3% 10%;
 
     --secondary: 0 14% 20%; /* Darker #9D7979 */
     --secondary-foreground: 0 0% 98%;
