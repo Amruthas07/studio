@@ -35,7 +35,7 @@ export default function Home() {
                   <MapPin className="h-5 w-5 mt-1 text-card-foreground/60 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-card-foreground">Campus Address</h4>
-                    <p className="text-card-foreground/80">123 Innovation Drive, Tech Valley</p>
+                    <p className="text-card-foreground/80">123 Innovation Drive, Electronic City, Bengaluru</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">

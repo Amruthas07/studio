@@ -36,7 +36,7 @@ export default function AdminProfilePage() {
 
     const collegeDetails = {
         name: "SmartAttend Institute",
-        address: "123 Innovation Drive, Tech Valley",
+        address: "123 Innovation Drive, Electronic City, Bengaluru",
         contact: "+1 (800) 123-4567",
         email: "info@smartattend.edu",
         photoUrl: "https://picsum.photos/seed/institute/1920/1080"
