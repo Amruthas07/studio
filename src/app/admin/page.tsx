@@ -9,13 +9,21 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { AddStudentForm } from "@/components/admin/add-student-form";
 import React from "react";
 import { AddTeacherForm } from "@/components/admin/add-teacher-form";
+import { useStudents } from "@/hooks/use-students";
+import { useTeachers } from "@/hooks/use-teachers";
+import { AnalyticsChart } from "@/components/admin/analytics-chart";
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
+  const { students, loading: studentsLoading } = useStudents();
+  const { teachers, loading: teachersLoading } = useTeachers();
+
   const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = React.useState(false);
   const [isAddTeacherDialogOpen, setIsAddTeacherDialogOpen] = React.useState(false);
 
-  if (authLoading || !user) {
+  const loading = authLoading || studentsLoading || teachersLoading;
+
+  if (loading || !user) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -23,20 +31,21 @@ export default function AdminDashboard() {
     );
   }
   
-  const departmentDisplay = user.department === 'all' ? 'All Departments' : `${user.department.toUpperCase()} Department`;
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between space-y-2">
         <div>
            <h1 className="text-3xl font-bold tracking-tight font-headline">
-            Admin Management
+            Admin Dashboard
           </h1>
           <p className="text-foreground">
-            Add new students and teachers to the system.
+            Overview of the system, enrollment analytics, and management tools.
           </p>
         </div>
       </div>
+      
+      <AnalyticsChart students={students} teachers={teachers} />
+
       <div className="grid gap-6 md:grid-cols-2">
         {/* Student Card */}
         <Card>
