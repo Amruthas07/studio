@@ -1,112 +1,28 @@
-
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, UserCheck, UserX, LogOut } from "lucide-react";
+import { Users, UserPlus } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
-import { useAttendance } from "@/hooks/use-attendance";
-import { useStudents } from "@/hooks/use-students";
-import { AttendanceChart } from "@/components/admin/attendance-chart";
-import { subDays, format } from 'date-fns';
-import type { AttendanceRecord } from "@/lib/types";
+import { Loader2, PlusCircle } from "lucide-react";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AddStudentForm } from "@/components/admin/add-student-form";
+import React from "react";
+import { AddTeacherForm } from "@/components/admin/add-teacher-form";
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
-  const { attendanceRecords, loading: attendanceLoading } = useAttendance();
-  const { students, loading: studentsLoading } = useStudents();
-  
-  const { totalStudents, presentToday, onLeaveToday, absentToday, weeklyData } = useMemo(() => {
-    if (authLoading || studentsLoading || attendanceLoading || !user) {
-      return { totalStudents: 0, presentToday: 0, onLeaveToday: 0, absentToday: 0, weeklyData: [] };
-    }
+  const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = React.useState(false);
+  const [isAddTeacherDialogOpen, setIsAddTeacherDialogOpen] = React.useState(false);
 
-    const deptStudents = user.department === 'all' 
-      ? students 
-      : students.filter(s => s.department === user.department);
-    
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const totalDeptStudents = deptStudents.length;
-
-    // --- Today's Data Calculation (More Robust) ---
-    // We need to find the LATEST record for each student for today, in case their status changed.
-    const todaysRecords = attendanceRecords.filter(record => 
-      record.date === today && 
-      deptStudents.some(s => s.registerNumber === record.studentRegister)
-    );
-    
-    const latestTodaysRecordsMap = new Map<string, AttendanceRecord>();
-    for (const record of todaysRecords) {
-        if (!latestTodaysRecordsMap.has(record.studentRegister) || new Date(record.timestamp) > new Date(latestTodaysRecordsMap.get(record.studentRegister)!.timestamp)) {
-            latestTodaysRecordsMap.set(record.studentRegister, record);
-        }
-    }
-    const latestTodaysRecords = Array.from(latestTodaysRecordsMap.values());
-    
-    const presentCount = latestTodaysRecords.filter(r => r.status === 'present' && !r.reason).length;
-    const onLeaveCount = latestTodaysRecords.filter(r => r.status === 'present' && r.reason).length;
-    const attendedCount = presentCount + onLeaveCount;
-    const absentCount = totalDeptStudents - attendedCount;
-
-
-    // --- Weekly data calculation (More Robust) ---
-    const last7Days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), i)).reverse();
-    const weeklyChartData = last7Days.map(day => {
-        const dateString = format(day, 'yyyy-MM-dd');
-        const dayOfWeek = format(day, 'EEE');
-
-        const endOfDay = new Date(day);
-        endOfDay.setHours(23, 59, 59, 999);
-        
-        const studentsOnDay = deptStudents.filter(s => new Date(s.createdAt) <= endOfDay);
-        const totalStudentsOnDay = studentsOnDay.length;
-
-        const dailyRecords = attendanceRecords.filter(record => 
-            record.date === dateString &&
-            studentsOnDay.some(s => s.registerNumber === record.studentRegister)
-        );
-        
-        const latestDailyRecordsMap = new Map<string, AttendanceRecord>();
-        for (const record of dailyRecords) {
-            if (!latestDailyRecordsMap.has(record.studentRegister) || new Date(record.timestamp) > new Date(latestDailyRecordsMap.get(record.studentRegister)!.timestamp)) {
-                latestDailyRecordsMap.set(record.studentRegister, record);
-            }
-        }
-        const latestDailyRecords = Array.from(latestDailyRecordsMap.values());
-
-        const dailyPresent = latestDailyRecords.filter(r => r.status === 'present' && !r.reason).length;
-        const dailyOnLeave = latestDailyRecords.filter(r => r.status === 'present' && r.reason).length;
-        const dailyAttendedCount = dailyPresent + dailyOnLeave;
-        const dailyAbsent = totalStudentsOnDay - dailyAttendedCount;
-        
-        return {
-            date: dayOfWeek,
-            present: dailyPresent,
-            absent: dailyAbsent > 0 ? dailyAbsent : 0,
-            onLeave: dailyOnLeave,
-        };
-    });
-
-    return {
-      totalStudents: totalDeptStudents,
-      presentToday: presentCount,
-      onLeaveToday: onLeaveCount,
-      absentToday: absentCount > 0 ? absentCount : 0,
-      weeklyData: weeklyChartData,
-    };
-  }, [user, authLoading, students, studentsLoading, attendanceRecords, attendanceLoading]);
-
-
-  if (authLoading || studentsLoading || attendanceLoading || !user) {
+  if (authLoading || !user) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-
+  
   const departmentDisplay = user.department === 'all' ? 'All Departments' : `${user.department.toUpperCase()} Department`;
 
   return (
@@ -114,86 +30,76 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-between space-y-2">
         <div>
            <h1 className="text-3xl font-bold tracking-tight font-headline">
-            {departmentDisplay} Dashboard
+            Admin Management
           </h1>
           <p className="text-foreground">
-            Daily and weekly attendance overview for {departmentDisplay}.
+            Add new students and teachers to the system.
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-           <Link href="/admin/students">
-            <Button>Add Student</Button>
-          </Link>
-        </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Student Card */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Students
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalStudents}</div>
-            <p className="text-xs text-muted-foreground">
-              {user.department !== 'all' ? `Enrolled in ${user.department.toUpperCase()}` : 'Across all departments'}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Present Today
-            </CardTitle>
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{presentToday}</div>
-             <p className="text-xs text-muted-foreground">
-              {totalStudents > 0 ? `${Math.round((presentToday/totalStudents) * 100)}% present` : 'No students enrolled.'}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              On Leave Today
-            </CardTitle>
-            <LogOut className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{onLeaveToday}</div>
-             <p className="text-xs text-muted-foreground">
-              {onLeaveToday} student(s) on approved leave
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Absent Today
-            </CardTitle>
-            <UserX className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{absentToday}</div>
-             <p className="text-xs text-muted-foreground">
-              {absentToday} student(s) absent or not marked
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
           <CardHeader>
-              <CardTitle>Weekly Attendance Summary</CardTitle>
-              <CardDescription>A summary of attendance for the last 7 days.</CardDescription>
+            <CardTitle className="flex items-center gap-2 font-headline"><Users /> Student Management</CardTitle>
+            <CardDescription>
+              Add a new student to a department, enroll their photo, and manage their records.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <AttendanceChart data={weeklyData} />
+          <CardContent className="flex flex-col gap-4">
+            <Dialog open={isAddStudentDialogOpen} onOpenChange={setIsAddStudentDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add New Student
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[625px]">
+                <DialogHeader>
+                  <DialogTitle className="font-headline text-2xl">Add New Student</DialogTitle>
+                  <DialogDescription>
+                    Fill in the details below and upload a profile photo to enroll a new student.
+                  </DialogDescription>
+                </DialogHeader>
+                <AddStudentForm onStudentAdded={() => setIsAddStudentDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+            <Button variant="outline" asChild>
+                <Link href="/admin/students">View All Students</Link>
+            </Button>
           </CardContent>
-      </Card>
+        </Card>
+
+        {/* Teacher Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-headline"><UserPlus /> Teacher Management</CardTitle>
+            <CardDescription>
+              Add a new teacher to a department and set their credentials for system access.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+              <Dialog open={isAddTeacherDialogOpen} onOpenChange={setIsAddTeacherDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add New Teacher
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[525px]">
+                  <DialogHeader>
+                    <DialogTitle className="font-headline text-2xl">Add New Teacher</DialogTitle>
+                    <DialogDescription>
+                      Fill in the details below to create a new teacher account.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <AddTeacherForm onTeacherAdded={() => setIsAddTeacherDialogOpen(false)} />
+                </DialogContent>
+              </Dialog>
+            <Button variant="outline" disabled>View All Teachers</Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

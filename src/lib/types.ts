@@ -54,6 +54,13 @@ export interface StudentsContextType {
   deleteStudent: (registerNumber: string) => Promise<void>;
 }
 
+export interface TeachersContextType {
+  teachers: Teacher[];
+  loading: boolean;
+  addTeacher: (teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'profilePhotoUrl'> & { password: string }) => Promise<void>;
+}
+
+
 export interface LiveCaptureRecord {
   id: string;
   photoUrl: string;
