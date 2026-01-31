@@ -37,7 +37,7 @@ export function StudentAnalyticsChart({ students }: StudentAnalyticsChartProps) 
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="font-headline">Student Enrollment</CardTitle>
+                <CardTitle className="font-headline">Students</CardTitle>
                 <CardDescription>Monthly student enrollment trends.</CardDescription>
             </CardHeader>
             <CardContent>

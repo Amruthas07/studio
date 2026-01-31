@@ -37,7 +37,7 @@ export function TeacherAnalyticsChart({ teachers }: TeacherAnalyticsChartProps) 
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="font-headline">Teacher Enrollment</CardTitle>
+                <CardTitle className="font-headline">Teachers</CardTitle>
                 <CardDescription>Monthly teacher enrollment trends.</CardDescription>
             </CardHeader>
             <CardContent>
