@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -38,14 +37,23 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
       (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.data();
-          setInstitutionProfile({ 
+          const profileData: InstitutionProfile = { 
               id: snapshot.id, 
               name: data.name,
               address: data.address,
               contact: data.contact,
               email: data.email,
               coverImageUrl: data.coverImageUrl
-          });
+          };
+
+          // One-time migration for the name to ensure it's correct
+          if (profileData.name === 'SmartAttend Institute') {
+              updateDoc(profileDocRef, { name: 'Smart Institute' });
+              profileData.name = 'Smart Institute'; // Optimistically update for immediate UI change
+          }
+          
+          setInstitutionProfile(profileData);
+
         } else {
           // If doc doesn't exist, use the local default and create it in Firestore.
           setInstitutionProfile(defaultProfile);
