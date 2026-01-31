@@ -22,7 +22,6 @@ const adminNavItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/profile', icon: Building, label: 'Institution' },
     { href: '/admin/students', icon: Users, label: 'Students' },
-    { href: '/admin/mark-attendance', icon: UserCheck, label: 'Mark Attendance' },
     { href: '/admin/attendance', icon: FileClock, label: 'Attendance Log' },
     { href: '/admin/reports', icon: FileText, label: 'Reports' },
 ];
