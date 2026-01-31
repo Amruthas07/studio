@@ -96,7 +96,9 @@ export default function AdminDashboard() {
                   <AddTeacherForm onTeacherAdded={() => setIsAddTeacherDialogOpen(false)} />
                 </DialogContent>
               </Dialog>
-            <Button variant="outline" disabled>View All Teachers</Button>
+            <Button variant="outline" asChild>
+              <Link href="/admin/teachers">View All Teachers</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

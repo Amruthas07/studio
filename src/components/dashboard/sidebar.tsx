@@ -1,8 +1,7 @@
-
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, FileClock, User, ShieldCheck, Building, BrainCircuit, UserCheck, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, FileClock, User, ShieldCheck, Building, BrainCircuit, UserCheck, FileText, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -22,6 +21,7 @@ const adminNavItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/profile', icon: Building, label: 'Institution' },
     { href: '/admin/students', icon: Users, label: 'Students' },
+    { href: '/admin/teachers', icon: UserCog, label: 'Teachers' },
     { href: '/admin/reports', icon: FileText, label: 'Reports' },
 ];
 
