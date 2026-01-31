@@ -11,7 +11,8 @@ import React from "react";
 import { AddTeacherForm } from "@/components/admin/add-teacher-form";
 import { useStudents } from "@/hooks/use-students";
 import { useTeachers } from "@/hooks/use-teachers";
-import { AnalyticsChart } from "@/components/admin/analytics-chart";
+import { StudentAnalyticsChart } from "@/components/admin/student-analytics-chart";
+import { TeacherAnalyticsChart } from "@/components/admin/teacher-analytics-chart";
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -44,7 +45,10 @@ export default function AdminDashboard() {
         </div>
       </div>
       
-      <AnalyticsChart students={students} teachers={teachers} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <StudentAnalyticsChart students={students} />
+        <TeacherAnalyticsChart teachers={teachers} />
+      </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Student Card */}
