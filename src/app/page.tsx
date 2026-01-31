@@ -1,4 +1,3 @@
-
 'use client';
 
 import { LoginFormDynamic } from '@/components/auth/login-form-dynamic';
@@ -13,7 +12,7 @@ export default function Home() {
   const details = institutionProfile || {
       name: "Smart Institute",
       address: "123 Innovation Drive, Electronic City, Bengaluru",
-      contact: "+1 (800) 123-4567",
+      contact: "+91 (800) 123-4567",
       email: "info@smartinstitute.edu",
   };
   
