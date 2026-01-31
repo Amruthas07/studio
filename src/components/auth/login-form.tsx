@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -91,9 +90,19 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
           name="password"
           render={({ field }) => (
             <FormItem>
-               <FormLabel className="flex items-center gap-2 text-card-foreground/80">
-                <Lock className="h-4 w-4" />
-                Password
+               <FormLabel className="flex items-center justify-between gap-2 text-card-foreground/80">
+                <span className='flex items-center gap-2'>
+                  <Lock className="h-4 w-4" />
+                  Password
+                </span>
+                {!isAdminForm && (
+                  <Link
+                    href="/reset-password"
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    Forgot your password?
+                  </Link>
+                )}
               </FormLabel>
               <FormControl>
                 <Input
