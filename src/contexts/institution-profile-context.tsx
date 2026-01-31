@@ -12,9 +12,9 @@ const defaultProfile: InstitutionProfile = {
     id: 'profile',
     name: "Smart Institute",
     address: "123 Innovation Drive, Electronic City, Bengaluru",
-    contact: "+91 (800) 123-4567",
+    contact: "+91 98765 43210",
     email: "info@smartinstitute.edu",
-    coverImageUrl: "https://picsum.photos/seed/university/1920/1080",
+    coverImageUrl: "https://picsum.photos/seed/college/1920/1080",
 };
 
 export function InstitutionProfileProvider({ children }: { children: ReactNode }) {

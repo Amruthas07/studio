@@ -39,9 +39,9 @@ export default function AdminProfilePage() {
     const collegeDetails = institutionProfile || {
         name: "Smart Institute",
         address: "123 Innovation Drive, Electronic City, Bengaluru",
-        contact: "+91 (800) 123-4567",
+        contact: "+91 98765 43210",
         email: "info@smartinstitute.edu",
-        coverImageUrl: "https://picsum.photos/seed/university/1920/1080"
+        coverImageUrl: "https://picsum.photos/seed/college/1920/1080"
     };
 
   const loading = authLoading || profileLoading;
@@ -69,11 +69,11 @@ export default function AdminProfilePage() {
       <Card className='overflow-hidden'>
         <div className='relative h-60 w-full'>
             <Image 
-                src={collegeDetails.coverImageUrl || "https://picsum.photos/seed/university/1920/1080"}
+                src={collegeDetails.coverImageUrl || "https://picsum.photos/seed/college/1920/1080"}
                 alt={`${collegeDetails.name} campus`}
                 fill
                 className='object-cover'
-                data-ai-hint="university campus"
+                data-ai-hint="college campus"
                 priority
             />
         </div>
