@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           if (pass === 'sixth@sem') {
             const adminUser: AuthUser = {
-              name: 'JSS Admin',
+              name: 'SmartAttend Admin',
               email: 'apdd46@gmail.com',
               role: 'admin',
               department: (department as Department) || 'cs',
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               fatherName: 'N/A',
               motherName: 'N/A',
               profilePhotoUrl:
-                'https://picsum.photos/seed/jsspoly/100/100',
+                'https://picsum.photos/seed/admin/100/100',
               contact: 'N/A',
               createdAt: new Date(),
               dateOfBirth: new Date(),

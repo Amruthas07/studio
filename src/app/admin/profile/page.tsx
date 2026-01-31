@@ -1,4 +1,3 @@
-
 'use client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,11 +35,11 @@ export default function AdminProfilePage() {
     const { user, loading } = useAuth();
 
     const collegeDetails = {
-        name: "JSS POLYTECHNIC",
-        address: "Mysore-Ooty Road, Nanjangud",
-        contact: "08221 - 22649 / +91 988661823",
-        email: "jsspn324@gmail.com",
-        photoUrl: "https://picsum.photos/seed/jsspolytechnic/1920/1080"
+        name: "SmartAttend Institute",
+        address: "123 Innovation Drive, Tech Valley",
+        contact: "+1 (800) 123-4567",
+        email: "info@smartattend.edu",
+        photoUrl: "https://picsum.photos/seed/institute/1920/1080"
     };
 
   if (loading || !user) {
