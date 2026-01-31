@@ -15,7 +15,7 @@ const defaultProfile: InstitutionProfile = {
     address: "123 Innovation Drive, Electronic City, Bengaluru",
     contact: "+1 (800) 123-4567",
     email: "info@smartattend.edu",
-    coverImageUrl: "https://picsum.photos/seed/smart-tech/1920/1080",
+    coverImageUrl: "https://picsum.photos/seed/college-campus/1920/1080",
 };
 
 export function InstitutionProfileProvider({ children }: { children: ReactNode }) {
