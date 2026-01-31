@@ -1,11 +1,22 @@
 
+'use client';
+
 import { LoginFormDynamic } from '@/components/auth/login-form-dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Mail, MapPin, Phone, ShieldCheck, UserCheck, BarChart, BrainCircuit } from 'lucide-react';
+import { Mail, MapPin, Phone, ShieldCheck, UserCheck, BarChart, BrainCircuit, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useInstitutionProfile } from '@/hooks/use-institution-profile';
 
 export default function Home() {
+  const { institutionProfile, loading } = useInstitutionProfile();
+
+  const details = institutionProfile || {
+      name: "SmartAttend",
+      address: "123 Innovation Drive, Electronic City, Bengaluru",
+      contact: "+1 (800) 123-4567",
+      email: "info@smartattend.edu",
+  };
+  
   return (
     <main className="relative min-h-screen bg-background p-4 lg:p-8 flex items-center justify-center">
        <div className="absolute inset-0 bg-gradient-to-br from-background via-muted/50 to-background"></div>
@@ -19,7 +30,7 @@ export default function Home() {
                <BrainCircuit className="w-8 h-8 text-primary-foreground" />
              </div>
             <div>
-              <h1 className="text-4xl font-bold font-headline text-foreground">SmartAttend</h1>
+              <h1 className="text-4xl font-bold font-headline text-foreground">{details.name}</h1>
               <p className="text-2xl text-foreground">Smart Attendance Management System</p>
             </div>
           </div>
@@ -30,29 +41,35 @@ export default function Home() {
               <CardDescription className="text-card-foreground/80">Efficient Smart attendance tracking and reporting for students</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-               <div className="space-y-4 text-sm">
-                <div className="flex items-start gap-4">
-                  <MapPin className="h-5 w-5 mt-1 text-card-foreground/60 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-card-foreground">Campus Address</h4>
-                    <p className="text-card-foreground/80">123 Innovation Drive, Electronic City, Bengaluru</p>
+                {loading ? (
+                    <div className="flex justify-center items-center h-24">
+                        <Loader2 className="h-6 w-6 animate-spin text-card-foreground" />
+                    </div>
+                ) : (
+                   <div className="space-y-4 text-sm">
+                    <div className="flex items-start gap-4">
+                      <MapPin className="h-5 w-5 mt-1 text-card-foreground/60 flex-shrink-0" />
+                      <div>
+                        <h4 className="font-semibold text-card-foreground">Campus Address</h4>
+                        <p className="text-card-foreground/80">{details.address}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <Phone className="h-5 w-5 mt-1 text-card-foreground/60 flex-shrink-0" />
+                      <div>
+                        <h4 className="font-semibold text-card-foreground">Contact</h4>
+                        <p className="text-card-foreground/80">{details.contact}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <Mail className="h-5 w-5 mt-1 text-card-foreground/60 flex-shrink-0" />
+                      <div>
+                        <h4 className="font-semibold text-card-foreground">Email</h4>
+                        <p className="text-card-foreground/80">{details.email}</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <Phone className="h-5 w-5 mt-1 text-card-foreground/60 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-card-foreground">Contact</h4>
-                    <p className="text-card-foreground/80">+1 (800) 123-4567</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <Mail className="h-5 w-5 mt-1 text-card-foreground/60 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-card-foreground">Email</h4>
-                    <p className="text-card-foreground/80">info@smartattend.edu</p>
-                  </div>
-                </div>
-              </div>
+                )}
               
               <hr className="border-border/50"/>
 

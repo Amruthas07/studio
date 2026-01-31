@@ -70,3 +70,18 @@ export interface LiveCaptureRecord {
   matchedStudentName?: string;
   timestamp: Date;
 }
+
+export interface InstitutionProfile {
+  id: string;
+  name: string;
+  address: string;
+  contact: string;
+  email: string;
+  coverImageUrl?: string;
+}
+
+export interface InstitutionProfileContextType {
+  institutionProfile: InstitutionProfile | null;
+  loading: boolean;
+  updateInstitutionProfile: (data: Partial<Omit<InstitutionProfile, 'id'>>) => Promise<void>;
+}

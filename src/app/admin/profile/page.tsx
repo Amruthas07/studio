@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, MapPin, Phone, Info, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import { useInstitutionProfile } from '@/hooks/use-institution-profile';
 
 const departmentInfo = {
     cs: {
@@ -33,15 +34,18 @@ const departmentInfo = {
 };
 
 export default function AdminProfilePage() {
-    const { user, loading } = useAuth();
+    const { user, loading: authLoading } = useAuth();
+    const { institutionProfile, loading: profileLoading } = useInstitutionProfile();
 
-    const collegeDetails = {
+    const collegeDetails = institutionProfile || {
         name: "SmartAttend Institute",
         address: "123 Innovation Drive, Electronic City, Bengaluru",
         contact: "+1 (800) 123-4567",
         email: "info@smartattend.edu",
-        photoUrl: "https://picsum.photos/seed/college-campus/1920/1080"
+        coverImageUrl: "https://picsum.photos/seed/default-campus/1920/1080"
     };
+
+  const loading = authLoading || profileLoading;
 
   if (loading || !user) {
     return (
@@ -66,11 +70,11 @@ export default function AdminProfilePage() {
       <Card className='overflow-hidden'>
         <div className='relative h-60 w-full'>
             <Image 
-                src={collegeDetails.photoUrl}
+                src={collegeDetails.coverImageUrl || "https://picsum.photos/seed/default-campus/1920/1080"}
                 alt={`${collegeDetails.name} campus`}
                 fill
                 className='object-cover'
-                data-ai-hint="college campus"
+                data-ai-hint="technology education"
                 priority
             />
         </div>

@@ -169,6 +169,40 @@
         "department",
         "createdAt"
       ]
+    },
+    "institutionProfile": {
+      "title": "Institution Profile",
+      "description": "Stores the core details of the educational institution.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the institution."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the institution."
+        },
+        "contact": {
+          "type": "string",
+          "description": "The primary contact number."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The primary contact email."
+        },
+        "coverImageUrl": {
+          "type": "string",
+          "description": "URL of the institution's cover image."
+        }
+      },
+      "required": [
+        "name",
+        "address",
+        "contact",
+        "email"
+      ]
     }
   },
   "auth": {
@@ -192,6 +226,12 @@
         "$ref": "#/entities/teacher"
       },
       "description": "Stores individual teacher documents, keyed by their email."
+    },
+     "/institution/{institutionId}": {
+      "schema": {
+        "$ref": "#/entities/institutionProfile"
+      },
+      "description": "Stores a single document containing the institution's profile information. The document ID should be a constant like 'profile'."
     }
   }
 }
