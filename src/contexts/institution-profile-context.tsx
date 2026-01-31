@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -12,9 +13,9 @@ const defaultProfile: InstitutionProfile = {
     id: 'profile',
     name: "Smart Institute",
     address: "123 Innovation Drive, Electronic City, Bengaluru",
-    contact: "+91 98765 43210",
+    contact: "08221 - 226491 | Cell: +91 9886618231",
     email: "info@smartinstitute.edu",
-    coverImageUrl: "https://picsum.photos/seed/college/1920/1080",
+    coverImageUrl: "https://picsum.photos/seed/college-campus/1920/1080",
 };
 
 export function InstitutionProfileProvider({ children }: { children: ReactNode }) {

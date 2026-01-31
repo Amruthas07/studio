@@ -1,3 +1,4 @@
+
 'use client';
 
 import { LoginFormDynamic } from '@/components/auth/login-form-dynamic';
@@ -12,13 +13,13 @@ export default function Home() {
   const details = institutionProfile || {
       name: "Smart Institute",
       address: "123 Innovation Drive, Electronic City, Bengaluru",
-      contact: "+91 98765 43210",
+      contact: "08221 - 226491 | Cell: +91 9886618231",
       email: "info@smartinstitute.edu",
   };
   
   return (
     <main className="relative min-h-screen bg-background p-4 lg:p-8 flex items-center justify-center">
-       <div className="absolute inset-0 bg-gradient-to-br from-background via-muted/50 to-background"></div>
+       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background"></div>
 
       <div className="relative w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 z-10">
         
@@ -29,42 +30,42 @@ export default function Home() {
                <BrainCircuit className="w-8 h-8 text-primary-foreground" />
              </div>
             <div>
-              <h1 className="text-4xl font-bold font-headline text-foreground">{details.name}</h1>
+              <h1 className="text-4xl font-bold font-headline text-primary">{details.name}</h1>
               <p className="text-2xl text-foreground">Smart Attendance Management System</p>
             </div>
           </div>
           
-          <Card className="bg-card/60 backdrop-blur-sm border-border/50 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="text-xl font-semibold text-card-foreground">Educational Institution</CardTitle>
-              <CardDescription className="text-card-foreground/80">Efficient Smart attendance tracking and reporting for students</CardDescription>
+              <CardTitle className="text-xl font-semibold">Educational Institution</CardTitle>
+              <CardDescription>Efficient Smart attendance tracking and reporting for students</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 {loading ? (
                     <div className="flex justify-center items-center h-24">
-                        <Loader2 className="h-6 w-6 animate-spin text-card-foreground" />
+                        <Loader2 className="h-6 w-6 animate-spin" />
                     </div>
                 ) : (
                    <div className="space-y-4 text-sm">
                     <div className="flex items-start gap-4">
-                      <MapPin className="h-5 w-5 mt-1 text-card-foreground/60 flex-shrink-0" />
+                      <MapPin className="h-5 w-5 mt-1 text-muted-foreground flex-shrink-0" />
                       <div>
-                        <h4 className="font-semibold text-card-foreground">Campus Address</h4>
-                        <p className="text-card-foreground/80">{details.address}</p>
+                        <h4 className="font-semibold">Campus Address</h4>
+                        <p className="text-muted-foreground">{details.address}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-4">
-                      <Phone className="h-5 w-5 mt-1 text-card-foreground/60 flex-shrink-0" />
+                      <Phone className="h-5 w-5 mt-1 text-muted-foreground flex-shrink-0" />
                       <div>
-                        <h4 className="font-semibold text-card-foreground">Contact</h4>
-                        <p className="text-card-foreground/80">{details.contact}</p>
+                        <h4 className="font-semibold">Contact</h4>
+                        <p className="text-muted-foreground">{details.contact}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-4">
-                      <Mail className="h-5 w-5 mt-1 text-card-foreground/60 flex-shrink-0" />
+                      <Mail className="h-5 w-5 mt-1 text-muted-foreground flex-shrink-0" />
                       <div>
-                        <h4 className="font-semibold text-card-foreground">Email</h4>
-                        <p className="text-card-foreground/80">{details.email}</p>
+                        <h4 className="font-semibold">Email</h4>
+                        <p className="text-muted-foreground">{details.email}</p>
                       </div>
                     </div>
                   </div>
@@ -73,16 +74,16 @@ export default function Home() {
               <hr className="border-border/50"/>
 
               <div className="space-y-4">
-                <div className="flex items-center gap-3 text-sm text-card-foreground">
-                    <div className="p-2 bg-muted rounded-full"><UserCheck className="h-4 w-4 text-card-foreground/80" /></div>
+                <div className="flex items-center gap-3 text-sm">
+                    <div className="p-2 bg-muted rounded-full"><UserCheck className="h-4 w-4 text-muted-foreground" /></div>
                     <span>Simplified Manual Entry</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-card-foreground">
-                    <div className="p-2 bg-muted rounded-full"><ShieldCheck className="h-4 w-4 text-card-foreground/80" /></div>
+                <div className="flex items-center gap-3 text-sm">
+                    <div className="p-2 bg-muted rounded-full"><ShieldCheck className="h-4 w-4 text-muted-foreground" /></div>
                     <span>Secure role-based access</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-card-foreground">
-                    <div className="p-2 bg-muted rounded-full"><BarChart className="h-4 w-4 text-card-foreground/80" /></div>
+                <div className="flex items-center gap-3 text-sm">
+                    <div className="p-2 bg-muted rounded-full"><BarChart className="h-4 w-4 text-muted-foreground" /></div>
                     <span>Comprehensive reporting</span>
                 </div>
               </div>
@@ -92,12 +93,12 @@ export default function Home() {
 
         {/* Right Column */}
         <div className="flex items-center justify-center">
-            <Card className="w-full max-w-md bg-card/60 backdrop-blur-sm border-border/50 shadow-lg">
+            <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm">
                 <CardHeader>
-                <CardTitle className="text-2xl font-bold text-card-foreground">
+                <CardTitle className="text-2xl font-bold">
                     Administrator Login
                 </CardTitle>
-                <CardDescription className="text-card-foreground/80">
+                <CardDescription>
                     Access the attendance management system
                 </CardDescription>
                 </CardHeader>
