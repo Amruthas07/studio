@@ -23,42 +23,49 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
 
 
   useEffect(() => {
-    if (!firestore || authLoading || !user || user.role !== 'admin') {
-      // Only admins should fetch the full list of teachers.
-      // Other roles will get their own data via the AuthContext.
+    let unsubscribe: (() => void) | undefined = undefined;
+
+    // Only fetch all teachers if an admin is logged in and firestore is available.
+    if (user?.role === 'admin' && firestore) {
+      setLoading(true);
+      const teachersCollection = collection(firestore, 'teachers');
+      unsubscribe = onSnapshot(
+        teachersCollection,
+        (snapshot) => {
+          const teacherData = snapshot.docs.map(doc => {
+              const data = doc.data();
+              return {
+                  ...data,
+                  teacherId: doc.id,
+                  createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+                  updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)),
+              } as Teacher;
+          });
+          setTeachers(teacherData);
+          setLoading(false);
+        },
+        (err) => {
+          const permissionError = new FirestorePermissionError({
+            path: 'teachers',
+            operation: 'list'
+          });
+          errorEmitter.emit('permission-error', permissionError);
+          setLoading(false);
+        }
+      );
+    } else {
+      // For all other cases (not admin, no user, auth loading), ensure data is cleared.
       setTeachers([]);
-      setLoading(false);
-      return;
-    };
-    
-    setLoading(true);
-    const teachersCollection = collection(firestore, 'teachers');
-    const unsubscribe = onSnapshot(
-      teachersCollection,
-      (snapshot) => {
-        const teacherData = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                ...data,
-                teacherId: doc.id,
-                createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
-                updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)),
-            } as Teacher;
-        });
-        setTeachers(teacherData);
-        setLoading(false);
-      },
-      (err) => {
-        const permissionError = new FirestorePermissionError({
-          path: 'teachers',
-          operation: 'list'
-        });
-        errorEmitter.emit('permission-error', permissionError);
+      if (!authLoading) {
         setLoading(false);
       }
-    );
+    }
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [firestore, user, authLoading]);
 
   const addTeacher = useCallback(async (teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }) => {
