@@ -1,4 +1,3 @@
-
 'use client';
 
 import { LoginFormDynamic } from '@/components/auth/login-form-dynamic';
@@ -94,16 +93,16 @@ export default function Home() {
         {/* Right Column */}
         <div className="flex items-center justify-center">
             <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm">
-                <CardHeader>
+                <CardHeader className="text-center">
                 <CardTitle className="text-2xl font-bold">
-                    Administrator Login
+                    Login
                 </CardTitle>
                 <CardDescription>
-                    Access the attendance management system
+                    Enter your credentials to access the system
                 </CardDescription>
                 </CardHeader>
                 <CardContent>
-                <LoginFormDynamic isAdminForm={true} />
+                <LoginFormDynamic />
                 </CardContent>
             </Card>
         </div>

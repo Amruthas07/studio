@@ -15,39 +15,30 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2, Mail, Lock, Shield, Fingerprint } from 'lucide-react';
+import { Loader2, Mail, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(1, { message: 'Password is required.' }),
-  department: z.string().optional(),
 });
 
-export interface LoginFormProps {
-  isAdminForm: boolean;
-}
-
-export function LoginForm({ isAdminForm }: LoginFormProps) {
+export function LoginForm() {
   const { login, loading } = useAuth();
   const { toast } = useToast();
-  const pathname = usePathname();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: '',
       password: '',
-      department: 'cs',
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const role = isAdminForm ? 'admin' : (pathname === '/teacher-login' ? 'teacher' : 'student');
     try {
-        await login(values.email, values.password, role, values.department);
+        await login(values.email, values.password);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -89,6 +80,9 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
                   <Lock className="h-4 w-4" />
                   Password
                 </span>
+                 <Link href="/reset-password" tabIndex={-1} className="text-xs hover:underline">
+                    Forgot Password?
+                </Link>
               </FormLabel>
               <FormControl>
                 <Input
@@ -112,56 +106,6 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
                 'Sign In'
             )}
         </Button>
-        
-        {isAdminForm && (
-            <div className="flex items-center justify-center gap-4 text-xs text-card-foreground/60 pt-2">
-                <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4"/>
-                    <span>SSL Secured</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Fingerprint className="h-4 w-4"/>
-                    <span>256-bit Encryption</span>
-                </div>
-            </div>
-        )}
-
-        <div className="text-center text-sm text-card-foreground/80">
-            {pathname === '/' ? (
-                <>
-                Are you a student or teacher?{' '}
-                <Link href="/student-login" className="font-semibold text-primary hover:underline">
-                    Student Login
-                </Link>
-                {' | '}
-                <Link href="/teacher-login" className="font-semibold text-primary hover:underline">
-                    Teacher Login
-                </Link>
-                </>
-            ) : pathname === '/student-login' ? (
-                 <>
-                Are you an administrator or teacher?{' '}
-                <Link href="/" className="font-semibold text-primary hover:underline">
-                    Admin Login
-                </Link>
-                 {' | '}
-                <Link href="/teacher-login" className="font-semibold text-primary hover:underline">
-                    Teacher Login
-                </Link>
-                </>
-            ) : (
-                 <>
-                Are you an administrator or student?{' '}
-                <Link href="/" className="font-semibold text-primary hover:underline">
-                    Admin Login
-                </Link>
-                 {' | '}
-                <Link href="/student-login" className="font-semibold text-primary hover:underline">
-                    Student Login
-                </Link>
-                </>
-            )}
-        </div>
       </form>
     </Form>
   );
