@@ -16,7 +16,7 @@ import {
   signOut,
   User as FirebaseUser,
 } from 'firebase/auth';
-import { useFirestore, useAuth as useFirebaseAuth, useUser } from '@/firebase';
+import { useFirestore, useAuth as useFirebaseAuth, useUser, FirestorePermissionError, errorEmitter } from '@/firebase';
 import type { Student, Teacher } from '@/lib/types';
 
 type Role = 'admin' | 'student' | 'teacher';
@@ -80,7 +80,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
         } else {
             const teacherDocRef = doc(firestore, 'teachers', user.email!);
-            const teacherDocSnap = await getDoc(teacherDocRef);
+            let teacherDocSnap;
+            try {
+                teacherDocSnap = await getDoc(teacherDocRef);
+            } catch (error: any) {
+                if (error.code === 'permission-denied') {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'get'}));
+                }
+                throw error;
+            }
+
             if (teacherDocSnap.exists()) {
                 const foundTeacher = teacherDocSnap.data() as Teacher;
                 profile = {
@@ -99,7 +108,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } else {
                 const studentsRef = collection(firestore, 'students');
                 const q = query(studentsRef, where('email', '==', user.email!), limit(1));
-                const studentQuerySnap = await getDocs(q);
+                let studentQuerySnap;
+                try {
+                    studentQuerySnap = await getDocs(q);
+                } catch (error: any) {
+                    if (error.code === 'permission-denied') {
+                        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'students', operation: 'list'}));
+                    }
+                    throw error;
+                }
+
                 if (!studentQuerySnap.empty) {
                     const studentDoc = studentQuerySnap.docs[0];
                     const foundStudent = studentDoc.data() as any;
@@ -114,7 +132,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
           console.error("Error fetching user profile:", error);
-          // If fetching profile fails, log out the user to be safe
           await signOut(auth);
           profile = null;
       }
@@ -142,13 +159,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         actualRole = 'admin';
       } else {
         const teacherDocRef = doc(firestore, 'teachers', user.email);
-        const teacherDocSnap = await getDoc(teacherDocRef);
+        let teacherDocSnap;
+        try {
+            teacherDocSnap = await getDoc(teacherDocRef);
+        } catch (error: any) {
+            if (error.code === 'permission-denied') {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'get' }));
+            }
+            throw error;
+        }
+
         if (teacherDocSnap.exists()) {
           actualRole = 'teacher';
         } else {
           const studentsRef = collection(firestore, 'students');
           const q = query(studentsRef, where('email', '==', user.email), limit(1));
-          const studentQuerySnap = await getDocs(q);
+          let studentQuerySnap;
+          try {
+              studentQuerySnap = await getDocs(q);
+          } catch(error: any) {
+              if (error.code === 'permission-denied') {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'students', operation: 'list' }));
+              }
+              throw error;
+          }
+          
           if (!studentQuerySnap.empty) {
             actualRole = 'student';
           }
@@ -172,7 +207,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
           throw new Error('Invalid email or password.');
       }
-      // Re-throw other errors to be displayed
       throw error;
     }
   }, [auth, firestore, router]);
