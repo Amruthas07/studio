@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -40,6 +39,10 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(
   undefined
 );
+
+// Hardcoded credentials for the initial administrator setup.
+const ADMIN_EMAIL = "apdd46@gmail.com";
+const ADMIN_PASSWORD = "sixth@sem";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -192,13 +195,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.push(targetPath);
 
     } catch (error: any) {
+      // Special case for initial admin setup.
       if (
         role === 'admin' &&
-        email.toLowerCase() === 'apdd46@gmail.com' &&
+        email.toLowerCase() === ADMIN_EMAIL &&
         error.code === 'auth/user-not-found'
       ) {
+        // If the admin user does not exist, only allow creation if the
+        // provided password matches the designated admin password.
+        if (pass !== ADMIN_PASSWORD) {
+          throw new Error('Invalid email or password.');
+        }
+
         try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+          // Create the user with the designated admin credentials.
+          const userCredential = await createUserWithEmailAndPassword(auth, email, ADMIN_PASSWORD);
           const user = userCredential.user;
           
           await user.getIdToken(true);
@@ -210,10 +221,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
 
         } catch (creationError: any) {
+          // This might happen if there's a network issue or if the email is somehow
+          // in use by another auth provider.
           throw new Error(`Admin account creation failed: ${creationError.message}`);
         }
       }
       
+      // For all other errors, or if the user is not the special admin case.
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
           throw new Error('Invalid email or password.');
       }
