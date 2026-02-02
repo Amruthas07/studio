@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -59,27 +60,39 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
 
     const { email, password, ...details } = teacherData;
 
+    // Perform the duplicate check first. This is awaited and will throw if a duplicate is found.
     const existingTeacherQuery = query(collection(firestore, "teachers"), where("email", "==", email));
     const querySnapshot = await getDocs(existingTeacherQuery);
     if (!querySnapshot.empty) {
         throw new Error(`A teacher with email ${email} already exists.`);
     }
 
-    const teacherDocRef = doc(firestore, 'teachers', email); // Use email as ID
-
+    // If validation passes, proceed with creating the document in the background.
+    const teacherDocRef = doc(firestore, 'teachers', email);
     const newTeacherData = {
         ...details,
         email,
-        password, // Storing plaintext password as per existing app logic
+        password,
         teacherId: email,
-        profilePhotoUrl: "", // Set to empty string so initials show up
+        profilePhotoUrl: "",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     };
 
-    await setDoc(teacherDocRef, newTeacherData);
+    // Don't await setDoc. Handle success/failure with toasts.
+    // The UI updates from the onSnapshot listener, so a success toast isn't necessary.
+    setDoc(teacherDocRef, newTeacherData)
+        .catch((error: any) => {
+            console.error("Failed to add teacher in background:", error);
+            toast({
+                variant: "destructive",
+                title: "Background Registration Failed",
+                description: `Could not save teacher ${details.name}. Reason: ${error.message}`,
+                duration: 9000,
+            });
+        });
 
-  }, [firestore]);
+  }, [firestore, toast]);
   
   const updateTeacher = useCallback(async (teacherId: string, updates: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => {
     if (!firestore) {

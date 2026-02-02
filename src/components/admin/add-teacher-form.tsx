@@ -40,7 +40,6 @@ type AddTeacherFormProps = {
 export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const { toast } = useToast()
   const { addTeacher } = useTeachers();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -51,25 +50,25 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     },
   })
   
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true);
-    try {
-        await addTeacher(values);
-        toast({
-            title: "Registration Successful",
-            description: `Teacher ${values.name} has been added to the system.`,
-        });
-        onTeacherAdded();
-        form.reset();
-    } catch (error: any) {
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    // Fire-and-forget style. The context handles background processing and toasts.
+    addTeacher(values).catch((error: any) => {
+        // This catch handles validation errors (e.g., duplicates) thrown
+        // before the background process starts.
         toast({
             variant: "destructive",
-            title: "Failed to Add Teacher",
-            description: error.message || "An unexpected error occurred.",
+            title: "Registration Failed",
+            description: error.message || "An unexpected error occurred during validation.",
         });
-    } finally {
-        setIsSubmitting(false);
-    }
+    });
+    
+    // Optimistically update the UI.
+    toast({
+        title: "Registration Started",
+        description: `Teacher ${values.name} is being added to the system.`,
+    });
+    onTeacherAdded();
+    form.reset();
   }
   
   return (
@@ -141,8 +140,8 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
             />
             
         <div className="flex justify-end pt-4">
-            <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Add Teacher
             </Button>
         </div>
