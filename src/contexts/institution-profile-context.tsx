@@ -22,19 +22,16 @@ const defaultProfile: InstitutionProfile = {
 };
 
 export function InstitutionProfileProvider({ children }: { children: ReactNode }) {
-  const [institutionProfile, setInstitutionProfile] = useState<InstitutionProfile | null>(null);
+  const [institutionProfile, setInstitutionProfile] = useState<InstitutionProfile | null>(defaultProfile);
   const [loading, setLoading] = useState(true);
   const firestore = useFirestore();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!firestore || authLoading) {
-      if (!authLoading) { // If auth is done but no firestore, use default.
-          setInstitutionProfile(defaultProfile);
-          setLoading(false);
-      }
-      return;
+    if (authLoading || !firestore) {
+        setLoading(!authLoading); // If auth is still loading, we are loading. If not, we are done.
+        return;
     }
 
     setLoading(true);
@@ -54,44 +51,41 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
           };
           setInstitutionProfile(profileData);
         } else {
-          // If doc doesn't exist, use the local default.
+          // If doc doesn't exist, just use the local default profile.
+          // Do not attempt to create it. This should be done manually by an admin if needed.
           setInstitutionProfile(defaultProfile);
-          // Only an admin should be able to create the document.
-          if (user?.role === 'admin') {
-              setDoc(profileDocRef, defaultProfile).catch(err => {
-                  if (err.code === 'permission-denied') {
-                      errorEmitter.emit('permission-error', new FirestorePermissionError({
-                        path: profileDocRef.path,
-                        operation: 'create',
-                        requestResourceData: defaultProfile
-                      }));
-                  } else {
-                      toast({ variant: 'destructive', title: 'Error', description: 'Could not create institution profile.' });
-                  }
-              });
-          }
         }
         setLoading(false);
       },
       (err) => {
-        const permissionError = new FirestorePermissionError({
-            path: profileDocRef.path,
-            operation: 'get'
-        });
-        errorEmitter.emit('permission-error', permissionError);
+        if (err.code === 'permission-denied') {
+            // This is expected if rules are strict and user isn't logged in.
+            // We can just use the default profile.
+            console.warn("Permission denied to read institution profile. Using default.");
+        } else {
+            console.error("Error fetching institution profile:", err);
+        }
         setInstitutionProfile(defaultProfile); // Fallback to default
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, [firestore, user, authLoading, toast]);
+  }, [firestore, authLoading]);
   
   const updateInstitutionProfile = useCallback((data: Partial<Omit<InstitutionProfile, 'id'>>) => {
-      if (!firestore) {
-          toast({ variant: 'destructive', title: 'Update Failed', description: 'Database not available.' });
+      if (!firestore || !user) {
+          toast({ variant: 'destructive', title: 'Update Failed', description: 'You must be logged in.' });
           return;
       }
+      
+      // Note: This will fail for the mocked admin as it's not a real Firebase user.
+      // This would need to be handled by creating a real admin user or using a backend function.
+      if (user.role !== 'admin') {
+          toast({ variant: 'destructive', title: 'Permission Denied', description: 'Only administrators can update the institution profile.' });
+          return;
+      }
+
       const profileDocRef = doc(firestore, 'institution', 'profile');
       const dataToSave = { ...data, updatedAt: serverTimestamp() };
       
@@ -110,7 +104,7 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
                 toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
             }
         });
-  }, [firestore, toast]);
+  }, [firestore, toast, user]);
 
 
   const value = { institutionProfile, loading, updateInstitutionProfile };
