@@ -37,9 +37,6 @@ export const AuthContext = createContext<AuthContextType | undefined>(
   undefined
 );
 
-const ADMIN_EMAIL = "apdd46@gmail.com";
-const ADMIN_PASSWORD = "sixth@sem";
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { user: firebaseUser, isUserLoading } = useUser();
 
   useEffect(() => {
-    if (isUserLoading) {
+    if (isUserLoading || !firestore) {
       setLoading(true);
       return;
     }
@@ -65,57 +62,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       let profile: AuthUser | null = null;
       
       try {
-        const teacherDocRef = doc(firestore, 'teachers', user.email!);
-        let teacherDocSnap;
-        try {
-            teacherDocSnap = await getDoc(teacherDocRef);
-        } catch (error: any) {
-            if (error.code === 'permission-denied') {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'get'}));
+        // 1. Check for Admin role
+        const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
+        const adminDocSnap = await getDoc(adminRoleRef).catch(err => {
+            if (err.code === 'permission-denied') {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: adminRoleRef.path, operation: 'get'}));
             }
-            throw error;
-        }
+            throw err;
+        });
 
-        if (teacherDocSnap.exists()) {
-            const foundTeacher = teacherDocSnap.data() as Teacher;
-            profile = {
-                name: foundTeacher.name,
-                email: foundTeacher.email,
-                role: 'teacher',
-                department: foundTeacher.department,
-                registerNumber: foundTeacher.teacherId || foundTeacher.email,
+        if (adminDocSnap.exists()) {
+             profile = {
+                name: user.displayName || 'Administrator',
+                email: user.email!,
+                role: 'admin',
+                department: 'all',
+                registerNumber: user.uid,
                 fatherName: 'N/A',
                 motherName: 'N/A',
-                profilePhotoUrl: foundTeacher.profilePhotoUrl || '',
+                profilePhotoUrl: user.photoURL || 'https://picsum.photos/seed/admin/100/100',
                 contact: 'N/A',
-                createdAt: foundTeacher.createdAt instanceof Date ? foundTeacher.createdAt : foundTeacher.createdAt.toDate(),
+                createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : new Date(),
                 dateOfBirth: new Date(),
-            };
+             };
         } else {
-            const studentsRef = collection(firestore, 'students');
-            const q = query(studentsRef, where('email', '==', user.email!), limit(1));
-            let studentQuerySnap;
-            try {
-                studentQuerySnap = await getDocs(q);
-            } catch (error: any) {
-                if (error.code === 'permission-denied') {
-                    errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'students', operation: 'list'}));
+            // 2. Check for Teacher role
+            const teacherDocRef = doc(firestore, 'teachers', user.email!);
+            const teacherDocSnap = await getDoc(teacherDocRef).catch(err => {
+                if (err.code === 'permission-denied') {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'get'}));
                 }
-                throw error;
-            }
-
-            if (!studentQuerySnap.empty) {
-                const studentDoc = studentQuerySnap.docs[0];
-                const foundStudent = studentDoc.data() as any;
-                 profile = { 
-                    ...foundStudent,
-                    createdAt: foundStudent.createdAt.toDate(),
-                    dateOfBirth: foundStudent.dateOfBirth.toDate(), 
-                    role: 'student',
+                throw err;
+            });
+            if (teacherDocSnap.exists()) {
+                const foundTeacher = teacherDocSnap.data() as Teacher;
+                profile = {
+                    name: foundTeacher.name,
+                    email: foundTeacher.email,
+                    role: 'teacher',
+                    department: foundTeacher.department,
+                    registerNumber: foundTeacher.teacherId || foundTeacher.email,
+                    fatherName: 'N/A',
+                    motherName: 'N/A',
+                    profilePhotoUrl: foundTeacher.profilePhotoUrl || '',
+                    contact: 'N/A',
+                    createdAt: foundTeacher.createdAt instanceof Date ? foundTeacher.createdAt : foundTeacher.createdAt.toDate(),
+                    dateOfBirth: new Date(),
                 };
+            } else {
+                // 3. Check for Student role
+                const studentsRef = collection(firestore, 'students');
+                const q = query(studentsRef, where('email', '==', user.email!), limit(1));
+                const studentQuerySnap = await getDocs(q).catch(err => {
+                    if (err.code === 'permission-denied') {
+                        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'students', operation: 'list'}));
+                    }
+                    throw err;
+                });
+
+                if (!studentQuerySnap.empty) {
+                    const studentDoc = studentQuerySnap.docs[0];
+                    const foundStudent = studentDoc.data() as any;
+                     profile = { 
+                        ...foundStudent,
+                        createdAt: foundStudent.createdAt.toDate(),
+                        dateOfBirth: foundStudent.dateOfBirth.toDate(), 
+                        role: 'student',
+                    };
+                }
             }
         }
+
+        if (!profile) {
+            // User authenticated with Firebase but has no role in our app.
+            console.warn(`User ${user.email} is authenticated but has no role in the application.`);
+            await signOut(auth); // Sign them out.
+        }
+
       } catch (error) {
+          console.error("Error fetching user profile:", error);
           await signOut(auth);
           profile = null;
       }
@@ -124,49 +149,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
 
-    // The admin user is not in Firebase Auth, so we don't fetch a profile for it.
-    if (firebaseUser.email?.toLowerCase() !== ADMIN_EMAIL) {
-        fetchUserProfile(firebaseUser);
-    } else {
-        // If a real Firebase user has the admin email, sign them out
-        // to prevent conflicts with the mock admin user.
-        signOut(auth);
-        setAuthUser(null);
-        setLoading(false);
-    }
+    fetchUserProfile(firebaseUser);
   }, [firebaseUser, isUserLoading, firestore, auth]);
 
 
   const login = useCallback(async (email: string, pass: string, role: Role) => {
     try {
-      // Special case for prototype admin login
-      if (email.toLowerCase() === ADMIN_EMAIL) {
-        if (role !== 'admin') {
-          throw new Error(`Account is for an admin. Please use the admin login page.`);
-        }
-        if (pass === ADMIN_PASSWORD) {
-          const adminProfile: AuthUser = {
-            name: 'Smart Institute Admin',
-            email: ADMIN_EMAIL,
-            role: 'admin',
-            department: 'all',
-            registerNumber: 'ADMIN_001',
-            fatherName: 'N/A',
-            motherName: 'N/A',
-            profilePhotoUrl: 'https://picsum.photos/seed/admin/100/100',
-            contact: 'N/A',
-            createdAt: new Date(),
-            dateOfBirth: new Date(),
-          };
-          setAuthUser(adminProfile);
-          router.push('/admin');
-          return;
-        } else {
-          throw new Error('Invalid email or password.');
-        }
-      }
-
-      // Regular Firebase Auth for students and teachers
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
       const user = userCredential.user;
 
@@ -174,38 +162,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await signOut(auth);
         throw new Error("Authentication failed: User has no email.");
       }
-
+      
       let actualRole: Role | null = null;
-        const teacherDocRef = doc(firestore, 'teachers', user.email);
-        let teacherDocSnap;
-        try {
-            teacherDocSnap = await getDoc(teacherDocRef);
-        } catch (error: any) {
-            if (error.code === 'permission-denied') {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'get' }));
-            }
-            throw error;
-        }
 
-        if (teacherDocSnap.exists()) {
-          actualRole = 'teacher';
-        } else {
-          const studentsRef = collection(firestore, 'students');
-          const q = query(studentsRef, where('email', '==', user.email), limit(1));
-          let studentQuerySnap;
-          try {
-              studentQuerySnap = await getDocs(q);
-          } catch(error: any) {
-              if (error.code === 'permission-denied') {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'students', operation: 'list' }));
+      const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
+      const adminDocSnap = await getDoc(adminRoleRef);
+      if (adminDocSnap.exists()) {
+          actualRole = 'admin';
+      } else {
+          const teacherDocRef = doc(firestore, 'teachers', user.email);
+          const teacherDocSnap = await getDoc(teacherDocRef);
+          if (teacherDocSnap.exists()) {
+              actualRole = 'teacher';
+          } else {
+              const studentsRef = collection(firestore, 'students');
+              const q = query(studentsRef, where('email', '==', user.email), limit(1));
+              const studentQuerySnap = await getDocs(q);
+              if (!studentQuerySnap.empty) {
+                  actualRole = 'student';
               }
-              throw error;
           }
-          
-          if (!studentQuerySnap.empty) {
-            actualRole = 'student';
-          }
-        }
+      }
 
       if (!actualRole) {
         await signOut(auth);
@@ -230,17 +207,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   const logout = useCallback(async () => {
-    // Special handling for mock admin user
-    if (authUser?.role === 'admin') {
-        setAuthUser(null);
-        router.push('/');
-        return;
-    }
-    // For real Firebase users
     await signOut(auth);
     setAuthUser(null);
     router.push('/');
-  }, [auth, router, authUser]);
+  }, [auth, router]);
 
   return (
     <AuthContext.Provider value={{ user: authUser, loading, login, logout }}>
