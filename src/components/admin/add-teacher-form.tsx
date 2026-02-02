@@ -40,7 +40,6 @@ type AddTeacherFormProps = {
 export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const { toast } = useToast()
   const { addTeacher } = useTeachers();
-  const [isPending, startTransition] = React.useTransition()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -52,23 +51,21 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   })
   
   function onSubmit(values: z.infer<typeof formSchema>) {
-    startTransition(async () => {
-        try {
-            await addTeacher(values);
-            toast({
-                title: "Teacher Added",
-                description: `${values.name} has been added and can now log in.`,
-            });
-            onTeacherAdded();
-            form.reset();
-        } catch (error: any) {
-            toast({
-                variant: "destructive",
-                title: "Failed to Add Teacher",
-                description: error.message || "An unexpected error occurred.",
-            })
-        }
-    })
+    addTeacher(values).catch((error: any) => {
+        toast({
+            variant: "destructive",
+            title: "Failed to Add Teacher",
+            description: error.message || "An unexpected error occurred.",
+        })
+    });
+
+    toast({
+        title: "Registration Submitted",
+        description: `Adding ${values.name} to the system.`,
+    });
+    
+    onTeacherAdded();
+    form.reset();
   }
   
   return (
@@ -140,8 +137,8 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
             />
             
         <div className="flex justify-end pt-4">
-            <Button type="submit" disabled={isPending}>
-                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Add Teacher
             </Button>
         </div>
