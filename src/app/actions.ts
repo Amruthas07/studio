@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import type { Student, AttendanceRecord } from "@/lib/types";
 import { dailyAttendanceReport, DailyAttendanceReportInput } from "@/ai/flows/daily-attendance-report";
 import { attendanceReportingWithFiltering, AttendanceReportingWithFilteringInput } from "@/ai/flows/attendance-reporting-with-filtering";
+import { chat, ChatInput } from "@/ai/flows/chatbot-flow";
 
 const addStudentSchema = z.object({
   name: z.string(),
@@ -125,4 +126,16 @@ export async function generateReport(input: GenerateReportFormInput) {
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         return { success: false, error: `Failed to generate report: ${errorMessage}` };
     }
+}
+
+
+export async function handleChat(input: ChatInput) {
+  try {
+    const result = await chat(input);
+    return { success: true, response: result.response };
+  } catch (error) {
+    console.error("Error in chat flow:", error);
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+    return { success: false, error: `Chat failed: ${errorMessage}` };
+  }
 }
