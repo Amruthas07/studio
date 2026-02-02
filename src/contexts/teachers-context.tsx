@@ -27,9 +27,15 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
       (snapshot) => {
         const teacherData = snapshot.docs.map(doc => {
             const data = doc.data();
+            // If profilePhotoUrl is a placeholder from picsum, set it to empty string to show fallback.
+            const profilePhotoUrl = data.profilePhotoUrl?.includes('picsum.photos') 
+                ? '' 
+                : data.profilePhotoUrl;
+
             return {
                 ...data,
                 teacherId: doc.id,
+                profilePhotoUrl,
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
             } as Teacher;
         });
@@ -65,7 +71,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         email,
         password, // Storing plaintext password as per existing app logic
         teacherId: email,
-        profilePhotoUrl: `https://picsum.photos/seed/${email}/100/100`, // Placeholder photo
+        profilePhotoUrl: "", // Set to empty string so initials show up
         createdAt: serverTimestamp(),
     };
 
