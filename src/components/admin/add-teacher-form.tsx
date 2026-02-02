@@ -40,6 +40,7 @@ type AddTeacherFormProps = {
 export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const { toast } = useToast()
   const { addTeacher } = useTeachers();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,22 +51,25 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     },
   })
   
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    addTeacher(values).catch((error: any) => {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+        await addTeacher(values);
+        toast({
+            title: "Registration Successful",
+            description: `Teacher ${values.name} has been added to the system.`,
+        });
+        onTeacherAdded();
+        form.reset();
+    } catch (error: any) {
         toast({
             variant: "destructive",
             title: "Failed to Add Teacher",
             description: error.message || "An unexpected error occurred.",
-        })
-    });
-
-    toast({
-        title: "Registration Submitted",
-        description: `Adding ${values.name} to the system.`,
-    });
-    
-    onTeacherAdded();
-    form.reset();
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   }
   
   return (
@@ -137,8 +141,8 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
             />
             
         <div className="flex justify-end pt-4">
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Add Teacher
             </Button>
         </div>
