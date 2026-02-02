@@ -1,3 +1,4 @@
+
 /**
  * Core Philosophy: This ruleset enforces a strict, role-based access control model.
  * It defines distinct permissions for Admins, Teachers, and Students.
@@ -73,7 +74,7 @@ service cloud.firestore {
      */
     match /students/{registerNumber} {
       allow read, write: if isAdmin();
-      allow get: if isSignedIn() && (isStudentOwner(registerNumber) || (isTeacher() && resource.data.department == getTeacherDepartment()));
+      allow get: if isSignedIn() && (isStudentOwner(registerNumber) || (isTeacher() && get(/databases/$(database)/documents/students/$(registerNumber)).data.department == getTeacherDepartment()));
       allow list: if isTeacher() && request.query.where.department == getTeacherDepartment();
     }
 
@@ -90,12 +91,12 @@ service cloud.firestore {
     /**
      * @description Manages student attendance records.
      * @allow (read, write) Admins have full access.
-     * @allow (list) Teachers can list all attendance records for reporting purposes.
+     * @allow (list) Teachers can list all attendance records for their department.
      * @allow (list) Students can list only their own attendance records via a constrained query.
      */
     match /attendance/{attendanceId} {
       allow read, write: if isAdmin();
-      allow list: if isTeacher();
+      allow list: if isTeacher() && request.query.where.department == getTeacherDepartment();
       allow list: if isSignedIn() && request.query.where.studentRegister != null && isStudentOwner(request.query.where.studentRegister);
     }
     

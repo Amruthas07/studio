@@ -32,6 +32,7 @@ const AttendanceRecordSchema = z.object({
   studentRegister: z.string(),
   studentName: z.string().optional(),
   date: z.string(),
+  department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   status: z.enum(['present', 'absent']),
   timestamp: z.string(),
   reason: z.string().optional(),
