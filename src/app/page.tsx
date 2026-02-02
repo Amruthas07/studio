@@ -1,7 +1,7 @@
 'use client';
 
 import { LoginFormDynamic } from '@/components/auth/login-form-dynamic';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Mail, MapPin, Phone, ShieldCheck, UserCheck, BarChart, BrainCircuit, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useInstitutionProfile } from '@/hooks/use-institution-profile';
@@ -95,15 +95,22 @@ export default function Home() {
             <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm">
                 <CardHeader className="text-center">
                 <CardTitle className="text-2xl font-bold">
-                    Login
+                    Admin Login
                 </CardTitle>
                 <CardDescription>
-                    Enter your credentials to access the system
+                    Enter your administrator credentials to access the system.
                 </CardDescription>
                 </CardHeader>
                 <CardContent>
-                <LoginFormDynamic />
+                    <LoginFormDynamic />
                 </CardContent>
+                <CardFooter className="flex-col items-center gap-4 pt-4">
+                    <div className="text-sm text-muted-foreground">Are you a student or teacher?</div>
+                    <div className="flex gap-4">
+                        <Link href="/student-login" className="text-sm font-medium text-primary hover:underline">Student Login</Link>
+                        <Link href="/teacher-login" className="text-sm font-medium text-primary hover:underline">Teacher Login</Link>
+                    </div>
+                </CardFooter>
             </Card>
         </div>
 
