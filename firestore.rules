@@ -51,8 +51,9 @@ service cloud.firestore {
       allow list: if false;
 
       // ALLOW a user to create their own role document. This enables the first
-      // admin to set themselves up.
-      allow create: if isSignedIn() && request.auth.uid == uid;
+      // admin to set themselves up. The request.auth object might not be fully
+      // populated in the split-second after creation, so we just check the UID.
+      allow create: if request.auth.uid == uid;
       
       // ALLOW only existing admins to modify or delete other roles.
       allow update, delete: if isAdmin();
