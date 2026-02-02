@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -8,6 +7,7 @@ import type { InstitutionProfile, InstitutionProfileContextType } from '@/lib/ty
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { useAuth } from '@/hooks/use-auth';
 
 
 export const InstitutionProfileContext = createContext<InstitutionProfileContextType | undefined>(undefined);
@@ -26,11 +26,14 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
   const [loading, setLoading] = useState(true);
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!firestore) {
-      setLoading(false);
-      setInstitutionProfile(defaultProfile);
+    if (!firestore || authLoading) {
+      if (!authLoading) { // If auth is done but no firestore, use default.
+          setInstitutionProfile(defaultProfile);
+          setLoading(false);
+      }
       return;
     }
 
@@ -51,17 +54,22 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
           };
           setInstitutionProfile(profileData);
         } else {
-          // If doc doesn't exist, use the local default and create it in Firestore.
+          // If doc doesn't exist, use the local default.
           setInstitutionProfile(defaultProfile);
-          setDoc(profileDocRef, defaultProfile).catch(err => {
-              if (err.code === 'permission-denied') {
-                  errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: profileDocRef.path,
-                    operation: 'create',
-                    requestResourceData: defaultProfile
-                  }));
-              }
-          });
+          // Only an admin should be able to create the document.
+          if (user?.role === 'admin') {
+              setDoc(profileDocRef, defaultProfile).catch(err => {
+                  if (err.code === 'permission-denied') {
+                      errorEmitter.emit('permission-error', new FirestorePermissionError({
+                        path: profileDocRef.path,
+                        operation: 'create',
+                        requestResourceData: defaultProfile
+                      }));
+                  } else {
+                      toast({ variant: 'destructive', title: 'Error', description: 'Could not create institution profile.' });
+                  }
+              });
+          }
         }
         setLoading(false);
       },
@@ -77,7 +85,7 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
     );
 
     return () => unsubscribe();
-  }, [firestore]);
+  }, [firestore, user, authLoading, toast]);
   
   const updateInstitutionProfile = useCallback((data: Partial<Omit<InstitutionProfile, 'id'>>) => {
       if (!firestore) {
