@@ -45,17 +45,16 @@ service cloud.firestore {
     match /roles_admin/{uid} {
       // ALLOW a user to read their OWN role document. This is critical for the app
       // to verify a user's role after they log in.
-      allow get: if isSignedIn() && request.auth.uid == uid;
+      allow read: if isSignedIn() && request.auth.uid == uid;
       
       // DENY anyone from listing all admin documents.
       allow list: if false;
 
       // ALLOW a user to create their own role document. This enables the first
-      // admin to set themselves up. The request.auth object might not be fully
-      // populated in the split-second after creation, so we just check the UID.
+      // admin to set themselves up.
       allow create: if request.auth.uid == uid;
       
-      // ALLOW only existing admins to modify or delete other roles.
+      // DENY modification or deletion by non-admins.
       allow update, delete: if isAdmin();
     }
 
@@ -69,9 +68,8 @@ service cloud.firestore {
                    (isTeacher() && get(/databases/$(database)/documents/students/$(registerNumber)).data.department == getTeacherDepartment());
       
       // Teachers can list students only if they query by their own department.
-      allow list: if isTeacher() && request.query.where.department == getTeacherDepartment();
       // Admins can list all students.
-      allow list: if isAdmin();
+      allow list: if (isTeacher() && request.query.where.department == getTeacherDepartment()) || isAdmin();
     }
 
     // Manages teacher profile data.
@@ -90,13 +88,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
       
       // Students can list their own attendance via a constrained query.
-      allow list: if isSignedIn() && request.query.where.studentRegister != null && isStudentOwner(request.query.where.studentRegister);
-      
       // Teachers can list attendance for their department via a constrained query.
-      allow list: if isTeacher() && request.query.where.department == getTeacherDepartment();
-
       // Admins can list all records.
-      allow list: if isAdmin();
+      allow list: if (isSignedIn() && request.query.where.studentRegister != null && isStudentOwner(request.query.where.studentRegister)) ||
+                    (isTeacher() && request.query.where.department == getTeacherDepartment()) ||
+                    isAdmin();
     }
     
     // Public information about the institution.
