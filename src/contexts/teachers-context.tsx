@@ -49,7 +49,6 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       },
       (err) => {
-        console.error('Error fetching teachers:', err);
         const permissionError = new FirestorePermissionError({
           path: 'teachers',
           operation: 'list'
@@ -94,7 +93,6 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             };
             
             setDoc(teacherDocRef, newTeacherData).catch(error => {
-                console.error("Firestore setDoc for teacher failed:", error);
                  if (error.code === 'permission-denied') {
                     errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'create', requestResourceData: newTeacherData }));
                 } else {
@@ -134,7 +132,6 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         toast({ title: 'Teacher Updated', description: `Details for ${updates.name || teacherId} have been saved.` });
       })
       .catch((error: any) => {
-        console.error("Firestore teacher update failed:", error);
         if (error.code === 'permission-denied') {
             errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'update', requestResourceData: dataToUpdate }));
         } else {
@@ -154,7 +151,6 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         toast({ title: 'Teacher Deleted', description: `Successfully removed teacher ${teacherId}.` });
       })
       .catch((error: any) => {
-        console.error("Firestore teacher delete failed:", error);
         if (error.code === 'permission-denied') {
             errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'delete' }));
         } else {

@@ -131,7 +131,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
         }
       } catch (error) {
-          console.error("Error fetching user profile:", error);
+          // Errors from Firestore are already handled inside the try block
+          // This catch is for other unexpected errors during profile creation
           await signOut(auth);
           profile = null;
       }

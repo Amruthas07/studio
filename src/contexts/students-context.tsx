@@ -67,7 +67,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
           setLoading(false);
         },
         (err) => {
-          console.error('Error fetching student profile:', err);
           const permissionError = new FirestorePermissionError({
             path: studentDocRef.path,
             operation: 'get'
@@ -102,7 +101,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
           setLoading(false);
         },
         (err) => {
-          console.error('Error fetching students:', err);
            const permissionError = new FirestorePermissionError({
             path: (studentsQuery as any)._query?.path?.canonicalString() || 'students',
             operation: 'list'
@@ -144,7 +142,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     try {
         await createUserWithEmailAndPassword(auth, details.email, details.registerNumber);
     } catch (error: any) {
-        console.error("Failed to create student auth user:", error);
         if (error.code === 'auth/email-already-in-use') {
             throw new Error('This email is already in use by another account.');
         }
@@ -163,7 +160,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     };
     
     setDoc(studentDocRef, initialStudentData).catch(error => {
-      console.error("Firestore setDoc failed:", error);
       if (error.code === 'permission-denied') {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'create', requestResourceData: initialStudentData }));
       } else {
@@ -197,7 +193,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             };
 
             updateDoc(studentDocRef, photoData).catch(error => {
-              console.error("Firestore photo update failed:", error);
               if (error.code === 'permission-denied') {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'update', requestResourceData: photoData }));
               }
@@ -237,7 +232,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             });
         })
         .catch(error => {
-            console.error("Failed to update student details:", error);
             if (error.code === 'permission-denied') {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'update', requestResourceData: updatesToApply }));
             } else {
@@ -279,7 +273,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                         });
                     })
                     .catch(error => {
-                        console.error("Failed to update student photo:", error);
                         if (error.code === 'permission-denied') {
                             errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'update', requestResourceData: photoData }));
                         } else {
@@ -288,7 +281,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                     });
 
             } catch (error: any) {
-                console.error("Failed to update student photo in background:", error);
                 toast({
                     variant: "destructive",
                     title: "Background Photo Update Failed",
@@ -327,13 +319,13 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                 const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
                 deleteObject(photoRef).catch(storageError => {
                     if (storageError.code !== 'storage/object-not-found') {
+                        // Don't toast here, just log, as it's a background task.
                         console.error("Failed to delete student photo from storage:", storageError);
                     }
                 });
             }
         })
         .catch(error => {
-            console.error("Failed to delete student document:", error);
             if (error.code === 'permission-denied') {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'delete' }));
             } else {

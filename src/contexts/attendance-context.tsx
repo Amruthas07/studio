@@ -81,7 +81,6 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       },
       (err) => {
-        console.error("Error fetching attendance:", err);
         const permissionError = new FirestorePermissionError({
           // This path access might be fragile, but it's the best we can do for a query.
           path: (attendanceQuery as any)._query?.path?.canonicalString() || 'attendance',
@@ -113,7 +112,6 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     };
     
     const handleFirestoreError = (error: any, path: string, operation: 'write' | 'update' | 'create', data: any) => {
-      console.error(`Firestore ${operation} failed:`, error);
       if (error.code === 'permission-denied') {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path, operation, requestResourceData: data }));
       } else {
@@ -155,7 +153,6 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       const recordDocRef = doc(firestore, 'attendance', docId);
       deleteDoc(recordDocRef)
         .catch((error) => {
-            console.error(`Firestore delete failed:`, error);
             if (error.code === 'permission-denied') {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({ path: recordDocRef.path, operation: 'delete' }));
             } else {

@@ -54,7 +54,6 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
           // If doc doesn't exist, use the local default and create it in Firestore.
           setInstitutionProfile(defaultProfile);
           setDoc(profileDocRef, defaultProfile).catch(err => {
-              console.error("Failed to set default institution profile in Firestore:", err);
               if (err.code === 'permission-denied') {
                   errorEmitter.emit('permission-error', new FirestorePermissionError({
                     path: profileDocRef.path,
@@ -67,7 +66,6 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
         setLoading(false);
       },
       (err) => {
-        console.error("Error fetching institution profile:", err);
         const permissionError = new FirestorePermissionError({
             path: profileDocRef.path,
             operation: 'get'
@@ -94,7 +92,6 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
           toast({ title: 'Profile Updated', description: 'Institution details have been saved.' });
         })
         .catch((error: any) => {
-            console.error("Firestore update failed:", error);
             if (error.code === 'permission-denied') {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({
                     path: profileDocRef.path,
