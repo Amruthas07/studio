@@ -65,12 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       let profile: AuthUser | null = null;
       
-      // Force refresh the auth token to ensure the backend has the latest auth state.
-      // This helps prevent race conditions with security rules after login/app load.
       await user.getIdToken(true);
 
       try {
-        // 1. Check for Admin role
         const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
         const adminDocSnap = await getDoc(adminRoleRef);
 
@@ -89,7 +86,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 dateOfBirth: new Date(),
              };
         } else {
-            // 2. Check for Teacher role
             const teacherDocRef = doc(firestore, 'teachers', user.email!);
             const teacherDocSnap = await getDoc(teacherDocRef);
             if (teacherDocSnap.exists()) {
@@ -108,7 +104,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     dateOfBirth: new Date(),
                 };
             } else {
-                // 3. Check for Student role
                 const studentsRef = collection(firestore, 'students');
                 const q = query(studentsRef, where('email', '==', user.email!), limit(1));
                 const studentQuerySnap = await getDocs(q);
@@ -127,16 +122,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (!profile) {
-            // User authenticated with Firebase but has no role in our app.
             console.warn(`User ${user.email} is authenticated but has no role in the application.`);
-            await signOut(auth); // Sign them out.
+            await signOut(auth); 
         }
 
       } catch (error: any) {
            if (error.code === 'permission-denied') {
-              // This can happen in a race condition, emit the error for debugging.
               errorEmitter.emit('permission-error', new FirestorePermissionError({
-                  path: `roles_admin/${user.uid}`, // Example path
+                  path: `roles_admin/${user.uid}`, 
                   operation: 'get'
               }));
           }
@@ -157,7 +150,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
       const user = userCredential.user;
       
-      // CRITICAL FIX: Wait for the token to be ready before proceeding.
       await user.getIdToken(true);
 
       if (!user.email) {
@@ -200,32 +192,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.push(targetPath);
 
     } catch (error: any) {
-       // Special handling to create the admin user on first login attempt
       if (
         role === 'admin' &&
         email.toLowerCase() === 'apdd46@gmail.com' &&
-        (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')
+        error.code === 'auth/user-not-found'
       ) {
         try {
-          // Admin user doesn't exist, so let's create it.
           const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
           const user = userCredential.user;
           
-          // CRITICAL FIX: Wait for the token to be ready before proceeding.
           await user.getIdToken(true);
 
-          // Now create the admin role document in Firestore.
           const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
-          // This will succeed because of the updated security rule.
           await setDoc(adminRoleRef, { role: 'admin', createdAt: serverTimestamp() });
           
-          // User is created and logged in, redirect to dashboard.
-          // The useEffect will handle fetching the profile.
           router.push('/admin');
           return;
 
         } catch (creationError: any) {
-          // If creation fails (e.g., weak password, or network error)
           throw new Error(`Admin account creation failed: ${creationError.message}`);
         }
       }
