@@ -12,7 +12,7 @@ import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 
 import { getStorage, ref, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 import type { AttendanceRecord } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
-import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
+import { useFirestore, useFirebaseApp } from '@/firebase';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];

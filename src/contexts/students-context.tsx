@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'firebase/storage';
-import { useFirestore, useFirebaseApp, useAuth as useFirebaseAuth } from '@/hooks/use-firebase';
+import { useFirestore, useFirebaseApp, useAuth as useFirebaseAuthHook } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -25,7 +25,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const firestore = useFirestore();
   const firebaseApp = useFirebaseApp();
-  const auth = useFirebaseAuth();
+  const auth = useFirebaseAuthHook();
   const { toast } = useToast();
 
   useEffect(() => {

@@ -14,15 +14,14 @@ import {
 import {
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
   User as FirebaseUser,
 } from 'firebase/auth';
-import { useFirestore, useAuth as useFirebaseAuth } from '@/hooks/use-firebase';
+import { useFirestore, useAuth as useFirebaseAuth, useUser } from '@/firebase';
 import type { Student, Teacher } from '@/lib/types';
 
 type Role = 'admin' | 'student' | 'teacher';
 
-interface AuthUser extends Omit<Student, 'department'> {
+export interface AuthUser extends Omit<Student, 'department'> {
   role: Role;
   department: Student['department'] | 'all';
 }
@@ -41,21 +40,32 @@ export const AuthContext = createContext<AuthContextType | undefined>(
 const ADMIN_EMAIL = "apdd46@gmail.com";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const firestore = useFirestore();
   const auth = useFirebaseAuth();
+  const { user: firebaseUser, isUserLoading } = useUser();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+    if (isUserLoading) {
       setLoading(true);
-      if (firebaseUser && firebaseUser.email) {
-        let authUser: AuthUser | null = null;
-        
-        // Admin user check
-        if (firebaseUser.email.toLowerCase() === ADMIN_EMAIL) {
-          authUser = {
+      return;
+    }
+
+    if (!firebaseUser) {
+      setAuthUser(null);
+      setLoading(false);
+      return;
+    }
+
+    const fetchUserProfile = async (user: FirebaseUser) => {
+      setLoading(true);
+      let profile: AuthUser | null = null;
+      
+      try {
+        if (user.email?.toLowerCase() === ADMIN_EMAIL) {
+          profile = {
               name: 'Smart Institute Admin',
               email: ADMIN_EMAIL,
               role: 'admin',
@@ -69,82 +79,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               dateOfBirth: new Date(),
           };
         } else {
-          // Check for teacher
-          const teacherDocRef = doc(firestore, 'teachers', firebaseUser.email);
-          const teacherDocSnap = await getDoc(teacherDocRef);
-          if (teacherDocSnap.exists()) {
-            const foundTeacher = teacherDocSnap.data() as Teacher;
-            authUser = {
-              name: foundTeacher.name,
-              email: foundTeacher.email,
-              role: 'teacher',
-              department: foundTeacher.department,
-              registerNumber: foundTeacher.teacherId || foundTeacher.email,
-              fatherName: 'N/A',
-              motherName: 'N/A',
-              profilePhotoUrl: foundTeacher.profilePhotoUrl || '',
-              contact: 'N/A',
-              createdAt: foundTeacher.createdAt,
-              dateOfBirth: new Date(), // dummy date
-            };
-          } else {
-            // Check for student
-            const studentsRef = collection(firestore, 'students');
-            const q = query(studentsRef, where('email', '==', firebaseUser.email), limit(1));
-            const studentQuerySnap = await getDocs(q);
-            if (!studentQuerySnap.empty) {
-              const studentDoc = studentQuerySnap.docs[0];
-              const foundStudent = studentDoc.data() as Student;
-               authUser = { 
-                  ...foundStudent, 
-                  role: 'student',
-              };
+            const teacherDocRef = doc(firestore, 'teachers', user.email!);
+            const teacherDocSnap = await getDoc(teacherDocRef);
+            if (teacherDocSnap.exists()) {
+                const foundTeacher = teacherDocSnap.data() as Teacher;
+                profile = {
+                    name: foundTeacher.name,
+                    email: foundTeacher.email,
+                    role: 'teacher',
+                    department: foundTeacher.department,
+                    registerNumber: foundTeacher.teacherId || foundTeacher.email,
+                    fatherName: 'N/A',
+                    motherName: 'N/A',
+                    profilePhotoUrl: foundTeacher.profilePhotoUrl || '',
+                    contact: 'N/A',
+                    createdAt: foundTeacher.createdAt instanceof Date ? foundTeacher.createdAt : foundTeacher.createdAt.toDate(),
+                    dateOfBirth: new Date(),
+                };
+            } else {
+                const studentsRef = collection(firestore, 'students');
+                const q = query(studentsRef, where('email', '==', user.email!), limit(1));
+                const studentQuerySnap = await getDocs(q);
+                if (!studentQuerySnap.empty) {
+                    const studentDoc = studentQuerySnap.docs[0];
+                    const foundStudent = studentDoc.data() as any;
+                     profile = { 
+                        ...foundStudent,
+                        createdAt: foundStudent.createdAt.toDate(),
+                        dateOfBirth: foundStudent.dateOfBirth.toDate(), 
+                        role: 'student',
+                    };
+                }
             }
-          }
         }
-        
-        if (authUser) {
-            setUser(authUser);
-            localStorage.setItem('smartattend_user_role', authUser.role);
-        } else {
-            // If Firebase has a user but we don't have a record, something is wrong. Log them out.
-            console.warn(`User ${firebaseUser.email} authenticated but not found in database. Logging out.`);
-            await signOut(auth);
-            setUser(null);
-            localStorage.removeItem('smartattend_user_role');
-        }
-      } else {
-        setUser(null);
-        localStorage.removeItem('smartattend_user_role');
+      } catch (error) {
+          console.error("Error fetching user profile:", error);
+          // If fetching profile fails, log out the user to be safe
+          await signOut(auth);
+          profile = null;
       }
+      
+      setAuthUser(profile);
       setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
-  }, [auth, firestore]);
+    fetchUserProfile(firebaseUser);
+  }, [firebaseUser, isUserLoading, firestore, auth]);
 
-  const login = useCallback(async (email: string, pass: string, role: Role, department?: string) => {
-    setLoading(true);
+
+  const login = useCallback(async (email: string, pass: string, role: Role) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-      const firebaseUser = userCredential.user;
+      const user = userCredential.user;
 
-      if (!firebaseUser.email) {
+      if (!user.email) {
         await signOut(auth);
         throw new Error("Authentication failed: User has no email.");
       }
 
       let actualRole: Role | null = null;
-      if (firebaseUser.email.toLowerCase() === ADMIN_EMAIL) {
+      if (user.email.toLowerCase() === ADMIN_EMAIL) {
         actualRole = 'admin';
       } else {
-        const teacherDocRef = doc(firestore, 'teachers', firebaseUser.email);
+        const teacherDocRef = doc(firestore, 'teachers', user.email);
         const teacherDocSnap = await getDoc(teacherDocRef);
         if (teacherDocSnap.exists()) {
           actualRole = 'teacher';
         } else {
           const studentsRef = collection(firestore, 'students');
-          const q = query(studentsRef, where('email', '==', firebaseUser.email), limit(1));
+          const q = query(studentsRef, where('email', '==', user.email), limit(1));
           const studentQuerySnap = await getDocs(q);
           if (!studentQuerySnap.empty) {
             actualRole = 'student';
@@ -161,13 +164,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await signOut(auth);
         throw new Error(`Account is for a ${actualRole}. Please use the ${actualRole} login page.`);
       }
-
+      
       const targetPath = role === 'admin' ? '/admin' : (role === 'student' ? '/student' : '/teacher');
       router.push(targetPath);
-      // onAuthStateChanged will handle setting the user and setLoading(false)
+
     } catch (error: any) {
-      setLoading(false); // Ensure loading is stopped on any error
-      // Re-throw the error so the login form can display it
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+          throw new Error('Invalid email or password.');
+      }
+      // Re-throw other errors to be displayed
       throw error;
     }
   }, [auth, firestore, router]);
@@ -175,13 +180,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await signOut(auth);
-    setUser(null);
-    localStorage.removeItem('smartattend_user_role');
+    setAuthUser(null);
     router.push('/');
   }, [auth, router]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user: authUser, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,7 +3,7 @@
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { doc, onSnapshot, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { useFirestore } from '@/hooks/use-firebase';
+import { useFirestore } from '@/firebase';
 import type { InstitutionProfile, InstitutionProfileContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -74,7 +74,7 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
     return () => unsubscribe();
   }, [firestore]);
   
-  const updateInstitutionProfile = useCallback(async (data: Partial<InstitutionProfile>) => {
+  const updateInstitutionProfile = useCallback(async (data: Partial<Omit<InstitutionProfile, 'id'>>) => {
       if (!firestore) {
           toast({ variant: 'destructive', title: 'Update Failed', description: 'Database not available.' });
           return;

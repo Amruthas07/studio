@@ -3,7 +3,7 @@
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
-import { useFirestore, useAuth as useFirebaseAuth } from '@/hooks/use-firebase';
+import { useFirestore, useAuth as useFirebaseAuthHook } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +14,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const firestore = useFirestore();
-  const auth = useFirebaseAuth();
+  const auth = useFirebaseAuthHook();
   const { toast } = useToast();
 
   useEffect(() => {
