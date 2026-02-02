@@ -159,6 +159,11 @@
           "type": "string",
           "format": "date-time",
           "description": "Timestamp of when the teacher was added."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the teacher was last updated."
         }
       },
       "required": [

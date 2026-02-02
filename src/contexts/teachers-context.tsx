@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useFirestore } from '@/hooks/use-firebase';
 import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -37,6 +37,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
                 teacherId: doc.id,
                 profilePhotoUrl,
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+                updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)),
             } as Teacher;
         });
         setTeachers(teacherData);
@@ -51,7 +52,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [firestore]);
 
-  const addTeacher = useCallback(async (teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'profilePhotoUrl'> & { password: string }) => {
+  const addTeacher = useCallback(async (teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }) => {
     if (!firestore) {
         throw new Error('Database not initialized.');
     }
@@ -73,13 +74,44 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         teacherId: email,
         profilePhotoUrl: "", // Set to empty string so initials show up
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
     };
 
     await setDoc(teacherDocRef, newTeacherData);
 
   }, [firestore]);
+  
+  const updateTeacher = useCallback(async (teacherId: string, updates: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => {
+    if (!firestore) {
+      toast({ variant: 'destructive', title: 'Update Failed', description: 'Database not available.' });
+      return;
+    }
+    const teacherDocRef = doc(firestore, 'teachers', teacherId);
+    try {
+      await updateDoc(teacherDocRef, { ...updates, updatedAt: serverTimestamp() });
+      toast({ title: 'Teacher Updated', description: `Details for ${updates.name || teacherId} have been saved.` });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
+      throw error;
+    }
+  }, [firestore, toast]);
+  
+  const deleteTeacher = useCallback(async (teacherId: string) => {
+    if (!firestore) {
+      toast({ variant: 'destructive', title: 'Delete Failed', description: 'Database not available.' });
+      return;
+    }
+    const teacherDocRef = doc(firestore, 'teachers', teacherId);
+    try {
+      await deleteDoc(teacherDocRef);
+      toast({ title: 'Teacher Deleted', description: `Successfully removed teacher ${teacherId}.` });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Delete Failed', description: error.message });
+      throw error;
+    }
+  }, [firestore, toast]);
 
-  const value = { teachers, loading, addTeacher };
+  const value = { teachers, loading, addTeacher, updateTeacher, deleteTeacher };
 
   return (
     <TeachersContext.Provider value={value}>

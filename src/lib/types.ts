@@ -33,6 +33,7 @@ export interface Teacher {
   profilePhotoUrl: string;
   email: string;
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface RecentExport {
@@ -57,7 +58,9 @@ export interface StudentsContextType {
 export interface TeachersContextType {
   teachers: Teacher[];
   loading: boolean;
-  addTeacher: (teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'profilePhotoUrl'> & { password: string }) => Promise<void>;
+  addTeacher: (teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }) => Promise<void>;
+  updateTeacher: (teacherId: string, teacherUpdate: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => Promise<void>;
+  deleteTeacher: (teacherId: string) => Promise<void>;
 }
 
 

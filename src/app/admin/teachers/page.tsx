@@ -10,23 +10,72 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Loader2, PlusCircle, Search } from "lucide-react";
 import { AddTeacherForm } from "@/components/admin/add-teacher-form";
+import { EditTeacherForm } from "@/components/admin/edit-teacher-form";
 import { TeachersTable } from "@/components/admin/teachers-table";
+import type { Teacher } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { useTeachers } from '@/hooks/use-teachers';
 import { Input } from '@/components/ui/input';
+import { TeacherProfileCard } from '@/components/shared/teacher-profile-card';
 
 export default function TeachersPage() {
   const { user, loading: authLoading } = useAuth();
-  const { teachers, loading: teachersLoading } = useTeachers();
+  const { teachers, loading: teachersLoading, deleteTeacher } = useTeachers();
   
   const [searchTerm, setSearchTerm] = React.useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   
+  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = React.useState(false);
+  
+  const [teacherToEdit, setTeacherToEdit] = React.useState<Teacher | null>(null);
+  const [teacherToDelete, setTeacherToDelete] = React.useState<Teacher | null>(null);
+  const [teacherToView, setTeacherToView] = React.useState<Teacher | null>(null);
+
   const handleTeacherAdded = () => {
     setIsAddDialogOpen(false);
   };
+
+  const handleTeacherUpdated = () => {
+    setIsEditDialogOpen(false);
+    setTeacherToEdit(null);
+  };
+  
+  const handleTeacherDeleted = async () => {
+    if (!teacherToDelete) return;
+    
+    await deleteTeacher(teacherToDelete.teacherId);
+    setIsDeleteDialogOpen(false);
+    setTeacherToDelete(null);
+  }
+
+  const openViewDialog = (teacher: Teacher) => {
+    setTeacherToView(teacher);
+    setIsViewDialogOpen(true);
+  };
+
+  const openEditDialog = (teacher: Teacher) => {
+    setTeacherToEdit(teacher);
+    setIsEditDialogOpen(true);
+  };
+  
+  const openDeleteDialog = (teacher: Teacher) => {
+    setTeacherToDelete(teacher);
+    setIsDeleteDialogOpen(true);
+  }
   
   const filteredTeachers = React.useMemo(() => {
       if (!searchTerm) {
@@ -54,7 +103,7 @@ export default function TeachersPage() {
             Teacher Management
           </h1>
           <p className="text-foreground">
-            View, add, and manage teacher records.
+            View, add, edit, and manage teacher records.
           </p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -88,7 +137,52 @@ export default function TeachersPage() {
 
       <TeachersTable 
         teachers={filteredTeachers} 
+        onViewTeacher={openViewDialog}
+        onEditTeacher={openEditDialog}
+        onDeleteTeacher={openDeleteDialog}
       />
+
+       {/* View Teacher Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="sm:max-w-[625px]">
+              <DialogHeader>
+                  <DialogTitle className="font-headline text-2xl">Teacher Profile</DialogTitle>
+              </DialogHeader>
+              {teacherToView && <TeacherProfileCard teacher={teacherToView} />}
+          </DialogContent>
+      </Dialog>
+
+      {/* Edit Teacher Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[525px]">
+              <DialogHeader>
+                  <DialogTitle className="font-headline text-2xl">Edit Teacher Details</DialogTitle>
+                  <DialogDescription>
+                    Update the information for {teacherToEdit?.name}. The email cannot be changed.
+                  </DialogDescription>
+              </DialogHeader>
+              {teacherToEdit && <EditTeacherForm teacher={teacherToEdit} onTeacherUpdated={handleTeacherUpdated} />}
+          </DialogContent>
+      </Dialog>
+      
+      {/* Delete Teacher Alert Dialog */}
+       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the teacher
+              record for <span className='font-bold'>{teacherToDelete?.name} ({teacherToDelete?.email})</span> and remove them from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleTeacherDeleted} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

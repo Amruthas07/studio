@@ -13,15 +13,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import type { Teacher } from "@/lib/types";
 import { Button } from "../ui/button";
-import { Pencil, Trash } from "lucide-react";
+import { Pencil, Trash, Eye } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 
 interface TeachersTableProps {
     teachers: Teacher[];
+    onViewTeacher: (teacher: Teacher) => void;
+    onEditTeacher: (teacher: Teacher) => void;
+    onDeleteTeacher: (teacher: Teacher) => void;
 }
 
-export function TeachersTable({ teachers }: TeachersTableProps) {
+export function TeachersTable({ teachers, onViewTeacher, onEditTeacher, onDeleteTeacher }: TeachersTableProps) {
     
     const getInitials = (name: string) => {
         const names = name.split(' ');
@@ -38,12 +41,14 @@ export function TeachersTable({ teachers }: TeachersTableProps) {
                 <CardDescription>A list of all registered teachers.</CardDescription>
             </CardHeader>
             <CardContent>
+                <TooltipProvider>
                  <Table>
                     {teachers.length === 0 && <TableCaption>No teachers found.</TableCaption>}
                     <TableHeader>
                         <TableRow>
                             <TableHead>Teacher</TableHead>
                             <TableHead>Department</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -64,10 +69,48 @@ export function TeachersTable({ teachers }: TeachersTableProps) {
                             <TableCell>
                                 <Badge variant="secondary" className="uppercase">{teacher.department}</Badge>
                             </TableCell>
+                            <TableCell className="text-right">
+                               <div className="flex justify-end gap-2">
+                                     <Tooltip>
+                                        <TooltipTrigger asChild>
+                                             <Button variant="outline" size="icon" onClick={() => onViewTeacher(teacher)}>
+                                                <Eye className="h-4 w-4" />
+                                                <span className="sr-only">View Details</span>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>View Details</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                     <Tooltip>
+                                        <TooltipTrigger asChild>
+                                             <Button variant="outline" size="icon" onClick={() => onEditTeacher(teacher)}>
+                                                <Pencil className="h-4 w-4" />
+                                                <span className="sr-only">Edit Details</span>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Edit Details</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                             <Button variant="destructive" size="icon" onClick={() => onDeleteTeacher(teacher)}>
+                                                <Trash className="h-4 w-4" />
+                                                <span className="sr-only">Delete Teacher</span>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Delete Teacher</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                               </div>
+                            </TableCell>
                         </TableRow>
                         ))}
                     </TableBody>
                 </Table>
+                </TooltipProvider>
             </CardContent>
         </Card>
     )
