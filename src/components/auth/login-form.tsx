@@ -89,14 +89,6 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
                   <Lock className="h-4 w-4" />
                   Password
                 </span>
-                {!isAdminForm && (
-                  <Link
-                    href="/reset-password"
-                    className="text-xs font-medium text-primary hover:underline"
-                  >
-                    Forgot your password?
-                  </Link>
-                )}
               </FormLabel>
               <FormControl>
                 <Input

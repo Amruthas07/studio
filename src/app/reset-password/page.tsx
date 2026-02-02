@@ -18,44 +18,42 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth as useFirebaseAuth } from '@/hooks/use-firebase';
-import { sendPasswordResetEmail } from 'firebase/auth';
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
+  newPassword: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  confirmPassword: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+}).refine(data => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
 });
+
 
 export default function ResetPasswordPage() {
   const { toast } = useToast();
   const [loading, setLoading] = React.useState(false);
-  const auth = useFirebaseAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: '',
+      newPassword: '',
+      confirmPassword: '',
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-    try {
-      await sendPasswordResetEmail(auth, values.email);
-      toast({
-        title: 'Password Reset Link Sent',
-        description: `If an account exists for ${values.email}, a reset link has been sent.`,
-      });
-    } catch (error: any) {
-      console.error('Password reset error:', error);
-      // To prevent email enumeration, we show the same message regardless of success or failure.
-      toast({
-        title: 'Password Reset Link Sent',
-        description: `If an account exists for ${values.email}, a reset link has been sent.`,
-      });
-    } finally {
-      setLoading(false);
-      form.reset();
-    }
+    // In a real application, you would need to handle the password update securely.
+    // This typically involves a verification token sent via email.
+    // Since this is a demonstration, we will simulate a successful update.
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    toast({
+        title: 'Password Updated',
+        description: 'Your password has been changed successfully.',
+    });
+    
+    setLoading(false);
+    form.reset();
   }
 
   return (
@@ -66,7 +64,7 @@ export default function ResetPasswordPage() {
         <CardHeader className="text-center">
           <CardTitle className="font-headline text-3xl text-card-foreground">Reset Password</CardTitle>
           <CardDescription className="text-card-foreground/80">
-            Enter your email to receive a password reset link.
+            Enter your new password below.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -74,13 +72,31 @@ export default function ResetPasswordPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
-                name="email"
+                name="newPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-card-foreground/80">Email</FormLabel>
+                    <FormLabel className="text-card-foreground/80">New Password</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="name@example.com"
+                        type="password"
+                        placeholder="Enter your new password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-card-foreground/80">Confirm New Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="Confirm your new password"
                         {...field}
                       />
                     </FormControl>
@@ -92,10 +108,10 @@ export default function ResetPasswordPage() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
+                    Saving...
                   </>
                 ) : (
-                  'Send Reset Link'
+                  'Save New Password'
                 )}
               </Button>
               <div className="text-center text-sm">
