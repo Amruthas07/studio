@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Mail, MapPin, Phone, Info, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useInstitutionProfile } from '@/hooks/use-institution-profile';
+import { Separator } from '@/components/ui/separator';
 
 const departmentInfo = {
     cs: {
@@ -64,11 +65,11 @@ export default function AdminProfilePage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline">Institution Profile</h1>
-        <p className="text-foreground">Information about the college and department.</p>
+        <p className="text-muted-foreground">Information about the college and your assigned department.</p>
       </div>
 
-      <Card className='overflow-hidden'>
-        <div className='relative h-60 w-full'>
+      <Card className='overflow-hidden shadow-lg'>
+        <div className='relative h-48 w-full'>
             <Image 
                 src={collegeDetails.coverImageUrl || "https://picsum.photos/seed/college-campus/1920/1080"}
                 alt={`${collegeDetails.name} campus`}
@@ -77,44 +78,53 @@ export default function AdminProfilePage() {
                 data-ai-hint="college campus"
                 priority
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         </div>
-        <CardHeader className="border-b">
-            <CardTitle className="font-headline text-3xl">{collegeDetails.name}</CardTitle>
-            <CardDescription>
+        <CardHeader className="relative -mt-16 z-10 border-b-0 pb-4 px-6">
+            <CardTitle className="font-headline text-3xl text-white">{collegeDetails.name}</CardTitle>
+            <CardDescription className="text-white/90">
                 {currentDepartment.name}
             </CardDescription>
         </CardHeader>
-        <CardContent className='pt-6'>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            <div className="flex items-start gap-4">
-                <MapPin className="h-5 w-5 mt-1 text-muted-foreground" />
-                <div>
-                    <p className="text-sm font-medium text-muted-foreground">Address</p>
-                    <p className="font-semibold">{collegeDetails.address}</p>
+        <CardContent className='pt-8 space-y-8 px-6 pb-8'>
+            {/* Section 1: Contact Details */}
+            <div className='space-y-4'>
+                <h3 className="text-lg font-semibold tracking-tight text-primary border-b pb-2">Contact Information</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 pt-2">
+                    <div className="flex items-start gap-4">
+                        <MapPin className="h-5 w-5 mt-1 text-primary" />
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Address</p>
+                            <p className="font-semibold">{collegeDetails.address}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                        <Phone className="h-5 w-5 mt-1 text-primary" />
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Contact Number</p>
+                            <p className="font-semibold">{collegeDetails.contact}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                        <Mail className="h-5 w-5 mt-1 text-primary" />
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Email</p>
+                            <p className="font-semibold">{collegeDetails.email}</p>
+                        </div>
+                    </div>
+                 </div>
+            </div>
+
+            <Separator />
+
+            {/* Section 2: About Department */}
+            <div className='space-y-4'>
+                <h3 className="text-lg font-semibold tracking-tight text-primary border-b pb-2">About the Department</h3>
+                <div className="flex items-start gap-4 pt-2">
+                    <Info className="h-5 w-5 mt-1 text-primary flex-shrink-0" />
+                    <p className="text-justify">{currentDepartment.about}</p>
                 </div>
             </div>
-            <div className="flex items-start gap-4">
-                <Phone className="h-5 w-5 mt-1 text-muted-foreground" />
-                <div>
-                    <p className="text-sm font-medium text-muted-foreground">Contact Number</p>
-                    <p className="font-semibold">{collegeDetails.contact}</p>
-                </div>
-            </div>
-            <div className="flex items-start gap-4">
-                <Mail className="h-5 w-5 mt-1 text-muted-foreground" />
-                <div>
-                    <p className="text-sm font-medium text-muted-foreground">Email</p>
-                    <p className="font-semibold">{collegeDetails.email}</p>
-                </div>
-            </div>
-             <div className="flex items-start gap-4 md:col-span-2">
-                <Info className="h-5 w-5 mt-1 text-muted-foreground" />
-                <div>
-                    <p className="text-sm font-medium text-muted-foreground">About the Department</p>
-                    <p className="font-semibold text-justify">{currentDepartment.about}</p>
-                </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
