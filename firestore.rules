@@ -69,6 +69,8 @@ service cloud.firestore {
       
       // Teachers can list students only if they query by their own department.
       allow list: if isTeacher() && request.query.where.department == getTeacherDepartment();
+      // Admins can list all students.
+      allow list: if isAdmin();
     }
 
     // Manages teacher profile data.
@@ -77,6 +79,8 @@ service cloud.firestore {
       allow read, write: if isAdmin();
       // A teacher can read their own profile.
       allow get: if isSignedIn() && request.auth.email == teacherEmail;
+      // Admins can list all teachers.
+      allow list: if isAdmin();
     }
 
     // Manages student attendance records.
@@ -89,6 +93,9 @@ service cloud.firestore {
       
       // Teachers can list attendance for their department via a constrained query.
       allow list: if isTeacher() && request.query.where.department == getTeacherDepartment();
+
+      // Admins can list all records.
+      allow list: if isAdmin();
     }
     
     // Public information about the institution.
