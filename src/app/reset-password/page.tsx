@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -19,6 +18,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth as useFirebaseAuth } from '@/hooks/use-firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -27,6 +28,7 @@ const formSchema = z.object({
 export default function ResetPasswordPage() {
   const { toast } = useToast();
   const [loading, setLoading] = React.useState(false);
+  const auth = useFirebaseAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -37,14 +39,23 @@ export default function ResetPasswordPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-    // Simulate sending reset link
-    await new Promise(res => setTimeout(res, 1000));
-    setLoading(false);
-    toast({
-      title: 'Password Reset Link Sent',
-      description: `If an account exists for ${values.email}, a reset link has been sent.`,
-    });
-    form.reset();
+    try {
+      await sendPasswordResetEmail(auth, values.email);
+      toast({
+        title: 'Password Reset Link Sent',
+        description: `If an account exists for ${values.email}, a reset link has been sent.`,
+      });
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      // To prevent email enumeration, we show the same message regardless of success or failure.
+      toast({
+        title: 'Password Reset Link Sent',
+        description: `If an account exists for ${values.email}, a reset link has been sent.`,
+      });
+    } finally {
+      setLoading(false);
+      form.reset();
+    }
   }
 
   return (
