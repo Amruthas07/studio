@@ -15,10 +15,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2, Mail, Lock, Building, Shield, Fingerprint } from 'lucide-react';
+import { Loader2, Mail, Lock, Shield, Fingerprint } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { usePathname } from 'next/navigation';
 
 const formSchema = z.object({
@@ -44,11 +43,6 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
       department: 'cs',
     },
   });
-
-  const emailValue = form.watch("email");
-  const isPotentiallyAdmin = emailValue.toLowerCase() === 'apdd46@gmail.com';
-  const showDepartmentSelector = isAdminForm && isPotentiallyAdmin;
-
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     const role = isAdminForm ? 'admin' : (pathname === '/teacher-login' ? 'teacher' : 'student');
@@ -116,37 +110,6 @@ export function LoginForm({ isAdminForm }: LoginFormProps) {
           )}
         />
         
-        {showDepartmentSelector && (
-            <FormField
-              control={form.control}
-              name="department"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2 text-card-foreground/80">
-                    <Building className="h-4 w-4" />
-                    Department
-                  </FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your department" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="cs">Computer Science (CS)</SelectItem>
-                      <SelectItem value="ce">Civil Engineering (CE)</SelectItem>
-                      <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
-                      <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
-                      <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
-                      <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-        )}
-
         <Button type="submit" className="w-full" size="lg" disabled={loading}>
             {loading ? (
                 <>
