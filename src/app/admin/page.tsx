@@ -11,8 +11,6 @@ import React from "react";
 import { AddTeacherForm } from "@/components/admin/add-teacher-form";
 import { useStudents } from "@/hooks/use-students";
 import { useTeachers } from "@/hooks/use-teachers";
-import { StudentAnalyticsChart } from "@/components/admin/student-analytics-chart";
-import { TeacherAnalyticsChart } from "@/components/admin/teacher-analytics-chart";
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -40,14 +38,9 @@ export default function AdminDashboard() {
             Admin Dashboard
           </h1>
           <p className="text-foreground">
-            Overview of the system, enrollment analytics, and management tools.
+            Overview of the system and management tools.
           </p>
         </div>
-      </div>
-      
-      <div className="grid gap-6 md:grid-cols-2">
-        <StudentAnalyticsChart students={students} />
-        <TeacherAnalyticsChart teachers={teachers} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
