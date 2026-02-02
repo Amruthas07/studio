@@ -8,9 +8,10 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'firebase/storage';
-import { useFirestore, useFirebaseApp } from '@/hooks/use-firebase';
+import { useFirestore, useFirebaseApp, useAuth as useFirebaseAuth } from '@/hooks/use-firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getImageHash, resizeAndCompressImage } from '@/lib/utils';
@@ -24,6 +25,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const firestore = useFirestore();
   const firebaseApp = useFirebaseApp();
+  const auth = useFirebaseAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,21 +65,40 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   const addStudent = useCallback(async (
     studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt'> & { photoFile: File }
   ) => {
-    if (!firestore || !firebaseApp) {
-        throw new Error('Database not initialized.');
+    if (!firestore || !firebaseApp || !auth) {
+        throw new Error('Firebase services not initialized.');
     }
 
     const { photoFile, ...details } = studentData;
 
-    const existingStudentQuery = query(collection(firestore, "students"), where("registerNumber", "==", details.registerNumber));
-    const querySnapshot = await getDocs(existingStudentQuery);
-    if (!querySnapshot.empty) {
+    // --- Part 1: Immediate validations ---
+    const studentDocRef = doc(firestore, 'students', details.registerNumber);
+    const existingStudentSnap = await getDoc(studentDocRef);
+    if (existingStudentSnap.exists()) {
         throw new Error(`A student with register number ${details.registerNumber} already exists.`);
     }
+    
+    const q = query(collection(firestore, "students"), where("email", "==", details.email));
+    const emailSnap = await getDocs(q);
+    if (!emailSnap.empty) {
+        throw new Error(`A student with email ${details.email} already exists.`);
+    }
 
-    const studentDocRef = doc(firestore, 'students', details.registerNumber);
+    // --- Part 2: Create Auth user ---
+    try {
+        await createUserWithEmailAndPassword(auth, details.email, details.registerNumber);
+    } catch (error: any) {
+        console.error("Failed to create student auth user:", error);
+        if (error.code === 'auth/email-already-in-use') {
+            throw new Error('This email is already in use by another account.');
+        }
+         if (error.code === 'auth/weak-password') {
+            throw new Error('Password is too weak. It must be at least 6 characters.');
+        }
+        throw new Error(`Authentication error: ${error.message}`);
+    }
 
-    // --- Part 1: Immediate write to Firestore ---
+    // --- Part 3: Save to Firestore and process photo ---
     const initialStudentData = {
         ...details,
         profilePhotoUrl: '', 
@@ -88,7 +109,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
     await setDoc(studentDocRef, initialStudentData);
 
-    // --- Part 2: Background photo processing and upload ---
+    // --- Part 4: Background photo processing ---
     (async () => {
         try {
             const storage = getStorage(firebaseApp);
@@ -108,18 +129,12 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             await uploadBytes(photoRef, processedPhoto);
             const downloadURL = await getDownloadURL(photoRef);
 
-            // Update the document with photo info
             await updateDoc(studentDocRef, {
                 profilePhotoUrl: downloadURL,
                 photoHash: photoHash,
                 updatedAt: serverTimestamp(),
             });
-            // No success toast needed, UI updates via snapshot listener.
         } catch (error: any) {
-             await updateDoc(studentDocRef, {
-                updatedAt: serverTimestamp(),
-            });
-            // If background task fails, inform the user.
             toast({
                 variant: "destructive",
                 title: "Background Enrollment Failed",
@@ -128,7 +143,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             });
         }
     })();
-  }, [firestore, firebaseApp, toast]);
+  }, [firestore, firebaseApp, auth, toast]);
 
 
   const updateStudent = useCallback(async (
@@ -143,7 +158,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const { newPhotoFile, ...otherUpdates } = studentUpdate;
     const studentDocRef = doc(firestore, 'students', registerNumber);
     
-    // --- Part 1: Immediately update non-photo details ---
     const updatesToApply: any = { ...otherUpdates, updatedAt: serverTimestamp() };
     
     try {
@@ -159,11 +173,9 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             title: "Update Failed",
             description: error.message || "Could not save changes.",
         });
-        // If the initial update fails, we throw the error to stop the process.
         throw error;
     }
 
-    // --- Part 2: Handle photo update in the background ---
     if (newPhotoFile) {
         (async () => {
             try {
@@ -183,7 +195,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                 await uploadBytes(photoRef, processedPhoto);
                 const downloadURL = await getDownloadURL(photoRef);
                 
-                // Update the document with photo info
                 await updateDoc(studentDocRef, {
                     profilePhotoUrl: downloadURL,
                     photoHash: photoHash,
@@ -213,6 +224,8 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       toast({ variant: 'destructive', title: 'Delete Failed', description: 'Database not available.' });
       return;
     }
+    // Note: This does not delete the Firebase Auth user, only Firestore data.
+    // Deleting auth users from the client is a sensitive operation.
     
     const studentToDelete = students.find(s => s.registerNumber === registerNumber);
     if (!studentToDelete) {
@@ -223,14 +236,11 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const storage = getStorage(firebaseApp);
     const studentDocRef = doc(firestore, 'students', registerNumber);
     
-    // Step 1: Try to delete the photo from Storage first.
     if (studentToDelete.profilePhotoUrl) {
         try {
             const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
             await deleteObject(photoRef);
         } catch (storageError: any) {
-            // If the photo doesn't exist, it's fine. We can continue.
-            // If any other error occurs, we stop and notify the user.
             if (storageError.code !== 'storage/object-not-found') {
                 console.error("Failed to delete student photo from storage:", storageError);
                 toast({
@@ -238,12 +248,11 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                     title: "Delete Failed",
                     description: `Could not delete the student's photo. The student record was not deleted. Error: ${storageError.message}`,
                 });
-                return; // Stop the process if photo deletion fails.
+                return;
             }
         }
     }
 
-    // Step 2: If photo deletion was successful (or not needed), delete the Firestore document.
     try {
       await deleteDoc(studentDocRef);
       toast({

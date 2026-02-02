@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   collection,
@@ -9,17 +8,23 @@ import {
   where,
   getDocs,
   limit,
+  doc,
+  getDoc,
 } from 'firebase/firestore';
-import { useFirestore } from '@/hooks/use-firebase';
-import type { Student } from '@/lib/types';
+import {
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User as FirebaseUser,
+} from 'firebase/auth';
+import { useFirestore, useAuth as useFirebaseAuth } from '@/hooks/use-firebase';
+import type { Student, Teacher } from '@/lib/types';
 
 type Role = 'admin' | 'student' | 'teacher';
 
-type Department = 'cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec';
-
 interface AuthUser extends Omit<Student, 'department'> {
   role: Role;
-  department: Department | 'all';
+  department: Student['department'] | 'all';
 }
 
 interface AuthContextType {
@@ -33,141 +38,105 @@ export const AuthContext = createContext<AuthContextType | undefined>(
   undefined
 );
 
+const ADMIN_EMAIL = "apdd46@gmail.com";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const firestore = useFirestore();
+  const auth = useFirebaseAuth();
 
   useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem('smartattend_user');
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-      }
-    } catch (error) {
-      console.error('Failed to parse user from localStorage', error);
-      localStorage.removeItem('smartattend_user');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const login = async (email: string, pass: string, role: Role, department?: string) => {
-    setLoading(true);
-    
-    try {
-      if (role === 'admin') {
-          if (email.toLowerCase() !== 'apdd46@gmail.com') {
-              throw new Error("Invalid admin email address.");
-          }
-          if (pass === 'sixth@sem') {
-            const adminUser: AuthUser = {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+      setLoading(true);
+      if (firebaseUser && firebaseUser.email) {
+        let authUser: AuthUser | null = null;
+        
+        // Admin user check
+        if (firebaseUser.email.toLowerCase() === ADMIN_EMAIL) {
+          authUser = {
               name: 'Smart Institute Admin',
-              email: 'apdd46@gmail.com',
+              email: ADMIN_EMAIL,
               role: 'admin',
-              department: (department as Department) || 'cs',
+              department: 'all',
               registerNumber: 'ADMIN_001',
               fatherName: 'N/A',
               motherName: 'N/A',
-              profilePhotoUrl:
-                'https://picsum.photos/seed/admin/100/100',
+              profilePhotoUrl: 'https://picsum.photos/seed/admin/100/100',
               contact: 'N/A',
               createdAt: new Date(),
               dateOfBirth: new Date(),
+          };
+        } else {
+          // Check for teacher
+          const teacherDocRef = doc(firestore, 'teachers', firebaseUser.email);
+          const teacherDocSnap = await getDoc(teacherDocRef);
+          if (teacherDocSnap.exists()) {
+            const foundTeacher = teacherDocSnap.data() as Teacher;
+            authUser = {
+              name: foundTeacher.name,
+              email: foundTeacher.email,
+              role: 'teacher',
+              department: foundTeacher.department,
+              registerNumber: foundTeacher.teacherId || foundTeacher.email,
+              fatherName: 'N/A',
+              motherName: 'N/A',
+              profilePhotoUrl: foundTeacher.profilePhotoUrl || '',
+              contact: 'N/A',
+              createdAt: foundTeacher.createdAt,
+              dateOfBirth: new Date(), // dummy date
             };
-            setUser(adminUser);
-            localStorage.setItem('smartattend_user', JSON.stringify(adminUser));
-            router.push('/admin');
-            return;
           } else {
-            throw new Error('Invalid admin credentials.');
+            // Check for student
+            const studentsRef = collection(firestore, 'students');
+            const q = query(studentsRef, where('email', '==', firebaseUser.email), limit(1));
+            const studentQuerySnap = await getDocs(q);
+            if (!studentQuerySnap.empty) {
+              const studentDoc = studentQuerySnap.docs[0];
+              const foundStudent = studentDoc.data() as Student;
+               authUser = { 
+                  ...foundStudent, 
+                  role: 'student',
+              };
+            }
           }
-      } else if (role === 'student') {
-          if (!firestore) {
-              throw new Error("Database service is not ready.");
-          }
-    
-          const studentsRef = collection(firestore, 'students');
-          const q = query(
-            studentsRef,
-            where('email', '==', email.toLowerCase()),
-            limit(1)
-          );
-          
-          const querySnapshot = await getDocs(q);
-    
-          if (querySnapshot.empty) {
-              throw new Error("No student found with this email address.");
-          }
-          
-          const studentDoc = querySnapshot.docs[0];
-          const foundStudent = studentDoc.data();
-    
-          if (foundStudent && pass === foundStudent.registerNumber) {
-            const studentUser: AuthUser = { 
-                ...(foundStudent as Student), 
-                role: 'student',
-                createdAt: foundStudent.createdAt?.toDate ? foundStudent.createdAt.toDate() : new Date(foundStudent.createdAt),
-                dateOfBirth: foundStudent.dateOfBirth?.toDate ? foundStudent.dateOfBirth.toDate() : new Date(foundStudent.dateOfBirth),
-            };
-            setUser(studentUser);
-            localStorage.setItem('smartattend_user', JSON.stringify(studentUser));
-            router.push('/student');
-          } else {
-            throw new Error('Invalid email or password.');
-          }
-      } else if (role === 'teacher') {
-          if (!firestore) {
-              throw new Error("Database service is not ready.");
-          }
-          const teachersRef = collection(firestore, 'teachers');
-          const q = query(teachersRef, where('email', '==', email.toLowerCase()), limit(1));
-          const querySnapshot = await getDocs(q);
-
-          if (querySnapshot.empty) {
-              throw new Error("No teacher found with this email address.");
-          }
-
-          const teacherDoc = querySnapshot.docs[0];
-          const foundTeacher = teacherDoc.data();
-
-          // NOTE: In a real app, passwords should be hashed. This is for prototype purposes.
-          if (foundTeacher && pass === foundTeacher.password) {
-                const teacherUser: AuthUser = {
-                  name: foundTeacher.name,
-                  email: foundTeacher.email,
-                  role: 'teacher',
-                  department: foundTeacher.department,
-                  // Filling in dummy data to satisfy the `AuthUser` type which extends `Student`
-                  registerNumber: foundTeacher.teacherId || foundTeacher.email,
-                  fatherName: 'N/A',
-                  motherName: 'N/A',
-                  profilePhotoUrl: foundTeacher.profilePhotoUrl || 'https://picsum.photos/seed/teacher/100/100',
-                  contact: 'N/A',
-                  createdAt: foundTeacher.createdAt?.toDate ? foundTeacher.createdAt.toDate() : new Date(foundTeacher.createdAt),
-                  dateOfBirth: new Date(), // dummy date
-                };
-              setUser(teacherUser);
-              localStorage.setItem('smartattend_user', JSON.stringify(teacherUser));
-              router.push('/teacher');
-          } else {
-              throw new Error('Invalid email or password.');
-          }
+        }
+        setUser(authUser);
+        if (authUser) {
+            localStorage.setItem('smartattend_user_role', authUser.role);
+        }
+      } else {
+        setUser(null);
+        localStorage.removeItem('smartattend_user_role');
       }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth, firestore]);
+
+  const login = useCallback(async (email: string, pass: string, role: Role) => {
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      // onAuthStateChanged will handle setting the user and redirecting
+      const targetPath = role === 'admin' ? '/admin' : (role === 'student' ? '/student' : '/teacher');
+      router.push(targetPath);
     } catch(error) {
+      // Let the form handle the error toast
       throw error;
     } finally {
       setLoading(false);
     }
-  };
+  }, [auth, router]);
 
-  const logout = () => {
+  const logout = useCallback(async () => {
+    await signOut(auth);
     setUser(null);
-    localStorage.removeItem('smartattend_user');
+    localStorage.removeItem('smartattend_user_role');
     router.push('/');
-  };
+  }, [auth, router]);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>

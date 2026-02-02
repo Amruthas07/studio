@@ -3,7 +3,8 @@
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
-import { useFirestore } from '@/hooks/use-firebase';
+import { useFirestore, useAuth as useFirebaseAuth } from '@/hooks/use-firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,6 +14,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const firestore = useFirestore();
+  const auth = useFirebaseAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -28,7 +30,6 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
       (snapshot) => {
         const teacherData = snapshot.docs.map(doc => {
             const data = doc.data();
-            // If profilePhotoUrl is a placeholder from picsum, set it to empty string to show fallback.
             const profilePhotoUrl = data.profilePhotoUrl?.includes('picsum.photos') 
                 ? '' 
                 : data.profilePhotoUrl;
@@ -54,45 +55,52 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
   }, [firestore]);
 
   const addTeacher = useCallback(async (teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }) => {
-    if (!firestore) {
-        throw new Error('Database not initialized.');
+    if (!firestore || !auth) {
+        throw new Error('Database or Auth not initialized.');
     }
 
     const { email, password, ...details } = teacherData;
 
-    // Perform the duplicate check first. This is awaited and will throw if a duplicate is found.
-    const existingTeacherQuery = query(collection(firestore, "teachers"), where("email", "==", email));
-    const querySnapshot = await getDocs(existingTeacherQuery);
-    if (!querySnapshot.empty) {
+    const q = query(collection(firestore, "teachers"), where("email", "==", email));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
         throw new Error(`A teacher with email ${email} already exists.`);
     }
 
-    // If validation passes, proceed with creating the document in the background.
-    const teacherDocRef = doc(firestore, 'teachers', email);
-    const newTeacherData = {
-        ...details,
-        email,
-        password,
-        teacherId: email,
-        profilePhotoUrl: "",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-    };
+    (async () => {
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
 
-    // Don't await setDoc. Handle success/failure with toasts.
-    // The UI updates from the onSnapshot listener, so a success toast isn't necessary.
-    setDoc(teacherDocRef, newTeacherData)
-        .catch((error: any) => {
-            console.error("Failed to add teacher in background:", error);
+            const teacherDocRef = doc(firestore, 'teachers', email);
+            const newTeacherData = {
+                ...details,
+                email,
+                teacherId: email,
+                profilePhotoUrl: "",
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            };
+            await setDoc(teacherDocRef, newTeacherData);
+            
+            toast({ title: 'Teacher Registered', description: `${details.name} can now log in.`});
+
+        } catch (error: any) {
+            let message = error.message;
+            if (error.code === 'auth/email-already-in-use') {
+                message = 'This email is already in use by another authentication account.';
+            }
+            if (error.code === 'auth/weak-password') {
+                message = 'Password must be at least 6 characters.';
+            }
             toast({
                 variant: "destructive",
                 title: "Background Registration Failed",
-                description: `Could not save teacher ${details.name}. Reason: ${error.message}`,
+                description: message,
                 duration: 9000,
             });
-        });
-
-  }, [firestore, toast]);
+        }
+    })();
+  }, [firestore, auth, toast]);
   
   const updateTeacher = useCallback(async (teacherId: string, updates: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => {
     if (!firestore) {
@@ -114,6 +122,8 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
       toast({ variant: 'destructive', title: 'Delete Failed', description: 'Database not available.' });
       return;
     }
+    // Note: This does not delete the Firebase Auth user, only the Firestore data.
+    // Deleting auth users is a sensitive operation not suitable for the client-side.
     const teacherDocRef = doc(firestore, 'teachers', teacherId);
     try {
       await deleteDoc(teacherDocRef);

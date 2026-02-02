@@ -135,10 +135,6 @@
           "format": "email",
           "description": "The teacher's email address, used for login."
         },
-        "password": {
-          "type": "string",
-          "description": "The teacher's password for login."
-        },
         "department": {
           "type": "string",
           "description": "The department the teacher belongs to.",
@@ -170,7 +166,6 @@
         "teacherId",
         "name",
         "email",
-        "password",
         "department",
         "createdAt"
       ]
