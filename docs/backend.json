@@ -1,54 +1,55 @@
-
 {
   "entities": {
-    "student": {
+    "Student": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Student",
-      "description": "Represents an individual student enrolled in the institution.",
       "type": "object",
+      "description": "Represents a student in the attendance system.",
       "properties": {
         "registerNumber": {
           "type": "string",
-          "description": "The unique registration number for the student."
+          "description": "Unique identifier for the student. (e.g., 324cs21001)",
+          "format": "string"
         },
         "name": {
           "type": "string",
-          "description": "The full name of the student."
+          "description": "The student's full name."
         },
         "fatherName": {
           "type": "string",
-          "description": "The name of the student's father."
+          "description": "The student's father's name."
         },
         "motherName": {
           "type": "string",
-          "description": "The name of the student's mother."
+          "description": "The student's mother's name."
         },
         "department": {
           "type": "string",
-          "description": "The department the student is enrolled in.",
-          "enum": ["cs", "ce", "me", "ee", "mce", "ec"]
+          "description": "The department the student belongs to (e.g., cs, ce, me).",
+          "format": "string"
         },
-        "profilePhotoUrl": {
+        "photoURL": {
           "type": "string",
-          "description": "URL of the student's profile photo, used for face recognition."
+          "description": "URL of the student's photo in Firebase Storage.",
+          "format": "uri"
         },
         "email": {
           "type": "string",
-          "format": "email",
-          "description": "The student's email address."
+          "description": "The student's email address.",
+          "format": "email"
         },
         "contact": {
           "type": "string",
           "description": "The student's contact phone number."
         },
+        "faceId": {
+          "type": "string",
+          "description": "Optional ID for matching with OpenCV backend.  References the embeddings stored elsewhere."
+        },
         "createdAt": {
           "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the student was enrolled."
-        },
-        "dateOfBirth": {
-          "type": "string",
-          "format": "date",
-          "description": "The student's date of birth."
+          "description": "Timestamp of when the student record was created.",
+          "format": "date-time"
         }
       },
       "required": [
@@ -57,181 +58,112 @@
         "fatherName",
         "motherName",
         "department",
+        "photoURL",
         "email",
         "contact",
-        "createdAt",
-        "dateOfBirth"
+        "createdAt"
       ]
     },
-    "attendanceRecord": {
-      "title": "Attendance Record",
-      "description": "Represents a single attendance entry for a student on a specific date.",
+    "Attendance": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Attendance",
       "type": "object",
+      "description": "Represents an attendance record for a student on a specific date.",
       "properties": {
         "studentRegister": {
           "type": "string",
-          "description": "The registration number of the student."
-        },
-        "studentName": {
-          "type": "string",
-          "description": "The name of the student for easier display."
+          "description": "Reference to Student. (Relationship: Student 1:N Attendance)"
         },
         "date": {
           "type": "string",
-          "format": "date",
-          "description": "The date of the attendance record (YYYY-MM-DD)."
+          "description": "Date of the attendance record (YYYY-MM-DD).",
+          "format": "string"
         },
         "status": {
           "type": "string",
-          "description": "The attendance status for the student on that day.",
-          "enum": ["present", "absent"]
+          "description": "Attendance status (present, absent, late, manual)."
+        },
+        "markedBy": {
+          "type": "string",
+          "description": "Admin email or camera that marked the attendance."
         },
         "method": {
           "type": "string",
-          "description": "The method used to mark attendance.",
-          "enum": [
-            "face-scan",
-            "manual",
-            "live-photo"
-          ]
-        },
-        "photoUrl": {
-          "type": "string",
-          "description": "URL to the snapshot photo used for attendance."
+          "description": "Method used to mark attendance (face-scan, manual)."
         },
         "timestamp": {
           "type": "string",
-          "format": "date-time",
-          "description": "The exact timestamp when the attendance was marked."
-        },
-        "reason": {
-          "type": "string",
-          "description": "The reason for the student being on leave."
+          "description": "Timestamp of when the attendance was recorded.",
+          "format": "date-time"
         }
       },
       "required": [
         "studentRegister",
         "date",
         "status",
+        "markedBy",
         "method",
         "timestamp"
-      ]
-    },
-    "teacher": {
-      "title": "Teacher",
-      "description": "Represents a teacher or faculty member.",
-      "type": "object",
-      "properties": {
-        "teacherId": {
-          "type": "string",
-          "description": "Unique ID for the teacher, can be their email."
-        },
-        "name": {
-          "type": "string",
-          "description": "Full name of the teacher."
-        },
-        "email": {
-          "type": "string",
-          "format": "email",
-          "description": "The teacher's email address, used for login."
-        },
-        "department": {
-          "type": "string",
-          "description": "The department the teacher belongs to.",
-          "enum": [
-            "cs",
-            "ce",
-            "me",
-            "ee",
-            "mce",
-            "ec"
-          ]
-        },
-        "profilePhotoUrl": {
-          "type": "string",
-          "description": "URL of the teacher's profile photo."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp of when the teacher was added."
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp of when the teacher was last updated."
-        }
-      },
-      "required": [
-        "teacherId",
-        "name",
-        "email",
-        "department",
-        "createdAt"
-      ]
-    },
-    "institutionProfile": {
-      "title": "Institution Profile",
-      "description": "Stores the core details of the educational institution.",
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "The name of the institution."
-        },
-        "address": {
-          "type": "string",
-          "description": "The physical address of the institution."
-        },
-        "contact": {
-          "type": "string",
-          "description": "The primary contact number."
-        },
-        "email": {
-          "type": "string",
-          "format": "email",
-          "description": "The primary contact email."
-        },
-        "coverImageUrl": {
-          "type": "string",
-          "description": "URL of the institution's cover image."
-        }
-      },
-      "required": [
-        "name",
-        "address",
-        "contact",
-        "email"
       ]
     }
   },
   "auth": {
-    "providers": ["email"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/students/{studentId}": {
-      "schema": {
-        "$ref": "#/entities/student"
+    "structure": [
+      {
+        "path": "/students/{registerNumber}",
+        "definition": {
+          "entityName": "Student",
+          "schema": {
+            "$ref": "#/backend/entities/Student"
+          },
+          "description": "Stores student profile information. Document ID is the student's register number.  No denormalized authorization fields are needed as security rules will leverage the `registerNumber`.",
+          "params": [
+            {
+              "name": "registerNumber",
+              "description": "The unique register number of the student. Serves as the document ID."
+            }
+          ]
+        }
       },
-      "description": "Stores individual student documents, keyed by their registration number."
-    },
-    "/attendance/{attendanceId}": {
-      "schema": {
-        "$ref": "#/entities/attendanceRecord"
+      {
+        "path": "/attendance/{attendanceId}",
+        "definition": {
+          "entityName": "Attendance",
+          "schema": {
+            "$ref": "#/backend/entities/Attendance"
+          },
+          "description": "Stores attendance records. Includes 'studentRegister' for querying attendance by student. The document ID is auto-generated.",
+          "params": [
+            {
+              "name": "attendanceId",
+              "description": "The auto-generated unique ID for the attendance document."
+            }
+          ]
+        }
       },
-      "description": "Stores individual attendance records."
-    },
-    "/teachers/{teacherId}": {
-      "schema": {
-        "$ref": "#/entities/teacher"
-      },
-      "description": "Stores individual teacher documents, keyed by their email."
-    },
-     "/institution/{institutionId}": {
-      "schema": {
-        "$ref": "#/entities/institutionProfile"
-      },
-      "description": "Stores a single document containing the institution's profile information. The document ID should be a constant like 'profile'."
-    }
+      {
+        "path": "/roles_admin/{uid}",
+        "definition": {
+          "entityName": "AdminRole",
+          "schema": {
+            "$ref": "#/backend/entities/AdminRole"
+          },
+          "description": "Indicates the user with {uid} has admin role.  Authorization rules check for the existence of this document.",
+          "params": [
+            {
+              "name": "uid",
+              "description": "The Firebase Auth UID of the admin user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, in accordance with the defined principles.  Authorization Independence is achieved through denormalization. For example, the `attendance` collection denormalizes the `studentRegister` field, ensuring that attendance records can be queried and secured independently of the student document.  Structural Segregation is applied by using separate collections for `students` and `attendance`, each with specific security requirements. Access Modeling utilizes path-based ownership for student data (`/students/{registerNumber}`), and a top-level collection for `attendance` to enable efficient queries across all students. This structure supports secure `list` operations by ensuring that only authorized users can access the data within each collection, adhering to QAPs. Invariants like ownership and timestamps are enforced through security rules."
   }
 }
