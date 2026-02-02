@@ -24,58 +24,48 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { generateReport } from "@/app/actions"
+import { generateTeacherReport } from "@/app/actions"
 import type { RecentExport } from "@/lib/types"
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
-import { CalendarIcon, Loader2 } from "lucide-react"
-import { Calendar } from "../ui/calendar"
-import { cn } from "@/lib/utils"
-import { useStudents } from "@/hooks/use-students"
-import { useAttendance } from "@/hooks/use-attendance"
+import { Loader2 } from "lucide-react"
+import { useTeachers } from "@/hooks/use-teachers"
 
 const formSchema = z.object({
-  date: z.date(),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec", "all"]),
 })
 
-type ReportFormProps = {
+type TeacherReportFormProps = {
     onReportGenerated: (exportData: RecentExport) => void;
 }
 
-export function ReportForm({ onReportGenerated }: ReportFormProps) {
+export function TeacherReportForm({ onReportGenerated }: TeacherReportFormProps) {
   const { toast } = useToast()
   const [isPending, startTransition] = React.useTransition()
-  const { students, loading: studentsLoading } = useStudents();
-  const { attendanceRecords, loading: attendanceLoading } = useAttendance();
+  const { teachers, loading: teachersLoading } = useTeachers();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      date: new Date(),
       department: "all",
     },
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
-      // The generateReport action now expects a single date, so we adapt the input
       const reportValues = {
-        date: values.date,
         department: values.department,
-        students, // Pass live data
-        attendanceRecords // Pass live data
+        teachers, // Pass live data
       };
 
-      const result = await generateReport(reportValues)
+      const result = await generateTeacherReport(reportValues)
       if (result.success && result.fileUrl) {
-        const fileName = `Students_${values.department.toUpperCase()}_Report_${format(values.date, "yyyy-MM-dd")}.csv`;
-        
+        const fileName = `Teachers_${values.department.toUpperCase()}_Report_${format(new Date(), "yyyy-MM-dd")}.csv`;
+
         const newExport: RecentExport = {
             fileName,
             generatedAt: new Date(),
             url: result.fileUrl,
             department: values.department,
-            type: 'student'
+            type: 'teacher'
         };
 
         onReportGenerated(newExport);
@@ -99,53 +89,11 @@ export function ReportForm({ onReportGenerated }: ReportFormProps) {
     })
   }
 
-  const isLoading = isPending || studentsLoading || attendanceLoading;
+  const isLoading = isPending || teachersLoading;
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-            control={form.control}
-            name="date"
-            render={({ field }) => (
-                <FormItem className="flex flex-col">
-                <FormLabel>Report Date</FormLabel>
-                <Popover>
-                    <PopoverTrigger asChild>
-                    <FormControl>
-                        <Button
-                        variant={"outline"}
-                        className={cn(
-                            "w-[240px] pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                        )}
-                        >
-                        {field.value ? (
-                            format(field.value, "PPP")
-                        ) : (
-                            <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                    </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                        date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                    />
-                    </PopoverContent>
-                </Popover>
-                <FormMessage />
-                </FormItem>
-            )}
-        />
-        
         <FormField
           control={form.control}
           name="department"

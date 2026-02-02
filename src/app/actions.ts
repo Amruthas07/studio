@@ -3,10 +3,12 @@
 
 import { z } from "zod";
 import { format } from "date-fns";
-import type { Student, AttendanceRecord } from "@/lib/types";
+import type { Student, AttendanceRecord, Teacher } from "@/lib/types";
 import { dailyAttendanceReport, DailyAttendanceReportInput } from "@/ai/flows/daily-attendance-report";
 import { attendanceReportingWithFiltering, AttendanceReportingWithFilteringInput } from "@/ai/flows/attendance-reporting-with-filtering";
 import { chat, ChatInput } from "@/ai/flows/chatbot-flow";
+import { teacherListReport, TeacherListReportInput } from "@/ai/flows/teacher-list-report";
+
 
 const addStudentSchema = z.object({
   name: z.string(),
@@ -138,4 +140,32 @@ export async function handleChat(input: ChatInput) {
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
     return { success: false, error: `Chat failed: ${errorMessage}` };
   }
+}
+
+type GenerateTeacherReportFormInput = {
+    department: string;
+    teachers: Teacher[];
+};
+
+export async function generateTeacherReport(input: GenerateTeacherReportFormInput) {
+    try {
+        // Sanitize teacher data
+        const sanitizedTeachers = input.teachers.map(t => ({
+          ...t,
+          createdAt: t.createdAt.toISOString(),
+          updatedAt: t.updatedAt?.toISOString() ?? t.createdAt.toISOString(),
+        }));
+
+        const flowInput: TeacherListReportInput = {
+            department: input.department,
+            teachers: sanitizedTeachers,
+        };
+
+        const result = await teacherListReport(flowInput);
+        return { success: true, fileUrl: result.fileUrl };
+    } catch (error) {
+        console.error("Error generating teacher report:", error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        return { success: false, error: `Failed to generate report: ${errorMessage}` };
+    }
 }

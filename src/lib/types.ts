@@ -41,6 +41,7 @@ export interface RecentExport {
   generatedAt: Date;
   url: string;
   department: string;
+  type: 'student' | 'teacher';
 }
 
 export interface StudentsContextType {
