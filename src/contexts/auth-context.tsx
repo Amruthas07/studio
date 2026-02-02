@@ -72,12 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         // 1. Check for Admin role
         const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
-        const adminDocSnap = await getDoc(adminRoleRef).catch(err => {
-            if (err.code === 'permission-denied') {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: adminRoleRef.path, operation: 'get'}));
-            }
-            throw err;
-        });
+        const adminDocSnap = await getDoc(adminRoleRef);
 
         if (adminDocSnap.exists()) {
              profile = {
@@ -96,12 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
             // 2. Check for Teacher role
             const teacherDocRef = doc(firestore, 'teachers', user.email!);
-            const teacherDocSnap = await getDoc(teacherDocRef).catch(err => {
-                if (err.code === 'permission-denied') {
-                    errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'get'}));
-                }
-                throw err;
-            });
+            const teacherDocSnap = await getDoc(teacherDocRef);
             if (teacherDocSnap.exists()) {
                 const foundTeacher = teacherDocSnap.data() as Teacher;
                 profile = {
@@ -121,12 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 // 3. Check for Student role
                 const studentsRef = collection(firestore, 'students');
                 const q = query(studentsRef, where('email', '==', user.email!), limit(1));
-                const studentQuerySnap = await getDocs(q).catch(err => {
-                    if (err.code === 'permission-denied') {
-                        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'students', operation: 'list'}));
-                    }
-                    throw err;
-                });
+                const studentQuerySnap = await getDocs(q);
 
                 if (!studentQuerySnap.empty) {
                     const studentDoc = studentQuerySnap.docs[0];
@@ -147,8 +132,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await signOut(auth); // Sign them out.
         }
 
-      } catch (error) {
+      } catch (error: any) {
           console.error("Error fetching user profile:", error);
+           if (error.code === 'permission-denied') {
+              // This can happen in a race condition, emit the error for debugging.
+              errorEmitter.emit('permission-error', new FirestorePermissionError({
+                  path: `roles_admin/${firebaseUser.uid}`, // Example path
+                  operation: 'get'
+              }));
+          }
           await signOut(auth);
           profile = null;
       }
@@ -165,6 +157,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
       const user = userCredential.user;
+      
+      // CRITICAL FIX: Wait for the token to be ready before proceeding.
+      await user.getIdToken(true);
 
       if (!user.email) {
         await signOut(auth);
@@ -216,6 +211,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Admin user doesn't exist, so let's create it.
           const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
           const user = userCredential.user;
+          
+          // CRITICAL FIX: Wait for the token to be ready before proceeding.
+          await user.getIdToken(true);
 
           // Now create the admin role document in Firestore.
           const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
