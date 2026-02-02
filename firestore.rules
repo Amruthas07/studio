@@ -108,9 +108,9 @@ service cloud.firestore {
      * @allow (update, delete) Only existing admins can modify or remove other admins.
      */
      match /roles_admin/{uid} {
-      allow get: if request.auth.uid == uid;
+      allow get: if isSignedIn() && request.auth.uid == uid;
       allow list: if false;
-      allow create: if request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid;
       allow update, delete: if isAdmin();
     }
   }
