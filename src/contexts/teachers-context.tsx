@@ -8,6 +8,8 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
+const ADMIN_EMAIL = "apdd46@gmail.com";
+
 export const TeachersContext = createContext<TeachersContextType | undefined>(undefined);
 
 export function TeachersProvider({ children }: { children: ReactNode }) {
@@ -60,6 +62,10 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     }
 
     const { email, password, ...details } = teacherData;
+
+    if (email.toLowerCase() === ADMIN_EMAIL) {
+        throw new Error("This email is reserved for the administrator and cannot be used for a teacher.");
+    }
 
     const q = query(collection(firestore, "teachers"), where("email", "==", email));
     const snap = await getDocs(q);

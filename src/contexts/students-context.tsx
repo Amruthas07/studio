@@ -16,6 +16,8 @@ import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getImageHash, resizeAndCompressImage } from '@/lib/utils';
 
+const ADMIN_EMAIL = "apdd46@gmail.com";
+
 export const StudentsContext = createContext<StudentsContextType | undefined>(
   undefined
 );
@@ -70,6 +72,10 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     }
 
     const { photoFile, ...details } = studentData;
+
+    if (details.email.toLowerCase() === ADMIN_EMAIL) {
+      throw new Error("This email is reserved for the administrator and cannot be used for a student.");
+    }
 
     const studentDocRef = doc(firestore, 'students', details.registerNumber);
     const existingStudentSnap = await getDoc(studentDocRef);
