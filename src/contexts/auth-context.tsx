@@ -68,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       let profile: AuthUser | null = null;
       
+      // Force a token refresh to ensure the latest auth state is available for security rules.
       await user.getIdToken(true);
 
       try {
@@ -153,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
       const user = userCredential.user;
       
-      await user.getIdToken(true);
+      await user.getIdToken(true); // Force token refresh before role checks
 
       if (!user.email) {
         await signOut(auth);
@@ -212,22 +213,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userCredential = await createUserWithEmailAndPassword(auth, email, ADMIN_PASSWORD);
           const user = userCredential.user;
           
-          await user.getIdToken(true);
+          await user.getIdToken(true); // Force token refresh before writing to Firestore
 
           const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
+          // This setDoc is allowed by the rule `allow create: if isSignedIn() && request.auth.uid == uid;`
           await setDoc(adminRoleRef, { role: 'admin', createdAt: serverTimestamp() });
           
           router.push('/admin');
           return;
 
         } catch (creationError: any) {
-          // This might happen if there's a network issue or if the email is somehow
-          // in use by another auth provider.
           throw new Error(`Admin account creation failed: ${creationError.message}`);
         }
       }
       
-      // For all other errors, or if the user is not the special admin case.
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
           throw new Error('Invalid email or password.');
       }
