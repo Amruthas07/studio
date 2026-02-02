@@ -36,7 +36,7 @@ export function DashboardLayout({ children, allowedRoles }: DashboardLayoutProps
       <Sidebar />
       <div className="flex flex-col">
         <Header sidebarContent={<MobileSidebarContent />} />
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/50">
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted">
           {children}
         </main>
       </div>
