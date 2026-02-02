@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -64,6 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       let profile: AuthUser | null = null;
       
+      // Force refresh the auth token to ensure the backend has the latest auth state.
+      // This helps prevent race conditions with security rules after login/app load.
+      await user.getIdToken(true);
+
       try {
         // 1. Check for Admin role
         const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
