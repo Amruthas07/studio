@@ -43,19 +43,10 @@ service cloud.firestore {
 
     // Manages administrator roles.
     match /roles_admin/{uid} {
-      // ALLOW a user to read their OWN role document. This is critical for the app
-      // to verify a user's role after they log in.
-      allow read: if isSignedIn() && request.auth.uid == uid;
-      
-      // DENY anyone from listing all admin documents.
-      allow list: if false;
-
-      // ALLOW a user to create their own role document. This enables the first
-      // admin to set themselves up.
-      allow create: if request.auth.uid == uid;
-      
-      // DENY modification or deletion by non-admins.
-      allow update, delete: if isAdmin();
+      // A user can read and write their OWN role document.
+      // This is required for the app to verify their admin status (read) and
+      // for the initial admin account setup (write).
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
     }
 
     // Manages student profile data.
