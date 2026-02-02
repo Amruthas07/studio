@@ -3,7 +3,7 @@
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
-import { useFirestore, useAuth as useFirebaseAuthHook } from '@/firebase';
+import { useFirestore, useAuth as useFirebaseAuthHook, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -80,7 +80,15 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
             };
-            await setDoc(teacherDocRef, newTeacherData);
+            
+            setDoc(teacherDocRef, newTeacherData).catch(error => {
+                console.error("Firestore setDoc for teacher failed:", error);
+                 if (error.code === 'permission-denied') {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'create', requestResourceData: newTeacherData }));
+                } else {
+                    toast({ variant: "destructive", title: "Database Error", description: error.message });
+                }
+            });
             
             toast({ title: 'Teacher Registered', description: `${details.name} can now log in.`});
 
@@ -102,36 +110,45 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     })();
   }, [firestore, auth, toast]);
   
-  const updateTeacher = useCallback(async (teacherId: string, updates: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => {
+  const updateTeacher = useCallback((teacherId: string, updates: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => {
     if (!firestore) {
       toast({ variant: 'destructive', title: 'Update Failed', description: 'Database not available.' });
       return;
     }
     const teacherDocRef = doc(firestore, 'teachers', teacherId);
-    try {
-      await updateDoc(teacherDocRef, { ...updates, updatedAt: serverTimestamp() });
-      toast({ title: 'Teacher Updated', description: `Details for ${updates.name || teacherId} have been saved.` });
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
-      throw error;
-    }
+    const dataToUpdate = { ...updates, updatedAt: serverTimestamp() };
+    updateDoc(teacherDocRef, dataToUpdate)
+      .then(() => {
+        toast({ title: 'Teacher Updated', description: `Details for ${updates.name || teacherId} have been saved.` });
+      })
+      .catch((error: any) => {
+        console.error("Firestore teacher update failed:", error);
+        if (error.code === 'permission-denied') {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'update', requestResourceData: dataToUpdate }));
+        } else {
+            toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
+        }
+    });
   }, [firestore, toast]);
   
-  const deleteTeacher = useCallback(async (teacherId: string) => {
+  const deleteTeacher = useCallback((teacherId: string) => {
     if (!firestore) {
       toast({ variant: 'destructive', title: 'Delete Failed', description: 'Database not available.' });
       return;
     }
-    // Note: This does not delete the Firebase Auth user, only the Firestore data.
-    // Deleting auth users is a sensitive operation not suitable for the client-side.
     const teacherDocRef = doc(firestore, 'teachers', teacherId);
-    try {
-      await deleteDoc(teacherDocRef);
-      toast({ title: 'Teacher Deleted', description: `Successfully removed teacher ${teacherId}.` });
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Delete Failed', description: error.message });
-      throw error;
-    }
+    deleteDoc(teacherDocRef)
+      .then(() => {
+        toast({ title: 'Teacher Deleted', description: `Successfully removed teacher ${teacherId}.` });
+      })
+      .catch((error: any) => {
+        console.error("Firestore teacher delete failed:", error);
+        if (error.code === 'permission-denied') {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'delete' }));
+        } else {
+             toast({ variant: 'destructive', title: 'Delete Failed', description: error.message });
+        }
+    });
   }, [firestore, toast]);
 
   const value = { teachers, loading, addTeacher, updateTeacher, deleteTeacher };

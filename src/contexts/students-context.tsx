@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'firebase/storage';
-import { useFirestore, useFirebaseApp, useAuth as useFirebaseAuthHook } from '@/firebase';
+import { useFirestore, useFirebaseApp, useAuth as useFirebaseAuthHook, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -71,7 +71,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
     const { photoFile, ...details } = studentData;
 
-    // --- Part 1: Immediate validations ---
     const studentDocRef = doc(firestore, 'students', details.registerNumber);
     const existingStudentSnap = await getDoc(studentDocRef);
     if (existingStudentSnap.exists()) {
@@ -84,7 +83,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         throw new Error(`A student with email ${details.email} already exists.`);
     }
 
-    // --- Part 2: Create Auth user ---
     try {
         await createUserWithEmailAndPassword(auth, details.email, details.registerNumber);
     } catch (error: any) {
@@ -98,7 +96,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         throw new Error(`Authentication error: ${error.message}`);
     }
 
-    // --- Part 3: Save to Firestore and process photo ---
     const initialStudentData = {
         ...details,
         profilePhotoUrl: '', 
@@ -106,10 +103,16 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     };
+    
+    setDoc(studentDocRef, initialStudentData).catch(error => {
+      console.error("Firestore setDoc failed:", error);
+      if (error.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'create', requestResourceData: initialStudentData }));
+      } else {
+        toast({ variant: "destructive", title: "Database Error", description: error.message });
+      }
+    });
 
-    await setDoc(studentDocRef, initialStudentData);
-
-    // --- Part 4: Background photo processing ---
     (async () => {
         try {
             const storage = getStorage(firebaseApp);
@@ -128,12 +131,20 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
             await uploadBytes(photoRef, processedPhoto);
             const downloadURL = await getDownloadURL(photoRef);
-
-            await updateDoc(studentDocRef, {
+            
+            const photoData = {
                 profilePhotoUrl: downloadURL,
                 photoHash: photoHash,
                 updatedAt: serverTimestamp(),
+            };
+
+            updateDoc(studentDocRef, photoData).catch(error => {
+              console.error("Firestore photo update failed:", error);
+              if (error.code === 'permission-denied') {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'update', requestResourceData: photoData }));
+              }
             });
+
         } catch (error: any) {
             toast({
                 variant: "destructive",
@@ -146,13 +157,13 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   }, [firestore, firebaseApp, auth, toast]);
 
 
-  const updateStudent = useCallback(async (
+  const updateStudent = useCallback((
     registerNumber: string,
     studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'profilePhotoUrl' | 'photoHash' | 'updatedAt'>> & { newPhotoFile?: File }
   ) => {
     if (!firestore || !firebaseApp) {
       toast({ variant: "destructive", title: "Update Failed", description: "Database is not available." });
-      throw new Error("Database not available.");
+      return;
     }
     
     const { newPhotoFile, ...otherUpdates } = studentUpdate;
@@ -160,21 +171,22 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     
     const updatesToApply: any = { ...otherUpdates, updatedAt: serverTimestamp() };
     
-    try {
-        await updateDoc(studentDocRef, updatesToApply);
-        toast({
-            title: "Student Updated",
-            description: `Details for ${otherUpdates.name || registerNumber} have been saved.`,
+    updateDoc(studentDocRef, updatesToApply)
+        .then(() => {
+             toast({
+                title: "Student Updated",
+                description: `Details for ${otherUpdates.name || registerNumber} have been saved.`,
+            });
+        })
+        .catch(error => {
+            console.error("Failed to update student details:", error);
+            if (error.code === 'permission-denied') {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'update', requestResourceData: updatesToApply }));
+            } else {
+                toast({ variant: "destructive", title: "Update Failed", description: error.message || "Could not save changes." });
+            }
         });
-    } catch (error: any) {
-        console.error("Failed to update student details:", error);
-        toast({
-            variant: "destructive",
-            title: "Update Failed",
-            description: error.message || "Could not save changes.",
-        });
-        throw error;
-    }
+
 
     if (newPhotoFile) {
         (async () => {
@@ -195,16 +207,27 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                 await uploadBytes(photoRef, processedPhoto);
                 const downloadURL = await getDownloadURL(photoRef);
                 
-                await updateDoc(studentDocRef, {
+                const photoData = {
                     profilePhotoUrl: downloadURL,
                     photoHash: photoHash,
                     updatedAt: serverTimestamp(),
-                });
-
-                toast({
-                    title: "Photo Updated",
-                    description: `The new photo for ${otherUpdates.name || registerNumber} has been saved.`,
-                });
+                };
+                
+                updateDoc(studentDocRef, photoData)
+                    .then(() => {
+                         toast({
+                            title: "Photo Updated",
+                            description: `The new photo for ${otherUpdates.name || registerNumber} has been saved.`,
+                        });
+                    })
+                    .catch(error => {
+                        console.error("Failed to update student photo:", error);
+                        if (error.code === 'permission-denied') {
+                            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'update', requestResourceData: photoData }));
+                        } else {
+                           toast({ variant: "destructive", title: "Photo Update Failed", description: error.message });
+                        }
+                    });
 
             } catch (error: any) {
                 console.error("Failed to update student photo in background:", error);
@@ -219,13 +242,11 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     }
   }, [firestore, firebaseApp, toast]);
   
-  const deleteStudent = useCallback(async (registerNumber: string) => {
+  const deleteStudent = useCallback((registerNumber: string) => {
     if (!firestore || !firebaseApp) {
       toast({ variant: 'destructive', title: 'Delete Failed', description: 'Database not available.' });
       return;
     }
-    // Note: This does not delete the Firebase Auth user, only Firestore data.
-    // Deleting auth users from the client is a sensitive operation.
     
     const studentToDelete = students.find(s => s.registerNumber === registerNumber);
     if (!studentToDelete) {
@@ -236,37 +257,31 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const storage = getStorage(firebaseApp);
     const studentDocRef = doc(firestore, 'students', registerNumber);
     
-    if (studentToDelete.profilePhotoUrl) {
-        try {
-            const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
-            await deleteObject(photoRef);
-        } catch (storageError: any) {
-            if (storageError.code !== 'storage/object-not-found') {
-                console.error("Failed to delete student photo from storage:", storageError);
-                toast({
-                    variant: "destructive",
-                    title: "Delete Failed",
-                    description: `Could not delete the student's photo. The student record was not deleted. Error: ${storageError.message}`,
+    // Non-blocking delete from Firestore
+    deleteDoc(studentDocRef)
+        .then(() => {
+            toast({
+              title: "Student Deleted",
+              description: `Successfully removed ${studentToDelete.name}.`,
+            });
+            // Background deletion from Storage
+            if (studentToDelete.profilePhotoUrl) {
+                const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
+                deleteObject(photoRef).catch(storageError => {
+                    if (storageError.code !== 'storage/object-not-found') {
+                        console.error("Failed to delete student photo from storage:", storageError);
+                    }
                 });
-                return;
             }
-        }
-    }
-
-    try {
-      await deleteDoc(studentDocRef);
-      toast({
-          title: "Student Deleted",
-          description: `Successfully removed ${studentToDelete.name}.`,
-      });
-    } catch (error: any) {
-        console.error("Failed to delete student document:", error);
-        toast({
-            variant: "destructive",
-            title: "Delete Failed",
-            description: `Could not delete the student record for ${studentToDelete.name}. Error: ${error.message}`,
+        })
+        .catch(error => {
+            console.error("Failed to delete student document:", error);
+            if (error.code === 'permission-denied') {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'delete' }));
+            } else {
+                 toast({ variant: "destructive", title: "Delete Failed", description: `Could not delete student. Error: ${error.message}` });
+            }
         });
-    }
   }, [firestore, firebaseApp, toast, students]);
 
   const value = { students, setStudents, loading, addStudent, updateStudent, deleteStudent };

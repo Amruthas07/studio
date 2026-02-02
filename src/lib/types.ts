@@ -52,16 +52,16 @@ export interface StudentsContextType {
   updateStudent: (
     registerNumber: string,
     studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'profilePhotoUrl' | 'photoHash' | 'updatedAt'>> & { newPhotoFile?: File }
-  ) => Promise<void>;
-  deleteStudent: (registerNumber: string) => Promise<void>;
+  ) => void;
+  deleteStudent: (registerNumber: string) => void;
 }
 
 export interface TeachersContextType {
   teachers: Teacher[];
   loading: boolean;
   addTeacher: (teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }) => Promise<void>;
-  updateTeacher: (teacherId: string, teacherUpdate: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => Promise<void>;
-  deleteTeacher: (teacherId: string) => Promise<void>;
+  updateTeacher: (teacherId: string, teacherUpdate: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => void;
+  deleteTeacher: (teacherId: string) => void;
 }
 
 
@@ -87,5 +87,5 @@ export interface InstitutionProfile {
 export interface InstitutionProfileContextType {
   institutionProfile: InstitutionProfile | null;
   loading: boolean;
-  updateInstitutionProfile: (data: Partial<Omit<InstitutionProfile, 'id'>>) => Promise<void>;
+  updateInstitutionProfile: (data: Partial<Omit<InstitutionProfile, 'id'>>) => void;
 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, {
@@ -9,15 +8,18 @@ import React, {
   useCallback,
 } from 'react';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
+import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import type { AttendanceRecord } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
 import { useFirestore, useFirebaseApp } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
-  saveAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl'>, photoDataUrl?: string) => Promise<void>;
-  deleteAttendanceRecord: (studentRegister: string, date: string) => Promise<void>;
+  saveAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl'>, photoDataUrl?: string) => void;
+  deleteAttendanceRecord: (studentRegister: string, date: string) => void;
   getTodaysRecordForStudent: (studentRegister: string, date: string) => AttendanceRecord | undefined;
   loading: boolean;
 }
@@ -32,6 +34,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   const { students, loading: studentsLoading } = useStudents();
   const firestore = useFirestore();
   const firebaseApp = useFirebaseApp();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!firestore || studentsLoading) {
@@ -66,11 +69,14 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [firestore, students, studentsLoading]);
 
-  const saveAttendanceRecord = useCallback(async (
+  const saveAttendanceRecord = useCallback((
     record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl'>,
     photoDataUrl?: string
   ) => {
-    if (!firestore || !firebaseApp) throw new Error("Firebase not initialized.");
+    if (!firestore || !firebaseApp) {
+      toast({ variant: "destructive", title: "Update Failed", description: "Database not available." });
+      return;
+    }
 
     const docId = `${record.date}_${record.studentRegister}`;
     const recordDocRef = doc(firestore, 'attendance', docId);
@@ -79,40 +85,62 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       ...record,
       timestamp: serverTimestamp(),
     };
-
-    if (photoDataUrl) {
-      const storage = getStorage(firebaseApp);
-      const filePath = `students/${record.studentRegister}/attendance_${record.date}_${Date.now()}.jpg`;
-      const storageRef = ref(storage, filePath);
-      try {
-        const snapshot = await uploadString(storageRef, photoDataUrl, 'data_url');
-        recordToSave.photoUrl = await getDownloadURL(snapshot.ref);
-      } catch (uploadError: any) {
-        console.error("Firebase Storage upload failed:", uploadError);
-        throw new Error(`Photo upload failed: ${uploadError.message}`);
+    
+    const handleFirestoreError = (error: any, path: string, operation: 'write' | 'update' | 'create', data: any) => {
+      console.error(`Firestore ${operation} failed:`, error);
+      if (error.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path, operation, requestResourceData: data }));
+      } else {
+        toast({ variant: "destructive", title: "Database Error", description: error.message });
       }
-    }
+    };
+    
+    if (photoDataUrl) {
+      (async () => {
+        try {
+          const storage = getStorage(firebaseApp);
+          const filePath = `students/${record.studentRegister}/attendance_${record.date}_${Date.now()}.jpg`;
+          const storageRef = ref(storage, filePath);
+          const snapshot = await uploadString(storageRef, photoDataUrl, 'data_url');
+          const photoUrl = await getDownloadURL(snapshot.ref);
 
-    try {
-      await setDoc(recordDocRef, recordToSave, { merge: true });
-    } catch (firestoreError: any) {
-      console.error("Firestore setDoc failed:", firestoreError);
-      throw new Error(`Database update failed: ${firestoreError.message}`);
+          const finalRecord = { ...recordToSave, photoUrl };
+          setDoc(recordDocRef, finalRecord, { merge: true })
+            .catch(err => handleFirestoreError(err, recordDocRef.path, 'write', finalRecord));
+            
+        } catch (uploadError: any) {
+          console.error("Firebase Storage upload failed:", uploadError);
+          toast({ variant: "destructive", title: "Photo Upload Failed", description: `Could not save attendance photo. Reason: ${uploadError.message}` });
+        }
+      })();
+    } else {
+      setDoc(recordDocRef, recordToSave, { merge: true })
+        .catch(err => handleFirestoreError(err, recordDocRef.path, 'write', recordToSave));
     }
-  }, [firestore, firebaseApp]);
+  }, [firestore, firebaseApp, toast]);
   
 
-  const deleteAttendanceRecord = useCallback(async (studentRegister: string, date: string) => {
-      if (!firestore) throw new Error("Firestore not initialized");
+  const deleteAttendanceRecord = useCallback((studentRegister: string, date: string) => {
+      if (!firestore) {
+        toast({ variant: "destructive", title: "Delete Failed", description: "Database not available." });
+        return;
+      }
       const docId = `${date}_${studentRegister}`;
       const recordDocRef = doc(firestore, 'attendance', docId);
-      await deleteDoc(recordDocRef);
-  }, [firestore]);
+      deleteDoc(recordDocRef)
+        .catch((error) => {
+            console.error(`Firestore delete failed:`, error);
+            if (error.code === 'permission-denied') {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: recordDocRef.path, operation: 'delete' }));
+            } else {
+                toast({ variant: "destructive", title: "Database Error", description: error.message });
+            }
+        });
+  }, [firestore, toast]);
 
   const getTodaysRecordForStudent = useCallback((studentRegister: string, date: string) => {
     return attendanceRecords.find(r => r.studentRegister === studentRegister && r.date === date);
   }, [attendanceRecords]);
-
 
   const value = { attendanceRecords, saveAttendanceRecord, deleteAttendanceRecord, getTodaysRecordForStudent, loading };
 

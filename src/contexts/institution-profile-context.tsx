@@ -6,6 +6,9 @@ import { doc, onSnapshot, updateDoc, setDoc, serverTimestamp } from 'firebase/fi
 import { useFirestore } from '@/firebase';
 import type { InstitutionProfile, InstitutionProfileContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
 
 export const InstitutionProfileContext = createContext<InstitutionProfileContextType | undefined>(undefined);
 
@@ -74,19 +77,30 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
     return () => unsubscribe();
   }, [firestore]);
   
-  const updateInstitutionProfile = useCallback(async (data: Partial<Omit<InstitutionProfile, 'id'>>) => {
+  const updateInstitutionProfile = useCallback((data: Partial<Omit<InstitutionProfile, 'id'>>) => {
       if (!firestore) {
           toast({ variant: 'destructive', title: 'Update Failed', description: 'Database not available.' });
           return;
       }
       const profileDocRef = doc(firestore, 'institution', 'profile');
-      try {
-          await setDoc(profileDocRef, { ...data, updatedAt: serverTimestamp() }, { merge: true });
+      const dataToSave = { ...data, updatedAt: serverTimestamp() };
+      
+      setDoc(profileDocRef, dataToSave, { merge: true })
+        .then(() => {
           toast({ title: 'Profile Updated', description: 'Institution details have been saved.' });
-      } catch (error: any) {
-          toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
-          throw error;
-      }
+        })
+        .catch((error: any) => {
+            console.error("Firestore update failed:", error);
+            if (error.code === 'permission-denied') {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: profileDocRef.path,
+                    operation: 'update',
+                    requestResourceData: dataToSave
+                }));
+            } else {
+                toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
+            }
+        });
   }, [firestore, toast]);
 
 
