@@ -15,6 +15,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getImageHash, resizeAndCompressImage } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
 
 const ADMIN_EMAIL = "apdd46@gmail.com";
 
@@ -29,40 +30,91 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   const firebaseApp = useFirebaseApp();
   const auth = useFirebaseAuthHook();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!firestore) {
+    if (!firestore || authLoading) {
+      if (!authLoading) setLoading(false);
+      return;
+    }
+    if (!user) {
+      setStudents([]);
       setLoading(false);
       return;
-    };
+    }
     
     setLoading(true);
-    const studentsCollection = collection(firestore, 'students');
-    const unsubscribe = onSnapshot(
-      studentsCollection,
-      (snapshot) => {
-        const studentData = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                ...data,
-                id: doc.id,
-                registerNumber: doc.id,
-                createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
-                dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : new Date(data.dateOfBirth),
-                updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)),
+    let unsubscribe: () => void;
+
+    if (user.role === 'student') {
+      const studentDocRef = doc(firestore, 'students', user.registerNumber);
+      unsubscribe = onSnapshot(studentDocRef, 
+        (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            const studentData = {
+              ...data,
+              id: docSnap.id,
+              registerNumber: docSnap.id,
+              createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+              dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : new Date(data.dateOfBirth),
+              updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)),
             } as Student;
-        });
-        setStudents(studentData);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Error fetching students:', error);
-        setLoading(false);
+            setStudents([studentData]);
+          } else {
+            setStudents([]);
+          }
+          setLoading(false);
+        },
+        (err) => {
+          console.error('Error fetching student profile:', err);
+          const permissionError = new FirestorePermissionError({
+            path: studentDocRef.path,
+            operation: 'get'
+          });
+          errorEmitter.emit('permission-error', permissionError);
+          setLoading(false);
+        }
+      );
+    } else {
+      let studentsQuery;
+      const studentsCollection = collection(firestore, 'students');
+      if (user.role === 'teacher' && user.department !== 'all') {
+        studentsQuery = query(studentsCollection, where("department", "==", user.department));
+      } else { // Admin or teacher with 'all' access
+        studentsQuery = studentsCollection;
       }
-    );
+      
+      unsubscribe = onSnapshot(studentsQuery, 
+        (snapshot) => {
+          const studentData = snapshot.docs.map(doc => {
+              const data = doc.data();
+              return {
+                  ...data,
+                  id: doc.id,
+                  registerNumber: doc.id,
+                  createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+                  dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : new Date(data.dateOfBirth),
+                  updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)),
+              } as Student;
+          });
+          setStudents(studentData);
+          setLoading(false);
+        },
+        (err) => {
+          console.error('Error fetching students:', err);
+           const permissionError = new FirestorePermissionError({
+            path: (studentsQuery as any)._query?.path?.canonicalString() || 'students',
+            operation: 'list'
+          });
+          errorEmitter.emit('permission-error', permissionError);
+          setLoading(false);
+        }
+      );
+    }
 
     return () => unsubscribe();
-  }, [firestore]);
+  }, [firestore, user, authLoading]);
 
   const addStudent = useCallback(async (
     studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt'> & { photoFile: File }

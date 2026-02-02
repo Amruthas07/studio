@@ -7,6 +7,7 @@ import { useFirestore, useAuth as useFirebaseAuthHook, errorEmitter, FirestorePe
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 const ADMIN_EMAIL = "apdd46@gmail.com";
 
@@ -18,9 +19,14 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
   const firestore = useFirestore();
   const auth = useFirebaseAuthHook();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
+
 
   useEffect(() => {
-    if (!firestore) {
+    if (!firestore || authLoading || !user || user.role !== 'admin') {
+      // Only admins should fetch the full list of teachers.
+      // Other roles will get their own data via the AuthContext.
+      setTeachers([]);
       setLoading(false);
       return;
     };
@@ -32,14 +38,9 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
       (snapshot) => {
         const teacherData = snapshot.docs.map(doc => {
             const data = doc.data();
-            const profilePhotoUrl = data.profilePhotoUrl?.includes('picsum.photos') 
-                ? '' 
-                : data.profilePhotoUrl;
-
             return {
                 ...data,
                 teacherId: doc.id,
-                profilePhotoUrl,
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
                 updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)),
             } as Teacher;
@@ -47,14 +48,19 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         setTeachers(teacherData);
         setLoading(false);
       },
-      (error) => {
-        console.error('Error fetching teachers:', error);
+      (err) => {
+        console.error('Error fetching teachers:', err);
+        const permissionError = new FirestorePermissionError({
+          path: 'teachers',
+          operation: 'list'
+        });
+        errorEmitter.emit('permission-error', permissionError);
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, [firestore]);
+  }, [firestore, user, authLoading]);
 
   const addTeacher = useCallback(async (teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }) => {
     if (!firestore || !auth) {

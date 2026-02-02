@@ -1,25 +1,24 @@
 /**
- * Core Philosophy: This ruleset enforces a strict, role-based access control model centered around administrators.
- * A dedicated `roles_admin` collection serves as the source of truth for identifying users with administrative privileges.
- * Only authenticated admin users are granted permission to read or write data in the `students` and `attendance` collections.
+ * Core Philosophy: This ruleset enforces a strict, role-based access control model.
+ * It defines distinct permissions for Admins, Teachers, and Students.
  *
- * Data Structure: The data is organized into three top-level collections:
- * 1. `/students/{registerNumber}`: Contains profile information for each student.
- * 2. `/attendance/{attendanceId}`: Stores individual attendance records for students.
- * 3. `/roles_admin/{uid}`: A lookup collection where the existence of a document grants admin rights to the user with the corresponding UID.
+ * Data Structure:
+ * - /students/{registerNumber}: Student profiles.
+ * - /teachers/{teacherEmail}: Teacher profiles.
+ * - /attendance/{attendanceId}: Attendance records.
+ * - /institution/{docId}: Public-facing institution information.
+ * - /roles_admin/{uid}: A lookup collection to grant admin rights.
  *
  * Key Security Decisions:
- * - Admin-Only Access: All data operations (read, write, delete) on student and attendance records are restricted exclusively to users designated as admins.
- * - No Public or Student Access: Non-admin users, including authenticated students or anonymous users, have no access to any data.
- * - Secure Role Management: Only existing administrators are permitted to add or remove other administrators, preventing unauthorized privilege escalation.
- * - No Admin Listing: The list of administrators cannot be publicly queried, protecting their identities.
+ * - Admin Access: Admins have full read/write access to all core data collections.
+ * - Teacher Access: Teachers can read their own profile, list students in their department, and list all attendance records for reporting.
+ * - Student Access: Students can only read their own profile and list their own attendance records.
+ * - Public Access: Institution profile information is publicly readable.
  *
- * Denormalization for Authorization: The existence of the `/roles_admin/{uid}` document is a form of denormalization for authorization.
- * It allows any rule to perform a fast and efficient `exists()` check to determine a user's role without needing to inspect other documents.
- * This avoids slow or impossible cross-collection queries.
- *
- * Structural Segregation: Each data type (`students`, `attendance`, `roles_admin`) resides in its own top-level collection.
- * This clear separation simplifies rule-writing and ensures that security policies for one data type do not unintentionally affect another.
+ * Denormalization & Query-based Rules:
+ * - The rules rely on client-side queries containing specific `where` clauses (e.g., `where('department', '==', 'cs')`).
+ * - This allows users with limited permissions (like Teachers and Students) to safely list subsets of data without having read access to the entire collection.
+ * - For example, `allow list: if isTeacher() && request.query.where.department == getTeacherDepartment();` ensures a teacher can only fetch the list of students matching their own department.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -29,91 +28,86 @@ service cloud.firestore {
     // Helper Functions
     // ------------------------------------------------------------------------
 
-    /**
-     * Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the authenticated user is an administrator by verifying the existence
-     * of a corresponding document in the `roles_admin` collection.
-     */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    /**
-     * Ensures that on document creation, the `registerNumber` field inside the
-     * document's data matches the document's ID.
-     */
-    function studentDataMatchesPath(registerNumber) {
-      return request.resource.data.registerNumber == registerNumber;
+    function isTeacher() {
+        return isSignedIn() && exists(/databases/$(database)/documents/teachers/$(request.auth.email));
     }
 
-    /**
-     * Ensures that the `registerNumber` field is immutable on updates.
-     * This prevents re-assigning a student record to a different register number.
-     */
-    function studentRegisterNumberIsImmutable() {
-      return request.resource.data.registerNumber == resource.data.registerNumber;
+    function getTeacherDepartment() {
+        return get(/databases/$(database)/documents/teachers/$(request.auth.email)).data.department;
     }
-
-
+    
+    function isStudentOwner(registerNumber) {
+        // Ensure the student document exists before checking email
+        let studentDocPath = /databases/$(database)/documents/students/$(registerNumber);
+        return exists(studentDocPath) && get(studentDocPath).data.email == request.auth.email;
+    }
+    
     // ------------------------------------------------------------------------
     // Collection Rules
     // ------------------------------------------------------------------------
 
     /**
-     * @description Manages student profile data. Only administrators can read or write student information.
-     * @path /students/{registerNumber}
-     * @allow (get) An admin user requests `/students/324cs21001`.
-     * @deny (get) An authenticated non-admin user requests `/students/324cs21001`.
-     * @allow (create) An admin creates a new student document ensuring the inner `registerNumber` matches the document ID.
-     * @deny (create) An admin attempts to create a document where the path ID does not match the `registerNumber` field.
-     * @principle Enforces a strict role-based access model (Admin-only) and validates path integrity on create.
+     * @description Public information about the institution.
+     * @allow (get) Anyone can read the institution's profile.
+     * @allow (write) Only admins can modify the institution's profile.
+     */
+    match /institution/{docId} {
+        allow get: if true;
+        allow write: if isAdmin();
+    }
+
+    /**
+     * @description Manages student profile data.
+     * @allow (read, write) Admins have full access.
+     * @allow (get) A student can read their own profile document.
+     * @allow (get) A teacher can read a profile of a student in their department.
+     * @allow (list) A teacher can query for a list of students in their department.
      */
     match /students/{registerNumber} {
-      allow get: if isAdmin();
-      allow list: if isAdmin();
-      allow create: if isAdmin() && studentDataMatchesPath(registerNumber);
-      allow update: if isAdmin() && resource != null && studentRegisterNumberIsImmutable();
-      allow delete: if isAdmin() && resource != null;
+      allow read, write: if isAdmin();
+      allow get: if isSignedIn() && (isStudentOwner(registerNumber) || (isTeacher() && resource.data.department == getTeacherDepartment()));
+      allow list: if isTeacher() && request.query.where.department == getTeacherDepartment();
     }
 
     /**
-     * @description Manages student attendance records. Only administrators can create, view, or modify attendance data.
-     * @path /attendance/{attendanceId}
-     * @allow (create) An admin user creates a new attendance record for any student.
-     * @deny (create) An authenticated non-admin user attempts to create an attendance record.
-     * @allow (list) An admin user lists all attendance records.
-     * @deny (list) A non-admin user attempts to list attendance records.
-     * @principle Enforces a strict role-based access model (Admin-only) for sensitive time-tracking data.
+     * @description Manages teacher profile data.
+     * @allow (read, write) Admins have full access.
+     * @allow (get) A teacher can read their own profile.
+     */
+    match /teachers/{teacherEmail} {
+      allow read, write: if isAdmin();
+      allow get: if isSignedIn() && request.auth.email == teacherEmail;
+    }
+
+    /**
+     * @description Manages student attendance records.
+     * @allow (read, write) Admins have full access.
+     * @allow (list) Teachers can list all attendance records for reporting purposes.
+     * @allow (list) Students can list only their own attendance records via a constrained query.
      */
     match /attendance/{attendanceId} {
-      allow get: if isAdmin();
-      allow list: if isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow read, write: if isAdmin();
+      allow list: if isTeacher();
+      allow list: if isSignedIn() && request.query.where.studentRegister != null && isStudentOwner(request.query.where.studentRegister);
     }
-
+    
     /**
-     * @description Manages administrator roles. The existence of a document grants admin privileges.
-     * @path /roles_admin/{uid}
-     * @allow (create) An existing admin user adds a new document to grant another user admin rights.
-     * @deny (create) A non-admin user attempts to make themselves an admin.
-     * @deny (get) Any user, including other admins, attempts to read a role document directly.
-     * @deny (list) Any user attempts to get a list of all administrators.
-     * @principle Secures administrative role management. Only existing admins can modify roles, and the list of admins is not exposed.
+     * @description Manages administrator roles. Only accessible by other admins.
+     * @deny (read, list) No one can see who the admins are.
+     * @allow (write) Only existing admins can add or remove other admins.
      */
-    match /roles_admin/{uid} {
+     match /roles_admin/{uid} {
       allow get: if false;
       allow list: if false;
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow create, update, delete: if isAdmin();
     }
   }
 }

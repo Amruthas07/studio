@@ -7,7 +7,7 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, query, where } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import type { AttendanceRecord } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
@@ -15,6 +15,7 @@ import { useFirestore, useFirebaseApp } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { useAuth } from '@/hooks/use-auth';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
@@ -32,19 +33,38 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const { students, loading: studentsLoading } = useStudents();
+  const { user, loading: authLoading } = useAuth();
   const firestore = useFirestore();
   const firebaseApp = useFirebaseApp();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!firestore || studentsLoading) {
+    // Wait for all dependencies to be ready
+    if (!firestore || studentsLoading || authLoading) {
       return;
     }
     
+    // If auth is done and there's no user, clear data and stop loading.
+    if (!user) {
+        setAttendanceRecords([]);
+        setLoading(false);
+        return;
+    }
+
     setLoading(true);
-    const attendanceCollection = collection(firestore, 'attendance');
+    let attendanceQuery;
+    const baseCollection = collection(firestore, 'attendance');
+
+    if (user.role === 'student') {
+      // Students should only query for their own records.
+      attendanceQuery = query(baseCollection, where('studentRegister', '==', user.registerNumber));
+    } else {
+      // Admins and Teachers can get all records for reporting purposes.
+      attendanceQuery = baseCollection;
+    }
+
     const unsubscribe = onSnapshot(
-      attendanceCollection,
+      attendanceQuery,
       (snapshot) => {
         const studentMap = new Map(students.map(s => [s.registerNumber, s.name]));
         const attendanceData = snapshot.docs.map(doc => {
@@ -60,14 +80,20 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         setAttendanceRecords(attendanceData);
         setLoading(false);
       },
-      (error) => {
-        console.error("Error fetching attendance:", error);
+      (err) => {
+        console.error("Error fetching attendance:", err);
+        const permissionError = new FirestorePermissionError({
+          // This path access might be fragile, but it's the best we can do for a query.
+          path: (attendanceQuery as any)._query?.path?.canonicalString() || 'attendance',
+          operation: 'list'
+        });
+        errorEmitter.emit('permission-error', permissionError);
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, [firestore, students, studentsLoading]);
+  }, [firestore, students, studentsLoading, user, authLoading]);
 
   const saveAttendanceRecord = useCallback((
     record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl'>,

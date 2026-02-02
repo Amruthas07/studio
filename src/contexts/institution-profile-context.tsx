@@ -49,27 +49,31 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
               email: data.email,
               coverImageUrl: data.coverImageUrl
           };
-
-          // One-time migration for the name to ensure it's correct
-          if (profileData.name === 'SmartAttend Institute') {
-              updateDoc(profileDocRef, { name: 'Smart Institute' });
-              profileData.name = 'Smart Institute'; // Optimistically update for immediate UI change
-          }
-          
           setInstitutionProfile(profileData);
-
         } else {
           // If doc doesn't exist, use the local default and create it in Firestore.
           setInstitutionProfile(defaultProfile);
           setDoc(profileDocRef, defaultProfile).catch(err => {
               console.error("Failed to set default institution profile in Firestore:", err);
+              if (err.code === 'permission-denied') {
+                  errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: profileDocRef.path,
+                    operation: 'create',
+                    requestResourceData: defaultProfile
+                  }));
+              }
           });
         }
         setLoading(false);
       },
-      (error) => {
-        console.error("Error fetching institution profile:", error);
-        setInstitutionProfile(defaultProfile);
+      (err) => {
+        console.error("Error fetching institution profile:", err);
+        const permissionError = new FirestorePermissionError({
+            path: profileDocRef.path,
+            operation: 'get'
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        setInstitutionProfile(defaultProfile); // Fallback to default
         setLoading(false);
       }
     );
