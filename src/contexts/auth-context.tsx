@@ -10,11 +10,14 @@ import {
   limit,
   doc,
   getDoc,
+  setDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
 import {
   signInWithEmailAndPassword,
   signOut,
   User as FirebaseUser,
+  createUserWithEmailAndPassword,
 } from 'firebase/auth';
 import { useFirestore, useAuth as useFirebaseAuth, useUser, FirestorePermissionError, errorEmitter } from '@/firebase';
 import type { Student, Teacher } from '@/lib/types';
@@ -198,6 +201,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.push(targetPath);
 
     } catch (error: any) {
+       // Special handling to create the admin user on first login attempt
+      if (
+        role === 'admin' &&
+        email.toLowerCase() === 'apdd46@gmail.com' &&
+        (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')
+      ) {
+        try {
+          // Admin user doesn't exist, so let's create it.
+          const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+          const user = userCredential.user;
+
+          // Now create the admin role document in Firestore.
+          const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
+          // This will succeed because of the updated security rule.
+          await setDoc(adminRoleRef, { role: 'admin', createdAt: serverTimestamp() });
+          
+          // User is created and logged in, redirect to dashboard.
+          // The useEffect will handle fetching the profile.
+          router.push('/admin');
+          return;
+
+        } catch (creationError: any) {
+          // If creation fails (e.g., weak password, or network error)
+          throw new Error(`Admin account creation failed: ${creationError.message}`);
+        }
+      }
+      
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
           throw new Error('Invalid email or password.');
       }

@@ -103,12 +103,14 @@ service cloud.firestore {
     /**
      * @description Manages administrator roles. Only accessible by other admins.
      * @deny (read, list) No one can see who the admins are.
-     * @allow (write) Only existing admins can add or remove other admins.
+     * @allow (create) An authenticated user can create their own admin role document. This is for initial setup.
+     * @allow (update, delete) Only existing admins can modify or remove other admins.
      */
      match /roles_admin/{uid} {
       allow get: if false;
       allow list: if false;
-      allow create, update, delete: if isAdmin();
+      allow create: if request.auth.uid == uid;
+      allow update, delete: if isAdmin();
     }
   }
 }
