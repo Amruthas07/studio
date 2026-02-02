@@ -102,9 +102,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
         }
-        setUser(authUser);
+        
         if (authUser) {
+            setUser(authUser);
             localStorage.setItem('smartattend_user_role', authUser.role);
+        } else {
+            // If Firebase has a user but we don't have a record, something is wrong. Log them out.
+            console.warn(`User ${firebaseUser.email} authenticated but not found in database. Logging out.`);
+            await signOut(auth);
+            setUser(null);
+            localStorage.removeItem('smartattend_user_role');
         }
       } else {
         setUser(null);
@@ -116,20 +123,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [auth, firestore]);
 
-  const login = useCallback(async (email: string, pass: string, role: Role) => {
+  const login = useCallback(async (email: string, pass: string, role: Role, department?: string) => {
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, pass);
-      // onAuthStateChanged will handle setting the user and redirecting
+      const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+      const firebaseUser = userCredential.user;
+
+      if (!firebaseUser.email) {
+        await signOut(auth);
+        throw new Error("Authentication failed: User has no email.");
+      }
+
+      let actualRole: Role | null = null;
+      if (firebaseUser.email.toLowerCase() === ADMIN_EMAIL) {
+        actualRole = 'admin';
+      } else {
+        const teacherDocRef = doc(firestore, 'teachers', firebaseUser.email);
+        const teacherDocSnap = await getDoc(teacherDocRef);
+        if (teacherDocSnap.exists()) {
+          actualRole = 'teacher';
+        } else {
+          const studentsRef = collection(firestore, 'students');
+          const q = query(studentsRef, where('email', '==', firebaseUser.email), limit(1));
+          const studentQuerySnap = await getDocs(q);
+          if (!studentQuerySnap.empty) {
+            actualRole = 'student';
+          }
+        }
+      }
+
+      if (!actualRole) {
+        await signOut(auth);
+        throw new Error("Your account was not found in the system. Please contact an administrator.");
+      }
+
+      if (actualRole !== role) {
+        await signOut(auth);
+        throw new Error(`Account is for a ${actualRole}. Please use the ${actualRole} login page.`);
+      }
+
       const targetPath = role === 'admin' ? '/admin' : (role === 'student' ? '/student' : '/teacher');
       router.push(targetPath);
-    } catch(error) {
-      // Let the form handle the error toast
+      // onAuthStateChanged will handle setting the user and setLoading(false)
+    } catch (error: any) {
+      setLoading(false); // Ensure loading is stopped on any error
+      // Re-throw the error so the login form can display it
       throw error;
-    } finally {
-      setLoading(false);
     }
-  }, [auth, router]);
+  }, [auth, firestore, router]);
+
 
   const logout = useCallback(async () => {
     await signOut(auth);
