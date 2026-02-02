@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -9,8 +10,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-import {generate, MessageData} from 'genkit/ai';
+import {z, type MessageData} from 'genkit';
 
 const MessageSchema = z.object({
     role: z.enum(['user', 'model']),
@@ -59,7 +59,7 @@ const chatFlow = ai.defineFlow(
         { role: 'user', content: [{ text: prompt }] },
     ];
     
-    const llmResponse = await generate({
+    const llmResponse = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         messages: messages,
     });
