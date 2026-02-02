@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -58,13 +59,11 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
         setLoading(false);
       },
       (err) => {
-        if (err.code === 'permission-denied') {
-            // This is expected if rules are strict and user isn't logged in.
-            // We can just use the default profile.
-            console.warn("Permission denied to read institution profile. Using default.");
-        } else {
-            console.error("Error fetching institution profile:", err);
-        }
+        // Any error reading the public profile is unexpected and should be reported with context.
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: profileDocRef.path,
+            operation: 'get'
+        }));
         setInstitutionProfile(defaultProfile); // Fallback to default
         setLoading(false);
       }
@@ -79,8 +78,6 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
           return;
       }
       
-      // Note: This will fail for the mocked admin as it's not a real Firebase user.
-      // This would need to be handled by creating a real admin user or using a backend function.
       if (user.role !== 'admin') {
           toast({ variant: 'destructive', title: 'Permission Denied', description: 'Only administrators can update the institution profile.' });
           return;

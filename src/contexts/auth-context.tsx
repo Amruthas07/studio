@@ -133,11 +133,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
       } catch (error: any) {
-          console.error("Error fetching user profile:", error);
            if (error.code === 'permission-denied') {
               // This can happen in a race condition, emit the error for debugging.
               errorEmitter.emit('permission-error', new FirestorePermissionError({
-                  path: `roles_admin/${firebaseUser.uid}`, // Example path
+                  path: `roles_admin/${user.uid}`, // Example path
                   operation: 'get'
               }));
           }
