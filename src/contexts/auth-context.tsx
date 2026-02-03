@@ -41,8 +41,8 @@ export const AuthContext = createContext<AuthContextType | undefined>(
 );
 
 // Hardcoded credentials for the initial administrator setup.
-const ADMIN_EMAIL = "admin@smart-institute.com";
-const ADMIN_PASSWORD = "SecureAdmin123!";
+const ADMIN_EMAIL = "the.one.admin@smart-institute.com";
+const ADMIN_PASSWORD = "password";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
