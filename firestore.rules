@@ -22,8 +22,8 @@ service cloud.firestore {
 
     // 👩‍🏫 Teachers collection (doc id = email)
     match /teachers/{email} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.token.email == email);
-      allow write: if isAdmin();
+      allow read, write: if isAdmin();
+      allow get: if isSignedIn() && request.auth.token.email == email;
     }
 
     // 🎓 Students collection (email is a field, not doc id)
@@ -37,23 +37,9 @@ service cloud.firestore {
       // Admins get full access
       allow read, write: if isAdmin();
 
-      // Teachers can read records from their department and create records for their department
-      allow list: if isTeacher() && request.query.where.department == getTeacherDepartment();
-      allow get: if isTeacher() && get(/databases/$(database)/documents/attendance/$(attendanceId)).data.department == getTeacherDepartment();
-      allow write: if isTeacher() && request.resource.data.department == getTeacherDepartment();
-
       // Students can only read their own records
       allow list: if isSignedIn() && request.query.where.studentRegister != null && get(/databases/$(database)/documents/students/$(request.query.where.studentRegister)).data.email == request.auth.token.email;
       allow get: if isSignedIn() && get(/databases/$(database)/documents/attendance/$(attendanceId)).data.studentRegister != null && get(/databases/$(database)/documents/students/$(get(/databases/$(database)/documents/attendance/$(attendanceId)).data.studentRegister)).data.email == request.auth.token.email;
-    }
-
-    // --- Helper Functions ---
-    function isTeacher() {
-      return isSignedIn() && exists(/databases/$(database)/documents/teachers/$(request.auth.token.email));
-    }
-
-    function getTeacherDepartment() {
-      return get(/databases/$(database)/documents/teachers/$(request.auth.token.email)).data.department;
     }
     
     // 🔒 Deny everything else not explicitly allowed
