@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -71,7 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await user.getIdToken(true);
 
       try {
-        // Use email to identify the admin, avoiding the roles_admin read for this check.
+        // Use email as the single source of truth for identifying the admin role.
+        // This avoids the circular dependency of reading a role document to get permission.
         if (user.email === ADMIN_EMAIL) {
            profile = {
               name: user.displayName || 'Administrator',
@@ -87,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               dateOfBirth: new Date(),
            };
         } else {
+            // Check if the user is a teacher
             const teacherDocRef = doc(firestore, 'teachers', user.email!);
             const teacherDocSnap = await getDoc(teacherDocRef);
             if (teacherDocSnap.exists()) {
@@ -105,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     dateOfBirth: new Date(),
                 };
             } else {
+                // Check if the user is a student
                 const studentsRef = collection(firestore, 'students');
                 const q = query(studentsRef, where('email', '==', user.email!), limit(1));
                 const studentQuerySnap = await getDocs(q);
@@ -123,12 +127,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (!profile) {
-            console.warn(`User ${user.email} is authenticated but has no role in the application.`);
+            console.warn(`User ${user.email} is authenticated but has no profile in the application.`);
             await signOut(auth); 
         }
 
       } catch (error: any) {
            if (error.code === 'permission-denied') {
+              // This error is now less likely for admin, but retained for other roles.
               errorEmitter.emit('permission-error', new FirestorePermissionError({
                   path: `Profile lookup for ${user.email}`, 
                   operation: 'get'
@@ -151,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
       const user = userCredential.user;
       
-      await user.getIdToken(true);
+      await user.getIdToken(true); // Ensure token is fresh
 
       if (!user.email) {
         await signOut(auth);
@@ -160,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       let actualRole: Role | null = null;
 
-      // Direct email check for admin
+      // Use email to determine role for navigation
       if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
         actualRole = 'admin';
       } else {
@@ -187,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.push(targetPath);
 
     } catch (error: any) {
-      // Special case for initial admin setup.
+      // Special case for initial admin setup. If user not found, create them.
       if (
         email.toLowerCase() === ADMIN_EMAIL &&
         error.code === 'auth/user-not-found'
@@ -202,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           await user.getIdToken(true);
 
+          // Create the admin role document, which is required by some security rules.
           const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
           await setDoc(adminRoleRef, { role: 'admin', createdAt: serverTimestamp() });
           
