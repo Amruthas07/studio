@@ -12,12 +12,10 @@ service cloud.firestore {
     }
 
     // This function is the single source of truth for determining admin status.
-    // It checks for the existence of a document in `roles_admin` where the
-    // document ID matches the user's UID and the email matches the admin email.
+    // It no longer uses `exists()` to avoid circular dependencies in rules.
+    // Admin status is now determined solely by the authenticated user's email.
     function isAdmin() {
-      return isSignedIn() &&
-             request.auth.token.email == "apdd46@gmail.com" &&
-             exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return isSignedIn() && request.auth.token.email == "apdd46@gmail.com";
     }
 
     // This function checks if the logged-in user's email matches the email
@@ -45,12 +43,12 @@ service cloud.firestore {
 
     // Manages administrator roles.
     match /roles_admin/{uid} {
-      // Only the specific admin user can get or create their own role document.
-      allow get, create: if request.auth != null && 
-                           request.auth.uid == uid &&
-                           request.auth.token.email == "apdd46@gmail.com";
+      // The user can get or create their own role document. This is needed for the
+      // app to assign the 'admin' role on login. The security rules themselves
+      // do not depend on this read.
+      allow get, create: if isSignedIn() && request.auth.uid == uid;
       
-      // All other operations are denied for this collection.
+      // No one can list, update or delete these roles directly.
       allow list, update, delete: if false;
     }
 
