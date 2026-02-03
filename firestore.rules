@@ -63,7 +63,10 @@ service cloud.firestore {
       
       // Teachers can list students only if they query by their own department.
       // Admins can list all students.
-      allow list: if (isTeacher() && request.query.where.department == getTeacherDepartment()) || isAdmin();
+      // A user can query for their own student record by email during login.
+      allow list: if (isTeacher() && request.query.where.department == getTeacherDepartment()) || 
+                    isAdmin() ||
+                    (isSignedIn() && request.query.where.email == request.auth.token.email);
     }
 
     // Manages teacher profile data.
