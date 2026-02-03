@@ -3,55 +3,76 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 🔑 All logged-in users
+    // ======== Helper Functions ========
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // 🔑 Admin (email-based)
     function isAdmin() {
-      return request.auth != null
-        && request.auth.token.email == "apdd46@gmail.com";
+      return isSignedIn() && request.auth.token.email == "apdd46@gmail.com";
     }
 
-    // 🔑 Is the user a teacher?
     function isTeacher() {
+      // Checks if the requesting user's email exists as a document ID in the teachers collection.
       return isSignedIn() && exists(/databases/$(database)/documents/teachers/$(request.auth.token.email));
     }
+    
+    function getTeacherDepartment() {
+        return get(/databases/$(database)/documents/teachers/$(request.auth.token.email)).data.department;
+    }
+    
+    function getStudentEmail(studentRegister) {
+        return get(/databases/$(database)/documents/students/$(studentRegister)).data.email;
+    }
 
-    // 🏢 Institution Profile (publicly readable)
+    // ======== Path Rules ========
+    
+    // Publicly readable institution profile
     match /institution/{profileId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // 👩‍🏫 Teachers collection (doc id = email)
+    // Teachers collection
     match /teachers/{email} {
-      // Admins and Teachers can list/read all teachers
-      allow read: if isAdmin() || isTeacher();
-      // Allow any signed-in user to get their own doc (for login role check)
-      allow get: if isSignedIn() && request.auth.token.email == email;
-      // Only admins can write
+      // Admins can list all teachers.
+      allow list: if isAdmin();
+      
+      // An admin can get any teacher's document.
+      // A teacher can get their OWN document (e.g., for login role check).
+      allow get: if isAdmin() || (isTeacher() && request.auth.token.email == email);
+
+      // Only admins can create, update, or delete teachers.
       allow write: if isAdmin();
     }
 
-    // 🎓 Students collection (email is a field, not doc id)
+    // Students collection
     match /students/{studentId} {
-      allow read: if isSignedIn();
+      // Admins and Teachers can read all student data.
+      allow read: if isAdmin() || isTeacher();
+      // Only admins can write student data.
       allow write: if isAdmin();
     }
 
-    // ⏰ Attendance Records
+    // Attendance records collection
     match /attendance/{attendanceId} {
-      // Admins get full access
+      // Admins have full access.
       allow read, write: if isAdmin();
+      
+      // Teachers can read attendance records from their own department.
+      // This relies on the client query being `where('department', '==', user.department)`
+      allow list: if isTeacher() && request.query.where.department == getTeacherDepartment();
 
-      // Students can only read their own records
-      allow list: if isSignedIn() && request.query.where.studentRegister != null && get(/databases/$(database)/documents/students/$(request.query.where.studentRegister)).data.email == request.auth.token.email;
-      allow get: if isSignedIn() && get(/databases/$(database)/documents/attendance/$(attendanceId)).data.studentRegister != null && get(/databases/$(database)/documents/students/$(get(/databases/$(database)/documents/attendance/$(attendanceId)).data.studentRegister)).data.email == request.auth.token.email;
+      // Students can read their own attendance records.
+      // This relies on the client query being `where('studentRegister', '==', user.registerNumber)`
+      allow list: if isSignedIn() && request.query.where.studentRegister != null && getStudentEmail(request.query.where.studentRegister) == request.auth.token.email;
+
+      // Allow getting a single document if admin, or student owns it. Teacher GET is covered by their department's records being readable.
+      allow get: if isAdmin() || 
+                   (isSignedIn() && get(/databases/$(database)/documents/attendance/$(attendanceId)).data.studentRegister != null && getStudentEmail(get(/databases/$(database)/documents/attendance/$(attendanceId)).data.studentRegister) == request.auth.token.email);
     }
     
-    // 🔒 Deny everything else not explicitly allowed
+    // Default deny all other paths.
     match /{document=**} {
       allow read, write: if false;
     }

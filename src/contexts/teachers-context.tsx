@@ -8,7 +8,7 @@ import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 
-const ADMIN_EMAIL = "final.admin@smart-institute.ac.in";
+const ADMIN_EMAIL = "apdd46@gmail.com";
 
 export const TeachersContext = createContext<TeachersContextType | undefined>(undefined);
 
@@ -24,8 +24,15 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let unsubscribe: (() => void) | undefined = undefined;
 
-    // Only fetch all teachers if an admin is logged in and firestore is available.
-    if (user?.role === 'admin' && firestore) {
+    if (authLoading || !firestore || !user) {
+      setTeachers([]);
+      if (!authLoading) setLoading(false);
+      return;
+    }
+    
+    // This is a critical check. Only fetch the full list of teachers if the
+    // logged-in user is explicitly the administrator.
+    if (user.role === 'admin' && user.email === ADMIN_EMAIL) {
       setLoading(true);
       const teachersCollection = collection(firestore, 'teachers');
       unsubscribe = onSnapshot(
@@ -53,11 +60,9 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         }
       );
     } else {
-      // For all other cases (not admin, no user, auth loading), ensure data is cleared.
+      // For all other cases (teachers, students), clear the list and stop loading.
       setTeachers([]);
-      if (!authLoading) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
 
     return () => {
