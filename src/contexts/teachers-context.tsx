@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -9,7 +8,7 @@ import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 
-const ADMIN_EMAIL = "apdd46@gmail.com";
+const ADMIN_EMAIL = "smart46@gmail.com";
 
 export const TeachersContext = createContext<TeachersContextType | undefined>(undefined);
 
