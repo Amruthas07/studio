@@ -14,15 +14,6 @@ service cloud.firestore {
         && request.auth.token.email == "apdd46@gmail.com";
     }
 
-    // --- Helper Functions ---
-    function isTeacher() {
-      return isSignedIn() && exists(/databases/$(database)/documents/teachers/$(request.auth.token.email));
-    }
-
-    function getTeacherDepartment() {
-      return get(/databases/$(database)/documents/teachers/$(request.auth.token.email)).data.department;
-    }
-    
     // 🏢 Institution Profile (publicly readable)
     match /institution/{profileId} {
       allow read: if true;
@@ -56,6 +47,15 @@ service cloud.firestore {
       allow get: if isSignedIn() && get(/databases/$(database)/documents/attendance/$(attendanceId)).data.studentRegister != null && get(/databases/$(database)/documents/students/$(get(/databases/$(database)/documents/attendance/$(attendanceId)).data.studentRegister)).data.email == request.auth.token.email;
     }
 
+    // --- Helper Functions ---
+    function isTeacher() {
+      return isSignedIn() && exists(/databases/$(database)/documents/teachers/$(request.auth.token.email));
+    }
+
+    function getTeacherDepartment() {
+      return get(/databases/$(database)/documents/teachers/$(request.auth.token.email)).data.department;
+    }
+    
     // 🔒 Deny everything else not explicitly allowed
     match /{document=**} {
       allow read, write: if false;
