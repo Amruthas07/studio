@@ -41,8 +41,8 @@ export const AuthContext = createContext<AuthContextType | undefined>(
 );
 
 // Hardcoded credentials for the initial administrator setup.
-const ADMIN_EMAIL = "ddpa@gmail.com";
-const ADMIN_PASSWORD = "smart46@";
+const ADMIN_EMAIL = "admin@smart-institute.ac.in";
+const ADMIN_PASSWORD = "Welcome@123";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -164,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       let actualRole: Role | null = null;
 
       // Use email to determine role for navigation
-      if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
         actualRole = 'admin';
       } else {
           const teacherDocRef = doc(firestore, 'teachers', user.email);
