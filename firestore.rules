@@ -13,6 +13,12 @@ service cloud.firestore {
       return request.auth != null
         && request.auth.token.email == "admin@smartattend.com";
     }
+    
+    // 🏢 Institution Profile (publicly readable)
+    match /institution/{profileId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
 
     // 👩‍🏫 Teachers collection (doc id = email)
     match /teachers/{email} {
