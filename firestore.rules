@@ -22,7 +22,7 @@ service cloud.firestore {
 
     // 👩‍🏫 Teachers collection (doc id = email)
     match /teachers/{email} {
-      allow read: if isSignedIn() && request.auth.token.email == email;
+      allow read: if isAdmin() || (isSignedIn() && request.auth.token.email == email);
       allow write: if isAdmin();
     }
 
