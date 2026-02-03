@@ -15,7 +15,7 @@ service cloud.firestore {
     // It no longer uses `exists()` to avoid circular dependencies in rules.
     // Admin status is now determined solely by the authenticated user's email.
     function isAdmin() {
-      return isSignedIn() && request.auth.token.email == "admin@smartattend.com";
+      return isSignedIn() && request.auth.token.email == "smart.admin@application.dev";
     }
 
     // This function checks if the logged-in user's email matches the email

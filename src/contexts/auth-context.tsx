@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -42,8 +41,8 @@ export const AuthContext = createContext<AuthContextType | undefined>(
 );
 
 // Hardcoded credentials for the initial administrator setup.
-const ADMIN_EMAIL = "admin@smartattend.com";
-const ADMIN_PASSWORD = "AdminPass123!";
+const ADMIN_EMAIL = "smart.admin@application.dev";
+const ADMIN_PASSWORD = "SecurePass123!";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -73,7 +72,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       try {
         // Use email as the single source of truth for identifying the admin role.
-        // This avoids the circular dependency of reading a role document to get permission.
         if (user.email === ADMIN_EMAIL) {
            profile = {
               name: user.displayName || 'Administrator',
