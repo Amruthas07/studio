@@ -31,8 +31,8 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     }
     
     // This is a critical check. Only fetch the full list of teachers if the
-    // logged-in user is explicitly the administrator.
-    if (user.role === 'admin' && user.email === ADMIN_EMAIL) {
+    // logged-in user is an administrator.
+    if (user.role === 'admin') {
       setLoading(true);
       const teachersCollection = collection(firestore, 'teachers');
       unsubscribe = onSnapshot(
