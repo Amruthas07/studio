@@ -43,9 +43,8 @@ service cloud.firestore {
 
     // Manages administrator roles.
     match /roles_admin/{uid} {
-      // An authenticated user can read their own role document to verify their admin status.
-      // This rule was corrected to resolve a conflict during the login sequence.
-      allow get: if isSignedIn();
+      // A user can read their own role document to verify admin status.
+      allow get: if request.auth.uid == uid;
       allow list: if false;
       // Only the user can create or modify their own role document.
       allow write: if request.auth.uid == uid;
