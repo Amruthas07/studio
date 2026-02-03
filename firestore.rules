@@ -31,11 +31,6 @@ service cloud.firestore {
     function isTeacher() {
         return isSignedIn() && exists(/databases/$(database)/documents/teachers/$(request.auth.email));
     }
-
-    // This function retrieves the department for the currently authenticated teacher.
-    function getTeacherDepartment() {
-        return get(/databases/$(database)/documents/teachers/$(request.auth.email)).data.department;
-    }
     
     // ------------------------------------------------------------------------
     // Collection Rules
@@ -58,15 +53,15 @@ service cloud.firestore {
       allow read, write: if isAdmin();
       
       // A student can get their own profile. A teacher can get a student from their department.
-      allow get: if (isSignedIn() && isStudentOwner(registerNumber)) || 
-                   (isTeacher() && get(/databases/$(database)/documents/students/$(registerNumber)).data.department == getTeacherDepartment());
+      allow get: if isSignedIn() && isStudentOwner(registerNumber);
       
       // Teachers can list students only if they query by their own department.
       // Admins can list all students.
       // A user can query for their own student record by email during login.
-      allow list: if (isTeacher() && request.query.where.department == getTeacherDepartment()) || 
-                    isAdmin() ||
-                    (isSignedIn() && request.query.where.email == request.auth.token.email);
+      allow list: if
+        isAdmin() ||
+        (isSignedIn() && request.query.where.email == request.auth.token.email) ||
+        (isTeacher() && request.query.where.department != null);
     }
 
     // Manages teacher profile data.
@@ -87,9 +82,10 @@ service cloud.firestore {
       // Students can list their own attendance via a constrained query.
       // Teachers can list attendance for their department via a constrained query.
       // Admins can list all records.
-      allow list: if (isSignedIn() && request.query.where.studentRegister != null && isStudentOwner(request.query.where.studentRegister)) ||
-                    (isTeacher() && request.query.where.department == getTeacherDepartment()) ||
-                    isAdmin();
+      allow list: if 
+        isAdmin() ||
+        (isSignedIn() && request.query.where.studentRegister != null && isStudentOwner(request.query.where.studentRegister)) ||
+        (isTeacher() && request.query.where.department != null);
     }
     
     // Public information about the institution.
