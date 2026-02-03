@@ -1,97 +1,38 @@
-
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ------------------------------------------------------------------------
-    // Helper Functions
-    // ------------------------------------------------------------------------
-
+    // 🔑 All logged-in users
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // This function is the single source of truth for determining admin status.
-    // It no longer uses `exists()` to avoid circular dependencies in rules.
-    // Admin status is now determined solely by the authenticated user's email.
+    // 🔑 Admin (email-based)
     function isAdmin() {
-      return isSignedIn() && request.auth.token.email == "final.admin@smart-institute.ac.in";
+      return request.auth != null
+        && request.auth.token.email == "admin@smartattend.com";
     }
 
-    // This function checks if the logged-in user's email matches the email
-    // on a student document they are trying to access.
-    function isStudentOwner(registerNumber) {
-        // This 'get' is safe because it's only used in rules that are already
-        // constrained to a specific student document (not a list).
-        let studentDoc = get(/databases/$(database)/documents/students/$(registerNumber));
-        return isSignedIn() && studentDoc.data.email == request.auth.email;
-    }
-    
-    // This function checks if the logged-in user is a registered teacher.
-    function isTeacher() {
-        return isSignedIn() && exists(/databases/$(database)/documents/teachers/$(request.auth.email));
-    }
-    
-    // ------------------------------------------------------------------------
-    // Collection Rules
-    // ------------------------------------------------------------------------
-
-    // Manages administrator roles.
-    match /roles_admin/{uid} {
-      // The user can get or create their own role document. This is needed for the
-      // app to assign the 'admin' role on login. The security rules themselves
-      // do not depend on this read.
-      allow get, create: if isSignedIn() && request.auth.uid == uid;
-      
-      // No one can list, update or delete these roles directly.
-      allow list, update, delete: if false;
+    // 👩‍🏫 Teachers collection (doc id = email)
+    match /teachers/{email} {
+      allow read: if isSignedIn() && request.auth.token.email == email;
+      allow write: if isAdmin();
     }
 
-    // Manages student profile data.
-    match /students/{registerNumber} {
-      // Admins have full read and write access.
-      allow read, write: if isAdmin();
-      
-      // A student can get their own profile. A teacher can get a student from their department.
-      allow get: if isSignedIn() && isStudentOwner(registerNumber);
-      
-      // Teachers can list students only if they query by their own department.
-      // Admins can list all students.
-      // A user can query for their own student record by email during login.
-      allow list: if
-        isAdmin() ||
-        (isSignedIn() && request.query.where.email == request.auth.token.email) ||
-        (isTeacher() && request.query.where.department != null);
+    // 🎓 Students collection (email is a field, not doc id)
+    match /students/{studentId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
-    // Manages teacher profile data.
-    match /teachers/{teacherEmail} {
-      // Admins have full read/write access.
-      allow read, write: if isAdmin();
-      // A teacher can read their own profile.
-      allow get: if isSignedIn() && request.auth.email == teacherEmail;
-      // Admins can list all teachers.
-      allow list: if isAdmin();
-    }
+    // No other rules are defined, so other collections will be inaccessible.
+    // This is intentional to fix the login issue as per user instructions.
+    // Additional rules for collections like 'attendance' will need to be added later.
 
-    // Manages student attendance records.
-    match /attendance/{attendanceId} {
-      // Admins have full read/write access.
-      allow read, write: if isAdmin();
-      
-      // Students can list their own attendance via a constrained query.
-      // Teachers can list attendance for their department via a constrained query.
-      // Admins can list all records.
-      allow list: if 
-        isAdmin() ||
-        (isSignedIn() && request.query.where.studentRegister != null && isStudentOwner(request.query.where.studentRegister)) ||
-        (isTeacher() && request.query.where.department != null);
-    }
-    
-    // Public information about the institution.
-    match /institution/{docId} {
-        allow get: if true;
-        allow write: if isAdmin();
+    // 🔒 Deny everything else not explicitly allowed
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

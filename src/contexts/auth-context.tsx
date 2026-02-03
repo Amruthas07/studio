@@ -39,7 +39,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(
 );
 
 // The administrator email. This is the single source of truth for the admin role.
-const ADMIN_EMAIL = "final.admin@smart-institute.ac.in";
+const ADMIN_EMAIL = "admin@smartattend.com";
 
 
 export function AuthProvider({ children }: { children: ReactNode }) {
