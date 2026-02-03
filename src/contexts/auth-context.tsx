@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -14,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import {
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut,
   User as FirebaseUser,
 } from 'firebase/auth';
@@ -122,7 +122,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
         }
 
-        if (!profile) {
+        if (profile) {
+          setAuthUser(profile);
+          // Redirect after setting user
+          const targetPath = profile.role === 'admin' ? '/admin' : (profile.role === 'student' ? '/student' : '/teacher');
+          router.push(targetPath);
+        } else {
             console.warn(`User ${user.email} is authenticated but has no profile in the application.`);
             await signOut(auth); 
         }
@@ -137,56 +142,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           await signOut(auth);
           profile = null;
+      } finally {
+        setAuthUser(profile);
+        setLoading(false);
       }
-      
-      setAuthUser(profile);
-      setLoading(false);
     };
 
     fetchUserProfile(firebaseUser);
-  }, [firebaseUser, isUserLoading, firestore, auth]);
+  }, [firebaseUser, isUserLoading, firestore, auth, router]);
 
 
   const login = useCallback(async (email: string, pass: string) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-      const user = userCredential.user;
-      
-      // Determine user role after successful authentication
-      let actualRole: Role | null = null;
-      if (user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-        actualRole = 'admin';
-      } else {
-        const teacherDocRef = doc(firestore, 'teachers', user.email!);
-        const teacherDocSnap = await getDoc(teacherDocRef);
-        if (teacherDocSnap.exists()) {
-          actualRole = 'teacher';
-        } else {
-          const studentsRef = collection(firestore, 'students');
-          const q = query(studentsRef, where('email', '==', user.email), limit(1));
-          const studentQuerySnap = await getDocs(q);
-          if (!studentQuerySnap.empty) {
-            actualRole = 'student';
-          }
-        }
-      }
-      
-      if (!actualRole) {
-        await signOut(auth);
-        throw new Error("Your account has been authenticated but is not registered in the system. Please contact support.");
-      }
-
-      const targetPath = actualRole === 'admin' ? '/admin' : (actualRole === 'student' ? '/student' : '/teacher');
-      router.push(targetPath);
-
+      await signInWithEmailAndPassword(auth, email, pass);
+      // On successful sign-in, the onAuthStateChanged listener in useEffect will
+      // fetch the profile and trigger the appropriate redirect.
     } catch (error: any) {
-      console.error("Login error:", error.code, error.message);
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-          throw new Error('Invalid email or password.');
+      // If the user is not found and it's the admin email, attempt to create the admin user.
+      if (error.code === 'auth/user-not-found' && email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+        try {
+          await createUserWithEmailAndPassword(auth, email, pass);
+          // On successful creation, the onAuthStateChanged listener will fire,
+          // fetch the profile, and handle the redirect.
+        } catch (creationError: any) {
+          console.error("Admin account creation failed:", creationError);
+          if (creationError.code === 'auth/weak-password') {
+             throw new Error('The administrator password is too weak. It must be at least 6 characters.');
+          }
+          throw new Error('Failed to create administrator account.');
+        }
+      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        // For existing users with wrong password.
+        throw new Error('Invalid email or password.');
+      } else {
+        // Handle other login errors.
+        console.error("Login error:", error.code, error.message);
+        throw new Error('An unexpected error occurred during login.');
       }
-      throw new Error('An unexpected error occurred during login. Please try again.');
     }
-  }, [auth, firestore, router]);
+  }, [auth]);
 
 
   const logout = useCallback(async () => {
