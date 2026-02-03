@@ -13,9 +13,11 @@ service cloud.firestore {
 
     // This function is the single source of truth for determining admin status.
     // It checks for the existence of a document in `roles_admin` where the
-    // document ID matches the user's UID.
+    // document ID matches the user's UID and the email matches the admin email.
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return isSignedIn() &&
+             request.auth.token.email == "apdd46@gmail.com" &&
+             exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
     // This function checks if the logged-in user's email matches the email
@@ -43,8 +45,10 @@ service cloud.firestore {
 
     // Manages administrator roles.
     match /roles_admin/{uid} {
-      // A user can read their own role document (get) and create it for the first time.
-      allow get, create: if request.auth != null && request.auth.uid == uid;
+      // Only the specific admin user can get or create their own role document.
+      allow get, create: if request.auth != null && 
+                           request.auth.uid == uid &&
+                           request.auth.token.email == "apdd46@gmail.com";
       
       // All other operations are denied for this collection.
       allow list, update, delete: if false;
