@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -10,14 +11,11 @@ import {
   limit,
   doc,
   getDoc,
-  setDoc,
-  serverTimestamp,
 } from 'firebase/firestore';
 import {
   signInWithEmailAndPassword,
   signOut,
   User as FirebaseUser,
-  createUserWithEmailAndPassword,
 } from 'firebase/auth';
 import { useFirestore, useAuth as useFirebaseAuth, useUser, FirestorePermissionError, errorEmitter } from '@/firebase';
 import type { Student, Teacher } from '@/lib/types';
@@ -40,9 +38,9 @@ export const AuthContext = createContext<AuthContextType | undefined>(
   undefined
 );
 
-// Hardcoded credentials for the initial administrator setup.
+// The administrator email. This is the single source of truth for the admin role.
 const ADMIN_EMAIL = "final.admin@smart-institute.ac.in";
-const ADMIN_PASSWORD = "Welcome@123";
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -154,73 +152,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
       const user = userCredential.user;
       
-      await user.getIdToken(true); // Ensure token is fresh
-
-      if (!user.email) {
-        await signOut(auth);
-        throw new Error("Authentication failed: User has no email.");
-      }
-      
+      // Determine user role after successful authentication
       let actualRole: Role | null = null;
-
-      // Use email to determine role for navigation
-      if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      if (user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
         actualRole = 'admin';
       } else {
-          const teacherDocRef = doc(firestore, 'teachers', user.email);
-          const teacherDocSnap = await getDoc(teacherDocRef);
-          if (teacherDocSnap.exists()) {
-              actualRole = 'teacher';
-          } else {
-              const studentsRef = collection(firestore, 'students');
-              const q = query(studentsRef, where('email', '==', user.email), limit(1));
-              const studentQuerySnap = await getDocs(q);
-              if (!studentQuerySnap.empty) {
-                  actualRole = 'student';
-              }
+        const teacherDocRef = doc(firestore, 'teachers', user.email!);
+        const teacherDocSnap = await getDoc(teacherDocRef);
+        if (teacherDocSnap.exists()) {
+          actualRole = 'teacher';
+        } else {
+          const studentsRef = collection(firestore, 'students');
+          const q = query(studentsRef, where('email', '==', user.email), limit(1));
+          const studentQuerySnap = await getDocs(q);
+          if (!studentQuerySnap.empty) {
+            actualRole = 'student';
           }
-      }
-
-      if (!actualRole) {
-        await signOut(auth);
-        throw new Error("Your account was not found in the system. Please contact an administrator.");
+        }
       }
       
+      if (!actualRole) {
+        await signOut(auth);
+        throw new Error("Your account has been authenticated but is not registered in the system. Please contact support.");
+      }
+
       const targetPath = actualRole === 'admin' ? '/admin' : (actualRole === 'student' ? '/student' : '/teacher');
       router.push(targetPath);
 
     } catch (error: any) {
-      // Special case for initial admin setup. If user not found, create them.
-      if (
-        email.toLowerCase() === ADMIN_EMAIL &&
-        error.code === 'auth/user-not-found'
-      ) {
-        if (pass !== ADMIN_PASSWORD) {
-          throw new Error('Invalid email or password.');
-        }
-
-        try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, ADMIN_PASSWORD);
-          const user = userCredential.user;
-          
-          await user.getIdToken(true);
-
-          // Create the admin role document, which is required by some security rules.
-          const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
-          await setDoc(adminRoleRef, { role: 'admin', createdAt: serverTimestamp() });
-          
-          router.push('/admin');
-          return;
-
-        } catch (creationError: any) {
-          throw new Error(`Admin account creation failed: ${creationError.message}`);
-        }
-      }
-      
+      console.error("Login error:", error.code, error.message);
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
           throw new Error('Invalid email or password.');
       }
-      throw error;
+      throw new Error('An unexpected error occurred during login. Please try again.');
     }
   }, [auth, firestore, router]);
 
