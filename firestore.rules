@@ -13,6 +13,15 @@ service cloud.firestore {
       return request.auth != null
         && request.auth.token.email == "apdd46@gmail.com";
     }
+
+    // --- Helper Functions ---
+    function isTeacher() {
+      return isSignedIn() && exists(/databases/$(database)/documents/teachers/$(request.auth.token.email));
+    }
+
+    function getTeacherDepartment() {
+      return get(/databases/$(database)/documents/teachers/$(request.auth.token.email)).data.department;
+    }
     
     // 🏢 Institution Profile (publicly readable)
     match /institution/{profileId} {
@@ -32,9 +41,20 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // No other rules are defined, so other collections will be inaccessible.
-    // This is intentional to fix the login issue as per user instructions.
-    // Additional rules for collections like 'attendance' will need to be added later.
+    // ⏰ Attendance Records
+    match /attendance/{attendanceId} {
+      // Admins get full access
+      allow read, write: if isAdmin();
+
+      // Teachers can read records from their department and create records for their department
+      allow list: if isTeacher() && request.query.where.department == getTeacherDepartment();
+      allow get: if isTeacher() && get(/databases/$(database)/documents/attendance/$(attendanceId)).data.department == getTeacherDepartment();
+      allow write: if isTeacher() && request.resource.data.department == getTeacherDepartment();
+
+      // Students can only read their own records
+      allow list: if isSignedIn() && request.query.where.studentRegister != null && get(/databases/$(database)/documents/students/$(request.query.where.studentRegister)).data.email == request.auth.token.email;
+      allow get: if isSignedIn() && get(/databases/$(database)/documents/attendance/$(attendanceId)).data.studentRegister != null && get(/databases/$(database)/documents/students/$(get(/databases/$(database)/documents/attendance/$(attendanceId)).data.studentRegister)).data.email == request.auth.token.email;
+    }
 
     // 🔒 Deny everything else not explicitly allowed
     match /{document=**} {
