@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getImageHash, resizeAndCompressImage } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 
-const ADMIN_EMAIL = "admin@smart-institute.ac.in";
+const ADMIN_EMAIL = "final.admin@smart-institute.ac.in";
 
 export const StudentsContext = createContext<StudentsContextType | undefined>(
   undefined

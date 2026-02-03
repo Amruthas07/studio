@@ -8,7 +8,7 @@ import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 
-const ADMIN_EMAIL = "admin@smart-institute.ac.in";
+const ADMIN_EMAIL = "final.admin@smart-institute.ac.in";
 
 export const TeachersContext = createContext<TeachersContextType | undefined>(undefined);
 
