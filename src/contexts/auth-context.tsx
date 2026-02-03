@@ -41,8 +41,8 @@ export const AuthContext = createContext<AuthContextType | undefined>(
 );
 
 // Hardcoded credentials for the initial administrator setup.
-const ADMIN_EMAIL = "smart.admin.final@gmail.com";
-const ADMIN_PASSWORD = "AdminFinal123";
+const ADMIN_EMAIL = "smart46@gmail.com";
+const ADMIN_PASSWORD = "sem@sixth";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -68,27 +68,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       let profile: AuthUser | null = null;
       
-      // Force a token refresh to ensure the latest auth state is available for security rules.
       await user.getIdToken(true);
 
       try {
-        const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
-        const adminDocSnap = await getDoc(adminRoleRef);
-
-        if (adminDocSnap.exists()) {
-             profile = {
-                name: user.displayName || 'Administrator',
-                email: user.email!,
-                role: 'admin',
-                department: 'all',
-                registerNumber: user.uid,
-                fatherName: 'N/A',
-                motherName: 'N/A',
-                profilePhotoUrl: user.photoURL || 'https://picsum.photos/seed/admin/100/100',
-                contact: 'N/A',
-                createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : new Date(),
-                dateOfBirth: new Date(),
-             };
+        // Use email to identify the admin, avoiding the roles_admin read for this check.
+        if (user.email === ADMIN_EMAIL) {
+           profile = {
+              name: user.displayName || 'Administrator',
+              email: user.email!,
+              role: 'admin',
+              department: 'all',
+              registerNumber: user.uid,
+              fatherName: 'N/A',
+              motherName: 'N/A',
+              profilePhotoUrl: user.photoURL || 'https://picsum.photos/seed/admin/100/100',
+              contact: 'N/A',
+              createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : new Date(),
+              dateOfBirth: new Date(),
+           };
         } else {
             const teacherDocRef = doc(firestore, 'teachers', user.email!);
             const teacherDocSnap = await getDoc(teacherDocRef);
@@ -133,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error: any) {
            if (error.code === 'permission-denied') {
               errorEmitter.emit('permission-error', new FirestorePermissionError({
-                  path: `roles_admin/${user.uid}`, 
+                  path: `Profile lookup for ${user.email}`, 
                   operation: 'get'
               }));
           }
@@ -163,10 +160,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       let actualRole: Role | null = null;
 
-      const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
-      const adminDocSnap = await getDoc(adminRoleRef);
-      if (adminDocSnap.exists()) {
-          actualRole = 'admin';
+      // Direct email check for admin
+      if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+        actualRole = 'admin';
       } else {
           const teacherDocRef = doc(firestore, 'teachers', user.email);
           const teacherDocSnap = await getDoc(teacherDocRef);
