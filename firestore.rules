@@ -11,7 +11,7 @@ service cloud.firestore {
     // 🔑 Admin (email-based)
     function isAdmin() {
       return request.auth != null
-        && request.auth.token.email == "admin@smartattend.com";
+        && request.auth.token.email == "apdd46@gmail.com";
     }
     
     // 🏢 Institution Profile (publicly readable)
