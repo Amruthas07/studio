@@ -9,10 +9,12 @@ import React, {
 } from 'react';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'firebase/storage';
-import { useFirestore, useFirebaseApp, useAuth as useFirebaseAuthHook } from '@/firebase/provider';
+import { useFirestore, useFirebaseApp } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { initializeApp, deleteApp } from 'firebase/app';
+import { firebaseConfig } from '@/firebase/config';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getImageHash, resizeAndCompressImage } from '@/lib/utils';
@@ -29,7 +31,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const firestore = useFirestore();
   const firebaseApp = useFirebaseApp();
-  const auth = useFirebaseAuthHook();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
 
@@ -118,7 +119,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   const addStudent = useCallback(async (
     studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt'> & { photoFile: File }
   ) => {
-    if (!firestore || !firebaseApp || !auth) {
+    if (!firestore || !firebaseApp) {
         throw new Error('Firebase services not initialized.');
     }
 
@@ -140,9 +141,15 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         throw new Error(`A student with email ${details.email} already exists.`);
     }
 
+    // Create a temporary, secondary Firebase app to create the user without affecting the admin's auth state.
+    const tempAppName = `create-user-student-${Date.now()}`;
+    const tempApp = initializeApp(firebaseConfig, tempAppName);
+    const tempAuth = getAuth(tempApp);
+
     try {
-        await createUserWithEmailAndPassword(auth, details.email, details.registerNumber);
+        await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
     } catch (error: any) {
+        await deleteApp(tempApp); // Clean up on failure
         if (error.code === 'auth/email-already-in-use') {
             throw new Error('This email is already in use by another account.');
         }
@@ -150,6 +157,9 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             throw new Error('Password is too weak. It must be at least 6 characters.');
         }
         throw new Error(`Authentication error: ${error.message}`);
+    } finally {
+        // Always clean up the temporary app instance.
+        await deleteApp(tempApp);
     }
 
     const initialStudentData = {
@@ -208,7 +218,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             });
         }
     })();
-  }, [firestore, firebaseApp, auth, toast]);
+  }, [firestore, firebaseApp, toast]);
 
 
   const updateStudent = useCallback((

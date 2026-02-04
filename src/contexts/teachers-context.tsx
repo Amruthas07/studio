@@ -2,10 +2,12 @@
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
-import { useFirestore, useAuth as useFirebaseAuthHook } from '@/firebase/provider';
+import { useFirestore } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { initializeApp, deleteApp } from 'firebase/app';
+import { firebaseConfig } from '@/firebase/config';
 import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
@@ -18,7 +20,6 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const firestore = useFirestore();
-  const auth = useFirebaseAuthHook();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
 
@@ -34,7 +35,6 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // Only fetch teachers if the user is an admin
     if (user?.role !== 'admin') {
       setLoading(false);
       return;
@@ -70,8 +70,8 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
   }, [firestore, user, authLoading]);
 
   const addTeacher = useCallback(async (teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }) => {
-    if (!firestore || !auth) {
-        throw new Error('Database or Auth not initialized.');
+    if (!firestore) {
+        throw new Error('Database not initialized.');
     }
 
     const { email, password, ...details } = teacherData;
@@ -86,47 +86,49 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         throw new Error(`A teacher with email ${email} already exists.`);
     }
 
-    (async () => {
-        try {
-            await createUserWithEmailAndPassword(auth, email, password);
+    const tempAppName = `create-user-teacher-${Date.now()}`;
+    const tempApp = initializeApp(firebaseConfig, tempAppName);
+    const tempAuth = getAuth(tempApp);
 
-            const teacherDocRef = doc(firestore, 'teachers', email);
-            const newTeacherData = {
-                ...details,
-                email,
-                teacherId: email,
-                profilePhotoUrl: "",
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-            };
-            
-            setDoc(teacherDocRef, newTeacherData).catch(error => {
-                 if (error.code === 'permission-denied') {
-                    errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'create', requestResourceData: newTeacherData }));
-                } else {
-                    toast({ variant: "destructive", title: "Database Error", description: error.message });
-                }
-            });
-            
-            toast({ title: 'Teacher Registered', description: `${details.name} can now log in.`});
-
-        } catch (error: any) {
-            let message = error.message;
-            if (error.code === 'auth/email-already-in-use') {
-                message = 'This email is already in use by another authentication account.';
-            }
-            if (error.code === 'auth/weak-password') {
-                message = 'Password must be at least 6 characters.';
-            }
-            toast({
-                variant: "destructive",
-                title: "Background Registration Failed",
-                description: message,
-                duration: 9000,
-            });
+    try {
+        await createUserWithEmailAndPassword(tempAuth, email, password);
+    } catch (error: any) {
+        await deleteApp(tempApp);
+        let message = error.message;
+        if (error.code === 'auth/email-already-in-use') {
+            message = 'This email is already in use by another account.';
         }
-    })();
-  }, [firestore, auth, toast]);
+        if (error.code === 'auth/weak-password') {
+            message = 'Password must be at least 6 characters.';
+        }
+        throw new Error(message);
+    } finally {
+        await deleteApp(tempApp);
+    }
+
+    const teacherDocRef = doc(firestore, 'teachers', email);
+    const newTeacherData = {
+        ...details,
+        email,
+        teacherId: email,
+        profilePhotoUrl: "",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    };
+    
+    setDoc(teacherDocRef, newTeacherData)
+      .then(() => {
+        toast({ title: 'Teacher Registered', description: `${details.name} can now log in.`});
+      })
+      .catch(error => {
+         if (error.code === 'permission-denied') {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'create', requestResourceData: newTeacherData }));
+        } else {
+            toast({ variant: "destructive", title: "Database Error", description: error.message });
+        }
+    });
+
+  }, [firestore, toast]);
   
   const updateTeacher = useCallback((teacherId: string, updates: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => {
     if (!firestore) {
