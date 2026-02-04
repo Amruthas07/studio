@@ -95,6 +95,93 @@ const MarkLeaveButton = ({ student, onMarkAttendance }: { student: Student; onMa
   );
 };
 
+const StudentAttendanceRow = ({
+  student,
+  record,
+  allDepartmentRecords,
+  onMarkAttendance,
+}: {
+  student: Student;
+  record?: AttendanceRecord;
+  allDepartmentRecords: AttendanceRecord[];
+  onMarkAttendance: (studentRegister: string, status: 'present' | 'absent', reason?: string) => void;
+}) => {
+  const { percentage } = React.useMemo(() => {
+    const studentOverallRecords = allDepartmentRecords.filter(r => r.studentRegister === student.registerNumber);
+    const allWorkingDayStrings = new Set(allDepartmentRecords.map(r => r.date));
+    const enrollmentDayStart = new Date(student.createdAt);
+    enrollmentDayStart.setHours(0, 0, 0, 0);
+
+    const studentWorkingDays = Array.from(allWorkingDayStrings).filter(dateStr => {
+      const recordDate = new Date(`${dateStr}T00:00:00`);
+      return recordDate >= enrollmentDayStart;
+    });
+
+    const totalDays = studentWorkingDays.length;
+
+    const presentAndOnLeaveDays = new Set(
+      studentOverallRecords
+        .filter(r => r.status === 'present')
+        .map(r => r.date)
+    ).size;
+
+    if (totalDays === 0) {
+      return { percentage: 100 };
+    }
+
+    const attendancePercentage = Math.round((presentAndOnLeaveDays / totalDays) * 100);
+
+    return {
+      percentage: attendancePercentage > 100 ? 100 : attendancePercentage,
+    };
+  }, [allDepartmentRecords, student]);
+
+  const getIndicatorColor = (p: number) => {
+    if (p >= 75) return 'bg-green-500';
+    if (p >= 45) return 'bg-orange-500';
+    return 'bg-red-500';
+  };
+
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
+      <div className="flex items-center gap-4">
+        <Avatar className="h-12 w-12">
+          <AvatarImage src={student.profilePhotoUrl} alt={student.name} />
+          <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="font-semibold">{student.name}</p>
+          <p className="text-sm text-muted-foreground">{student.registerNumber}</p>
+          <div className="flex items-center gap-2 mt-2">
+            <Progress value={percentage} className="h-2 w-20" indicatorClassName={getIndicatorColor(percentage)} />
+            <span className="text-xs font-medium text-muted-foreground">{percentage}%</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {record ? (
+          <Badge variant={record.reason ? 'secondary' : record.status === 'present' ? 'default' : 'destructive'} className="text-base">
+            {record.status === 'present' && !record.reason && <Check className="mr-2 h-4 w-4" />}
+            {record.reason && <LogOut className="mr-2 h-4 w-4" />}
+            {record.status === 'absent' && <X className="mr-2 h-4 w-4" />}
+            Status: {record.reason ? 'On Leave' : record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+          </Badge>
+        ) : (
+          <>
+            <Button size="sm" variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 dark:border-green-700" onClick={() => onMarkAttendance(student.registerNumber, 'present')}>
+              <Check className="mr-2 h-4 w-4" /> Present
+            </Button>
+            <Button size="sm" variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-700" onClick={() => onMarkAttendance(student.registerNumber, 'absent')}>
+              <X className="mr-2 h-4 w-4" /> Absent
+            </Button>
+            <MarkLeaveButton student={student} onMarkAttendance={onMarkAttendance} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export function MarkAttendanceStudentList({ students, todaysAttendanceRecords, allDepartmentRecords, onMarkAttendance }: MarkAttendanceStudentListProps) {
   
@@ -106,87 +193,15 @@ export function MarkAttendanceStudentList({ students, todaysAttendanceRecords, a
     <div className="space-y-4">
       {students.sort((a, b) => a.name.localeCompare(b.name)).map(student => {
         const record = todaysAttendanceRecords.find(r => r.studentRegister === student.registerNumber);
-        
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const studentOverallRecords = React.useMemo(() => {
-            return allDepartmentRecords.filter(r => r.studentRegister === student.registerNumber);
-        }, [allDepartmentRecords, student.registerNumber]);
-
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const { percentage } = React.useMemo(() => {
-            const allWorkingDayStrings = new Set(allDepartmentRecords.map(r => r.date));
-            const enrollmentDayStart = new Date(student.createdAt);
-            enrollmentDayStart.setHours(0, 0, 0, 0);
-
-            const studentWorkingDays = Array.from(allWorkingDayStrings).filter(dateStr => {
-                const recordDate = new Date(`${dateStr}T00:00:00`);
-                return recordDate >= enrollmentDayStart;
-            });
-
-            const totalDays = studentWorkingDays.length;
-
-            const presentAndOnLeaveDays = new Set(
-                studentOverallRecords
-                    .filter(r => r.status === 'present')
-                    .map(r => r.date)
-            ).size;
-            
-            if (totalDays === 0) {
-                return { percentage: 100 };
-            }
-
-            const attendancePercentage = Math.round((presentAndOnLeaveDays / totalDays) * 100);
-
-            return { 
-                percentage: attendancePercentage > 100 ? 100 : attendancePercentage, 
-            };
-        }, [studentOverallRecords, allDepartmentRecords, student.createdAt]);
-
-        const getIndicatorColor = (p: number) => {
-            if (p >= 75) return 'bg-green-500';
-            if (p >= 45) return 'bg-orange-500';
-            return 'bg-red-500';
-        };
-
         return (
-          <div key={student.registerNumber} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={student.profilePhotoUrl} alt={student.name} />
-                <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-semibold">{student.name}</p>
-                <p className="text-sm text-muted-foreground">{student.registerNumber}</p>
-                <div className="flex items-center gap-2 mt-2">
-                    <Progress value={percentage} className="h-2 w-20" indicatorClassName={getIndicatorColor(percentage)} />
-                    <span className="text-xs font-medium text-muted-foreground">{percentage}%</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              {record ? (
-                <Badge variant={record.reason ? 'secondary' : record.status === 'present' ? 'default' : 'destructive'} className="text-base">
-                    {record.status === 'present' && !record.reason && <Check className="mr-2 h-4 w-4"/>}
-                    {record.reason && <LogOut className="mr-2 h-4 w-4"/>}
-                    {record.status === 'absent' && <X className="mr-2 h-4 w-4"/>}
-                    Status: {record.reason ? 'On Leave' : record.status.charAt(0).toUpperCase() + record.status.slice(1)}
-                </Badge>
-              ) : (
-                <>
-                  <Button size="sm" variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 dark:border-green-700" onClick={() => onMarkAttendance(student.registerNumber, 'present')}>
-                    <Check className="mr-2 h-4 w-4" /> Present
-                  </Button>
-                  <Button size="sm" variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-700" onClick={() => onMarkAttendance(student.registerNumber, 'absent')}>
-                    <X className="mr-2 h-4 w-4" /> Absent
-                  </Button>
-                  <MarkLeaveButton student={student} onMarkAttendance={onMarkAttendance} />
-                </>
-              )}
-            </div>
-          </div>
-        )
+          <StudentAttendanceRow
+            key={student.registerNumber}
+            student={student}
+            record={record}
+            allDepartmentRecords={allDepartmentRecords}
+            onMarkAttendance={onMarkAttendance}
+          />
+        );
       })}
     </div>
   );
