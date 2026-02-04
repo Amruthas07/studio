@@ -152,7 +152,7 @@ function SendEmailForm() {
         setLoading(true);
         try {
             const actionCodeSettings = {
-                url: `${window.location.origin}/forgot-password`,
+                url: `${window.location.origin}/reset-password`,
                 handleCodeInApp: true,
             };
             await sendPasswordResetEmail(auth, values.email, actionCodeSettings);
@@ -207,7 +207,7 @@ function SendEmailForm() {
 }
 
 // The main page component that decides which form to show
-function ForgotPasswordContent() {
+function ResetPasswordContent() {
     const searchParams = useSearchParams();
     const oobCode = searchParams.get('oobCode');
 
@@ -222,9 +222,7 @@ function ForgotPasswordContent() {
               </CardDescription>
           </CardHeader>
           <CardContent>
-              <React.Suspense fallback={<Skeleton className="h-40 w-full" />}>
-                 {oobCode ? <ResetPasswordForm oobCode={oobCode} /> : <SendEmailForm />}
-              </React.Suspense>
+             {oobCode ? <ResetPasswordForm oobCode={oobCode} /> : <SendEmailForm />}
           </CardContent>
            <CardFooter className="justify-center pt-4">
               <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary">
@@ -235,7 +233,7 @@ function ForgotPasswordContent() {
     )
 }
 
-export default function ForgotPasswordPage() {
+export default function ResetPasswordPage() {
 
   return (
       <main className="relative grid min-h-screen grid-cols-1 lg:grid-cols-2 bg-background">
@@ -251,7 +249,7 @@ export default function ForgotPasswordPage() {
             </div>
             <div className="flex-1 flex items-center justify-center w-full">
               <React.Suspense fallback={<Skeleton className="h-96 w-full max-w-md" />}>
-                 <ForgotPasswordContent />
+                 <ResetPasswordContent />
               </React.Suspense>
             </div>
              <footer className="w-full text-center text-xs text-foreground mt-8">
