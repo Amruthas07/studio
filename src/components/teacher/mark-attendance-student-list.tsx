@@ -135,17 +135,20 @@ const StudentAttendanceRow = ({
           <div className={cn(
             "flex items-center justify-center gap-2 rounded-md px-3 h-9 w-[170px] text-sm font-semibold",
             {
-              'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300': todaysRecord.status === 'present' && !todaysRecord.reason,
               'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300': todaysRecord.status === 'absent',
-              'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300': !!todaysRecord.reason,
+              'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300': todaysRecord.status === 'present' && !!todaysRecord.reason,
+              'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300': todaysRecord.status === 'present' && !todaysRecord.reason,
             }
           )}>
-            {todaysRecord.status === 'present' && !todaysRecord.reason && <Check className="h-4 w-4 flex-shrink-0" />}
             {todaysRecord.status === 'absent' && <X className="h-4 w-4 flex-shrink-0" />}
-            {todaysRecord.reason && <LogOut className="h-4 w-4 flex-shrink-0" />}
+            {todaysRecord.status === 'present' && !!todaysRecord.reason && <LogOut className="h-4 w-4 flex-shrink-0" />}
+            {todaysRecord.status === 'present' && !todaysRecord.reason && <Check className="h-4 w-4 flex-shrink-0" />}
+
             <div className="flex flex-col items-center justify-center">
-              <span className="-mb-0.5">{todaysRecord.reason ? 'On Leave' : todaysRecord.status.charAt(0).toUpperCase() + todaysRecord.status.slice(1)}</span>
-              {todaysRecord.reason && (
+              <span className="-mb-0.5">
+                  {todaysRecord.status === 'absent' ? 'Absent' : (!!todaysRecord.reason ? 'On Leave' : 'Present')}
+              </span>
+              {todaysRecord.status === 'present' && todaysRecord.reason && (
                 <span className="text-xs font-normal italic opacity-80">({todaysRecord.reason})</span>
               )}
             </div>
