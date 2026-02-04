@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -19,7 +20,7 @@ import { useAuth } from '@/hooks/use-auth';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
-  saveAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl' | 'department'>, photoDataUrl?: string) => void;
+  saveAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl' | 'department' | 'studentUid'>, photoDataUrl?: string) => void;
   deleteAttendanceRecord: (studentRegister: string, date: string) => void;
   getTodaysRecordForStudent: (studentRegister: string, date: string) => AttendanceRecord | undefined;
   loading: boolean;
@@ -45,7 +46,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     }
     
     // If auth is done and there's no user, clear data and stop loading.
-    if (!user) {
+    if (!user || !user.uid) {
         setAttendanceRecords([]);
         setLoading(false);
         return;
@@ -56,8 +57,8 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const baseCollection = collection(firestore, 'attendance');
 
     if (user.role === 'student') {
-      // Students should only query for their own records.
-      attendanceQuery = query(baseCollection, where('studentRegister', '==', user.registerNumber));
+      // Students should only query for their own records using their secure UID.
+      attendanceQuery = query(baseCollection, where('studentUid', '==', user.uid));
     } else if (user.role === 'teacher' && user.department !== 'all') {
       // Teachers query for records in their department
       attendanceQuery = query(baseCollection, where('department', '==', user.department));
@@ -86,7 +87,6 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       },
       (err) => {
         const permissionError = new FirestorePermissionError({
-          // This path access might be fragile, but it's the best we can do for a query.
           path: (attendanceQuery as any)._query?.path?.canonicalString() || 'attendance',
           operation: 'list'
         });
@@ -99,7 +99,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   }, [firestore, students, studentsLoading, user, authLoading]);
 
   const saveAttendanceRecord = useCallback((
-    record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl' | 'department'>,
+    record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl' | 'department' | 'studentUid'>,
     photoDataUrl?: string
   ) => {
     if (!firestore || !firebaseApp) {
@@ -108,7 +108,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     }
     
     const student = students.find(s => s.registerNumber === record.studentRegister);
-    if (!student) {
+    if (!student || !student.uid) {
         toast({ variant: "destructive", title: "Update Failed", description: "Could not find student to link attendance." });
         return;
     }
@@ -118,7 +118,8 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
     const recordToSave: { [key: string]: any } = {
       ...record,
-      department: student.department, // Add department here
+      department: student.department,
+      studentUid: student.uid,
       timestamp: serverTimestamp(),
     };
     

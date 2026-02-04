@@ -19,6 +19,7 @@ export interface AttendanceRecord {
   id: string;
   studentRegister: string;
   studentName?: string; // For easier display
+  studentUid?: string;
   date: string; // YYYY-MM-DD
   department: 'cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec';
   status: 'present' | 'absent';

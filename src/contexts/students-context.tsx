@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -7,7 +8,7 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, updateDoc, serverTimestamp, getDoc, limit } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'firebase/storage';
 import { useFirestore, useFirebaseApp } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -49,10 +50,11 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     let unsubscribe: () => void;
 
     if (user.role === 'student') {
-      const studentDocRef = doc(firestore, 'students', user.registerNumber);
-      unsubscribe = onSnapshot(studentDocRef, 
-        (docSnap) => {
-          if (docSnap.exists()) {
+      const studentQuery = query(collection(firestore, 'students'), where('uid', '==', user.uid), limit(1));
+      unsubscribe = onSnapshot(studentQuery,
+        (querySnap) => {
+          if (!querySnap.empty) {
+            const docSnap = querySnap.docs[0];
             const data = docSnap.data();
             const studentData = {
               ...data,
@@ -70,8 +72,8 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         },
         (err) => {
           const permissionError = new FirestorePermissionError({
-            path: studentDocRef.path,
-            operation: 'get'
+            path: 'students',
+            operation: 'list'
           });
           errorEmitter.emit('permission-error', permissionError);
           setLoading(false);
