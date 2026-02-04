@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -125,16 +124,16 @@ export function MarkAttendanceStudentList({ students, today, getTodaysRecordForS
                 record.status === 'present' ? (
                   record.reason ? (
                      <Badge className="text-base bg-amber-500 text-primary-foreground hover:bg-amber-500/90">
-                        <LogOut className="mr-2 h-4 w-4"/> On Leave
+                        <LogOut className="mr-2 h-4 w-4"/> Status: On Leave
                      </Badge>
                   ) : (
                      <Badge className="text-base bg-green-600 text-primary-foreground hover:bg-green-600/90">
-                        <Check className="mr-2 h-4 w-4"/> Present
+                        <Check className="mr-2 h-4 w-4"/> Status: Present
                      </Badge>
                   )
                 ) : (
                     <Badge variant="destructive" className="text-base">
-                        <X className="mr-2 h-4 w-4"/> Absent
+                        <X className="mr-2 h-4 w-4"/> Status: Absent
                     </Badge>
                 )
               ) : (
@@ -155,4 +154,3 @@ export function MarkAttendanceStudentList({ students, today, getTodaysRecordForS
     </div>
   );
 }
-
