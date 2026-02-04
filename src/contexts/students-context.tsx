@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, {
@@ -126,7 +125,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     }
     const { photoFile, ...details } = studentData;
 
-    // Use a temporary app to create the user without affecting the admin's session.
     const tempAppName = `create-user-student-${Date.now()}`;
     const tempApp = initializeApp(firebaseConfig, tempAppName);
     const tempAuth = getAuth(tempApp);
@@ -135,7 +133,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const studentDocRef = doc(firestore, 'students', details.registerNumber);
 
     try {
-        // Pre-flight checks to prevent unnecessary uploads or auth user creation
         if (details.email.toLowerCase() === ADMIN_EMAIL) {
             throw new Error("This email is reserved for the administrator.");
         }
@@ -149,7 +146,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             throw new Error(`A student with email ${details.email} already exists.`);
         }
 
-        // 1. Process and upload photo
         const storage = getStorage(firebaseApp);
         const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
         const processedPhoto = await resizeAndCompressImage(photoFile);
@@ -164,11 +160,9 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         await uploadBytes(photoRef, processedPhoto);
         const downloadURL = await getDownloadURL(photoRef);
         
-        // 2. Create the authentication user
         userCredential = await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
         const uid = userCredential.user.uid;
 
-        // 3. Create the Firestore document with all data at once
         const newStudentData = {
             ...details,
             uid,
@@ -180,41 +174,26 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
         await setDoc(studentDocRef, newStudentData);
         
-        // Success!
         return { success: true };
 
     } catch (error: any) {
         console.error("Add student failed:", error);
         
-        // If any step fails, attempt to clean up created resources
         if (userCredential) {
-            // If auth user was created, delete it
             await userCredential.user.delete().catch(e => console.warn("Auth user cleanup failed", e));
-        } else {
-            // If auth user wasn't created, but photo might have been, delete photo.
-            // This is a best-effort, as we don't know if upload succeeded before error.
-            const storage = getStorage(firebaseApp);
-            const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
-            await deleteObject(photoRef).catch(e => {
-                // Ignore "object-not-found" error, as it's expected if upload failed
-                if (e.code !== 'storage/object-not-found') {
-                    console.warn("Storage photo cleanup failed", e);
-                }
-            });
         }
         
         return { success: false, error: error.message };
     } finally {
-        // Clean up the temporary Firebase app instance
         await deleteApp(tempApp);
     }
   }, [firestore, firebaseApp]);
 
 
-  const updateStudent = useCallback((
+  const updateStudent = useCallback(async (
     registerNumber: string,
     studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'profilePhotoUrl' | 'photoHash' | 'updatedAt'>> & { newPhotoFile?: File }
-  ) => {
+  ): Promise<void> => {
     if (!firestore || !firebaseApp) {
       toast({ variant: "destructive", title: "Update Failed", description: "Database is not available." });
       return;
@@ -223,73 +202,42 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const { newPhotoFile, ...otherUpdates } = studentUpdate;
     const studentDocRef = doc(firestore, 'students', registerNumber);
     
-    const updatesToApply: any = { ...otherUpdates, updatedAt: serverTimestamp() };
+    const updatesToApply: { [key: string]: any } = { ...otherUpdates, updatedAt: serverTimestamp() };
     
-    updateDoc(studentDocRef, updatesToApply)
-        .then(() => {
-             toast({
-                title: "Student Updated",
-                description: `Details for ${otherUpdates.name || registerNumber} have been saved.`,
-            });
-        })
-        .catch(error => {
-            if (error.code === 'permission-denied') {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'update', requestResourceData: updatesToApply }));
-            } else {
-                toast({ variant: "destructive", title: "Update Failed", description: error.message || "Could not save changes." });
+    try {
+        if (newPhotoFile) {
+            const storage = getStorage(firebaseApp);
+            const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
+            const processedPhoto = await resizeAndCompressImage(newPhotoFile);
+            const photoHash = await getImageHash(processedPhoto);
+            
+            const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
+            const duplicateSnap = await getDocs(duplicateQuery);
+            if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== registerNumber) {
+                const duplicateStudent = duplicateSnap.docs[0].data();
+                throw new Error(`This photo is already in use for ${duplicateStudent.name}.`);
             }
+            
+            await uploadBytes(photoRef, processedPhoto);
+            const downloadURL = await getDownloadURL(photoRef);
+
+            updatesToApply.profilePhotoUrl = downloadURL;
+            updatesToApply.photoHash = photoHash;
+        }
+
+        await updateDoc(studentDocRef, updatesToApply);
+
+        toast({
+            title: "Student Updated",
+            description: `Details for ${otherUpdates.name || registerNumber} have been saved.`,
         });
-
-
-    if (newPhotoFile) {
-        (async () => {
-            try {
-                const storage = getStorage(firebaseApp);
-                const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
-
-                const processedPhoto = await resizeAndCompressImage(newPhotoFile);
-                const photoHash = await getImageHash(processedPhoto);
-                
-                const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
-                const duplicateSnap = await getDocs(duplicateQuery);
-                if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== registerNumber) {
-                    const duplicateStudent = duplicateSnap.docs[0].data();
-                    throw new Error(`This photo is already in use for ${duplicateStudent.name}.`);
-                }
-                
-                await uploadBytes(photoRef, processedPhoto);
-                const downloadURL = await getDownloadURL(photoRef);
-                
-                const photoData = {
-                    profilePhotoUrl: downloadURL,
-                    photoHash: photoHash,
-                    updatedAt: serverTimestamp(),
-                };
-                
-                updateDoc(studentDocRef, photoData)
-                    .then(() => {
-                         toast({
-                            title: "Photo Updated",
-                            description: `The new photo for ${otherUpdates.name || registerNumber} has been saved.`,
-                        });
-                    })
-                    .catch(error => {
-                        if (error.code === 'permission-denied') {
-                            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'update', requestResourceData: photoData }));
-                        } else {
-                           toast({ variant: "destructive", title: "Photo Update Failed", description: error.message });
-                        }
-                    });
-
-            } catch (error: any) {
-                toast({
-                    variant: "destructive",
-                    title: "Background Photo Update Failed",
-                    description: error.message || "Could not save the new photo.",
-                    duration: 9000,
-                });
-            }
-        })();
+    } catch (error: any) {
+        const isPermissionError = error.code === 'permission-denied';
+        if (isPermissionError) {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'update', requestResourceData: updatesToApply }));
+        } else {
+            toast({ variant: "destructive", title: "Update Failed", description: error.message || "Could not save changes." });
+        }
     }
   }, [firestore, firebaseApp, toast]);
   
@@ -310,9 +258,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     
     deleteDoc(studentDocRef)
       .then(() => {
-        // After successful Firestore deletion, delete the associated auth user.
-        // Note: This requires admin privileges on the backend, which we simulate here.
-        // In a real production app, this should be handled by a Cloud Function.
         toast({
           title: "Student Record Deleted",
           description: `${studentToDelete.name}'s record has been removed. Auth user cleanup will be attempted.`,
