@@ -37,16 +37,12 @@ const getInitials = (name: string) => {
     return name.substring(0, 2).toUpperCase();
 };
 
-export function MarkAttendanceStudentList({ students, today, getTodaysRecordForStudent, onMarkAttendance }: MarkAttendanceStudentListProps) {
-
+const MarkLeaveButton = ({ student, onMarkAttendance }: { student: Student; onMarkAttendance: MarkAttendanceStudentListProps['onMarkAttendance'] }) => {
   const { toast } = useToast();
   const [reason, setReason] = React.useState('');
-  
-  if (students.length === 0) {
-    return <div className="text-center text-muted-foreground p-8">No students found in this department.</div>;
-  }
-  
-  const handleLeaveSubmit = (studentRegister: string) => {
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+
+  const handleLeaveSubmit = () => {
     if (!reason.trim()) {
       toast({
         variant: 'destructive',
@@ -55,8 +51,55 @@ export function MarkAttendanceStudentList({ students, today, getTodaysRecordForS
       });
       return;
     }
-    onMarkAttendance(studentRegister, 'present', reason);
+    onMarkAttendance(student.registerNumber, 'present', reason);
     setReason('');
+    setIsDialogOpen(false);
+  }
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setReason(''); // Reset reason when dialog is closed
+    }
+    setIsDialogOpen(open);
+  }
+
+  return (
+    <AlertDialog open={isDialogOpen} onOpenChange={handleOpenChange}>
+      <AlertDialogTrigger asChild>
+         <Button size="sm" variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300 dark:bg-yellow-900/50 dark:text-yellow-300 dark:hover:bg-yellow-900 dark:border-yellow-700">
+            <LogOut className="mr-2 h-4 w-4" /> On Leave
+         </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+          <AlertDialogHeader>
+              <AlertDialogTitle>Mark Leave for {student.name}</AlertDialogTitle>
+              <AlertDialogDescription>
+                  This will mark the student as present but on leave. Please provide a reason below.
+              </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid gap-2">
+              <Label htmlFor={`reason-${student.registerNumber}`}>Leave Reason</Label>
+              <Textarea 
+                  id={`reason-${student.registerNumber}`}
+                  placeholder="e.g., Medical appointment, family function" 
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+              />
+          </div>
+          <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleLeaveSubmit}>Submit</AlertDialogAction>
+          </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
+
+
+export function MarkAttendanceStudentList({ students, today, getTodaysRecordForStudent, onMarkAttendance }: MarkAttendanceStudentListProps) {
+  
+  if (students.length === 0) {
+    return <div className="text-center text-muted-foreground p-8">No students found in this department.</div>;
   }
 
   return (
@@ -102,34 +145,7 @@ export function MarkAttendanceStudentList({ students, today, getTodaysRecordForS
                   <Button size="sm" variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-700" onClick={() => onMarkAttendance(student.registerNumber, 'absent')}>
                     <X className="mr-2 h-4 w-4" /> Absent
                   </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                       <Button size="sm" variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300 dark:bg-yellow-900/50 dark:text-yellow-300 dark:hover:bg-yellow-900 dark:border-yellow-700">
-                          <LogOut className="mr-2 h-4 w-4" /> On Leave
-                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Mark Leave for {student.name}</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This will mark the student as present but on leave. Please provide a reason below.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <div className="grid gap-2">
-                            <Label htmlFor="reason">Leave Reason</Label>
-                            <Textarea 
-                                id="reason"
-                                placeholder="e.g., Medical appointment, family function" 
-                                value={reason}
-                                onChange={(e) => setReason(e.target.value)}
-                            />
-                        </div>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel onClick={() => setReason('')}>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleLeaveSubmit(student.registerNumber)}>Submit</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <MarkLeaveButton student={student} onMarkAttendance={onMarkAttendance} />
                 </>
               )}
             </div>
