@@ -1,16 +1,19 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { useFirestore, useFirebaseApp } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, UserCredential } from 'firebase/auth';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import { resizeAndCompressImage } from '@/lib/utils';
 
 const ADMIN_EMAIL = "apdd46@gmail.com";
 
@@ -20,6 +23,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const firestore = useFirestore();
+  const firebaseApp = useFirebaseApp();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
 
@@ -69,17 +73,18 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
   }, [firestore, user, authLoading]);
 
   const addTeacher = useCallback(async (
-    teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }
+    teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string, photoFile: File }
   ): Promise<{ success: boolean; error?: string }> => {
-    if (!firestore) {
+    if (!firestore || !firebaseApp) {
         return { success: false, error: 'Database not initialized.' };
     }
 
-    const { email, password, ...details } = teacherData;
+    const { email, password, photoFile, ...details } = teacherData;
     const teacherDocRef = doc(firestore, 'teachers', email);
     const tempAppName = `create-user-teacher-${Date.now()}`;
     const tempApp = initializeApp(firebaseConfig, tempAppName);
     const tempAuth = getAuth(tempApp);
+    let userCredential: UserCredential | undefined;
 
     try {
         if (email.toLowerCase() === ADMIN_EMAIL) {
@@ -90,14 +95,22 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         if (!snap.empty) {
             throw new Error(`A teacher with email ${email} already exists.`);
         }
-
-        await createUserWithEmailAndPassword(tempAuth, email, password);
+        
+        // Process and upload photo
+        const storage = getStorage(firebaseApp);
+        const photoRef = ref(storage, `teachers/${email}/profile.jpg`);
+        const processedPhoto = await resizeAndCompressImage(photoFile);
+        
+        await uploadBytes(photoRef, processedPhoto);
+        const downloadURL = await getDownloadURL(photoRef);
+        
+        userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
         
         const newTeacherData = {
             ...details,
             email,
             teacherId: email,
-            profilePhotoUrl: "",
+            profilePhotoUrl: downloadURL,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
@@ -108,19 +121,24 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
 
     } catch (error: any) {
         console.error("Add teacher failed:", error);
-        // If any step fails, attempt to clean up the created auth user.
-        try {
-             if (tempAuth.currentUser) {
-                await tempAuth.currentUser.delete();
-             }
-        } catch (cleanupError) {
-            console.warn("Auth user cleanup failed. This can happen if the initial user creation also failed.", cleanupError);
+        // If any step fails, attempt to clean up created resources.
+        if (userCredential) {
+            await userCredential.user.delete().catch(e => console.warn("Auth user cleanup failed", e));
         }
+        
+        const storage = getStorage(firebaseApp);
+        const photoRef = ref(storage, `teachers/${email}/profile.jpg`);
+        await deleteObject(photoRef).catch(e => {
+            if (e.code !== 'storage/object-not-found') {
+                console.warn("Storage photo cleanup failed", e);
+            }
+        });
+        
         return { success: false, error: error.message };
     } finally {
         await deleteApp(tempApp);
     }
-  }, [firestore]);
+  }, [firestore, firebaseApp]);
   
   const updateTeacher = useCallback((teacherId: string, updates: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => {
     if (!firestore) {
@@ -143,14 +161,23 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
   }, [firestore, toast]);
   
   const deleteTeacher = useCallback((teacherId: string) => {
-    if (!firestore) {
+    if (!firestore || !firebaseApp) {
       toast({ variant: 'destructive', title: 'Delete Failed', description: 'Database not available.' });
       return;
     }
     const teacherDocRef = doc(firestore, 'teachers', teacherId);
+
     deleteDoc(teacherDocRef)
       .then(() => {
         toast({ title: 'Teacher Deleted', description: `Successfully removed teacher ${teacherId}.` });
+        
+        const storage = getStorage(firebaseApp);
+        const photoRef = ref(storage, `teachers/${teacherId}/profile.jpg`);
+        deleteObject(photoRef).catch(storageError => {
+            if (storageError.code !== 'storage/object-not-found') {
+                console.error("Failed to delete teacher photo from storage:", storageError);
+            }
+        });
       })
       .catch((error: any) => {
         if (error.code === 'permission-denied') {
@@ -159,7 +186,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
              toast({ variant: 'destructive', title: 'Delete Failed', description: error.message });
         }
     });
-  }, [firestore, toast]);
+  }, [firestore, firebaseApp, toast]);
 
   const value = { teachers, loading, addTeacher, updateTeacher, deleteTeacher };
 

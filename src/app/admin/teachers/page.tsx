@@ -110,7 +110,7 @@ export default function AdminTeachersPage() {
               Add Teacher
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[525px]">
+          <DialogContent className="sm:max-w-[625px]">
             <DialogHeader>
               <DialogTitle className="font-headline text-2xl">Add New Teacher</DialogTitle>
               <DialogDescription>
