@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -121,21 +120,12 @@ export function MarkAttendanceStudentList({ students, attendanceRecords, onMarkA
             
             <div className="flex items-center gap-2">
               {record ? (
-                record.status === 'present' ? (
-                  record.reason ? (
-                     <Badge variant="secondary" className="text-base bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-100 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-700">
-                        <LogOut className="mr-2 h-4 w-4"/> Status: On Leave
-                     </Badge>
-                  ) : (
-                     <Badge variant="default" className="text-base bg-green-100 text-green-800 border-green-300 hover:bg-green-100 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700">
-                        <Check className="mr-2 h-4 w-4"/> Status: Present
-                     </Badge>
-                  )
-                ) : (
-                    <Badge variant="destructive" className="text-base bg-red-100 text-red-800 border-red-300 hover:bg-red-100 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700">
-                        <X className="mr-2 h-4 w-4"/> Status: Absent
-                    </Badge>
-                )
+                <Badge variant={record.reason ? 'secondary' : record.status === 'present' ? 'default' : 'destructive'} className="text-base">
+                    {record.status === 'present' && !record.reason && <Check className="mr-2 h-4 w-4"/>}
+                    {record.reason && <LogOut className="mr-2 h-4 w-4"/>}
+                    {record.status === 'absent' && <X className="mr-2 h-4 w-4"/>}
+                    Status: {record.reason ? 'On Leave' : record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                </Badge>
               ) : (
                 <>
                   <Button size="sm" variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 dark:border-green-700" onClick={() => onMarkAttendance(student.registerNumber, 'present')}>
