@@ -95,87 +95,11 @@ const MarkLeaveButton = ({ student, onMarkAttendance }: { student: Student; onMa
   );
 };
 
-const StudentAttendanceRow = ({
-  student,
-  todaysRecord,
-  overallAttendancePercentage,
-  onMarkAttendance,
-}: {
-  student: Student;
-  todaysRecord: AttendanceRecord | undefined;
-  overallAttendancePercentage: number;
-  onMarkAttendance: MarkAttendanceStudentListProps['onMarkAttendance'];
-}) => {
-  const getIndicatorColor = (p: number) => {
-    if (p >= 75) return 'bg-green-500';
-    if (p >= 45) return 'bg-orange-500';
-    return 'bg-red-500';
-  };
-
-  return (
-    <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-      <div className="flex items-center gap-4">
-        <Avatar className="h-12 w-12">
-          <AvatarImage src={student.profilePhotoUrl} alt={student.name} />
-          <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
-        </Avatar>
-        <div>
-          <p className="font-semibold">{student.name}</p>
-          <p className="text-sm text-muted-foreground">{student.registerNumber}</p>
-          <div className="flex items-center gap-2 mt-2">
-            <Progress value={overallAttendancePercentage} className="h-2 w-20" indicatorClassName={getIndicatorColor(overallAttendancePercentage)} />
-            <span className="text-xs font-medium text-muted-foreground">{overallAttendancePercentage}%</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        {todaysRecord ? (
-          <div className={cn(
-            "flex items-center justify-center gap-2 rounded-md px-3 h-9 w-[170px] text-sm font-semibold",
-            {
-              'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300': todaysRecord.status === 'absent',
-              'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300': todaysRecord.status === 'present' && !!todaysRecord.reason,
-              'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300': todaysRecord.status === 'present' && !todaysRecord.reason,
-            }
-          )}>
-            {todaysRecord.status === 'absent' && <XCircle className="h-4 w-4 flex-shrink-0" />}
-            {todaysRecord.status === 'present' && !!todaysRecord.reason && <FileClock className="h-4 w-4 flex-shrink-0" />}
-            {todaysRecord.status === 'present' && !todaysRecord.reason && <CheckCircle className="h-4 w-4 flex-shrink-0" />}
-
-            <div className="flex flex-col items-center justify-center">
-              <span className="-mb-0.5">
-                  {todaysRecord.status === 'absent' ? 'Absent' : (!!todaysRecord.reason ? 'On Leave' : 'Present')}
-              </span>
-              {todaysRecord.status === 'present' && todaysRecord.reason && (
-                <span className="text-xs font-normal italic opacity-80">({todaysRecord.reason})</span>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-             <Button size="sm" variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-700" onClick={() => onMarkAttendance(student.registerNumber, 'absent')}>
-                <XCircle className="mr-2 h-4 w-4" /> Absent
-            </Button>
-             <Button size="sm" variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 dark:border-green-700" onClick={() => onMarkAttendance(student.registerNumber, 'present')}>
-                <CheckCircle className="mr-2 h-4 w-4" /> Present
-            </Button>
-            <MarkLeaveButton student={student} onMarkAttendance={onMarkAttendance} />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMarkAttendance }: MarkAttendanceStudentListProps) {
   const today = React.useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
 
   const getStudentData = React.useCallback((student: Student) => {
-    // Find today's record for this student
     const todaysRecord = allDepartmentRecords.find(r => r.date === today && r.studentRegister === student.registerNumber);
-    
-    // Calculate overall attendance percentage
     const studentOverallRecords = allDepartmentRecords.filter(r => r.studentRegister === student.registerNumber);
     const allWorkingDayStrings = new Set(allDepartmentRecords.map(r => r.date));
     const enrollmentDayStart = new Date(student.createdAt);
@@ -213,14 +137,66 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
     <div className="space-y-4">
       {students.sort((a, b) => a.name.localeCompare(b.name)).map(student => {
         const { todaysRecord, overallAttendancePercentage } = getStudentData(student);
+
+        const getIndicatorColor = (p: number) => {
+          if (p >= 75) return 'bg-green-500';
+          if (p >= 45) return 'bg-orange-500';
+          return 'bg-red-500';
+        };
+
         return (
-          <StudentAttendanceRow
-            key={student.registerNumber}
-            student={student}
-            todaysRecord={todaysRecord}
-            overallAttendancePercentage={overallAttendancePercentage}
-            onMarkAttendance={onMarkAttendance}
-          />
+          <div key={student.registerNumber} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={student.profilePhotoUrl} alt={student.name} />
+                <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+              </Avatar>
+              <div className='flex-1 truncate'>
+                <p className="font-semibold truncate">{student.name}</p>
+                <p className="text-sm text-muted-foreground">{student.registerNumber}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Progress value={overallAttendancePercentage} className="h-2 w-20" indicatorClassName={getIndicatorColor(overallAttendancePercentage)} />
+                  <span className="text-xs font-medium text-muted-foreground">{overallAttendancePercentage}%</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+              {todaysRecord ? (
+                <div className={cn(
+                  "flex items-center justify-center gap-2 rounded-md px-3 h-9 w-[170px] text-sm font-semibold",
+                  {
+                    'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300': todaysRecord.status === 'absent',
+                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300': todaysRecord.status === 'present' && !!todaysRecord.reason,
+                    'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300': todaysRecord.status === 'present' && !todaysRecord.reason,
+                  }
+                )}>
+                  {todaysRecord.status === 'absent' && <XCircle className="h-4 w-4 flex-shrink-0" />}
+                  {todaysRecord.status === 'present' && !!todaysRecord.reason && <FileClock className="h-4 w-4 flex-shrink-0" />}
+                  {todaysRecord.status === 'present' && !todaysRecord.reason && <CheckCircle className="h-4 w-4 flex-shrink-0" />}
+
+                  <div className="flex flex-col items-center justify-center">
+                    <span className="-mb-0.5">
+                        {todaysRecord.status === 'absent' ? 'Absent' : (!!todaysRecord.reason ? 'On Leave' : 'Present')}
+                    </span>
+                    {todaysRecord.status === 'present' && todaysRecord.reason && (
+                      <span className="text-xs font-normal italic opacity-80 truncate">({todaysRecord.reason})</span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                   <Button size="sm" variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-700" onClick={() => onMarkAttendance(student.registerNumber, 'absent')}>
+                      <XCircle className="mr-2 h-4 w-4" /> Absent
+                  </Button>
+                   <Button size="sm" variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 dark:border-green-700" onClick={() => onMarkAttendance(student.registerNumber, 'present')}>
+                      <CheckCircle className="mr-2 h-4 w-4" /> Present
+                  </Button>
+                  <MarkLeaveButton student={student} onMarkAttendance={onMarkAttendance} />
+                </div>
+              )}
+            </div>
+          </div>
         );
       })}
     </div>

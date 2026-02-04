@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, {
@@ -113,9 +112,8 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const docId = `${record.date}_${record.studentRegister}`;
     const recordDocRef = doc(firestore, 'attendance', docId);
 
-    // Create a clean object to save, ensuring `reason` is explicitly handled.
-    // Using `null` instead of `deleteField()` can be more robust with optimistic UI updates.
-    const dataToSave = {
+    // Use a generic object type to allow for `deleteField()`
+    const dataToSave: { [key: string]: any } = {
       studentRegister: record.studentRegister,
       date: record.date,
       status: record.status,
@@ -124,8 +122,14 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       department: student.department,
       studentUid: student.uid,
       timestamp: serverTimestamp(),
-      reason: record.reason || null, // Set reason to the value or null if undefined/falsy
     };
+    
+    // Explicitly handle the 'reason' field to ensure it is removed when not needed.
+    if (record.reason) {
+      dataToSave.reason = record.reason; // Add reason if it exists (for 'On Leave')
+    } else {
+      dataToSave.reason = deleteField(); // Remove reason field for 'Present' or 'Absent'
+    }
 
     const handleFirestoreError = (error: any, path: string, operation: 'write' | 'update' | 'create', data: any) => {
       if (error.code === 'permission-denied') {
@@ -135,8 +139,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       }
     };
     
-    // Using setDoc with merge will create or update the document.
-    // Explicitly setting `reason: null` will overwrite any previous reason.
+    // Use setDoc with merge: true to create or update. This will correctly add, update, or remove the 'reason' field.
     setDoc(recordDocRef, dataToSave, { merge: true })
         .catch(err => handleFirestoreError(err, recordDocRef.path, 'write', dataToSave));
   }, [firestore, toast, students]);
