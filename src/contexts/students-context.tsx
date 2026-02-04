@@ -12,7 +12,7 @@ import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'fire
 import { useFirestore, useFirebaseApp } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import type { Student, StudentsContextType } from '@/lib/types';
@@ -156,6 +156,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
         await setDoc(studentDocRef, initialStudentData);
 
+        // This is a non-blocking background task. The user is created, and photo upload happens after.
         (async () => {
             try {
                 const storage = getStorage(firebaseApp);
@@ -172,7 +173,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                         description: `This photo is already enrolled for ${duplicateSnap.docs[0].data().name}.`,
                         duration: 9000,
                     });
-                    return;
+                    return; // Don't block, just warn.
                 }
 
                 await uploadBytes(photoRef, processedPhoto);
@@ -197,14 +198,13 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
     } catch (error: any) {
         console.error("Add student failed:", error);
-        // Attempt to clean up the created auth user, but don't let it hide the original error.
+        // If any step fails, attempt to clean up the created auth user.
         try {
-            const userCredential = await signInWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
-            if (userCredential.user) {
-              await userCredential.user.delete();
+            if (tempAuth.currentUser) {
+              await tempAuth.currentUser.delete();
             }
         } catch (cleanupError) {
-             console.warn("Auth user cleanup failed or was not necessary. This can happen if the initial user creation failed.", cleanupError);
+             console.warn("Auth user cleanup failed. This can happen if the initial user creation also failed.", cleanupError);
         }
         return { success: false, error: error.message };
     } finally {

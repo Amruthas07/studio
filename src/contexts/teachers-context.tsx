@@ -5,7 +5,7 @@ import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, get
 import { useFirestore } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import type { Teacher, TeachersContextType } from '@/lib/types';
@@ -108,14 +108,13 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
 
     } catch (error: any) {
         console.error("Add teacher failed:", error);
-        // Attempt to clean up the created auth user, but don't let it hide the original error.
+        // If any step fails, attempt to clean up the created auth user.
         try {
-             const userCredential = await signInWithEmailAndPassword(tempAuth, email, password);
-             if (userCredential.user) {
-                await userCredential.user.delete();
+             if (tempAuth.currentUser) {
+                await tempAuth.currentUser.delete();
              }
         } catch (cleanupError) {
-            console.warn("Auth user cleanup failed or was not necessary.", cleanupError);
+            console.warn("Auth user cleanup failed. This can happen if the initial user creation also failed.", cleanupError);
         }
         return { success: false, error: error.message };
     } finally {
