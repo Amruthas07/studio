@@ -35,21 +35,17 @@ service cloud.firestore {
 
     // Teachers collection
     match /teachers/{email} {
-      // Admins can list all teachers.
-      allow list: if isAdmin();
-      
-      // An admin can get any teacher's document.
-      // A user can get their OWN document to check for their role.
-      allow get: if isAdmin() || request.auth.token.email == email;
-
+      // Any signed in user can read teacher data (for role checks)
+      allow read: if isSignedIn();
       // Only admins can create, update, or delete teachers.
       allow write: if isAdmin();
     }
 
     // Students collection
     match /students/{studentId} {
-      // Admins and Teachers can read all student data.
-      allow read: if isAdmin() || isTeacher();
+      // Any signed in user can read student data. This is required for students 
+      // to log in (by querying their email) and check their own attendance.
+      allow read: if isSignedIn();
       // Only admins can write student data.
       allow write: if isAdmin();
     }
