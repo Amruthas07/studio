@@ -116,17 +116,25 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const docId = `${record.date}_${record.studentRegister}`;
     const recordDocRef = doc(firestore, 'attendance', docId);
 
+    // Manually construct the object to prevent issues with undefined fields during merge
     const recordToSave: { [key: string]: any } = {
-      ...record,
+      studentRegister: record.studentRegister,
+      date: record.date,
+      status: record.status,
+      method: record.method,
+      markedBy: record.markedBy,
       department: student.department,
       studentUid: student.uid,
       timestamp: serverTimestamp(),
     };
     
-    // If there is no reason (for 'present' or 'absent'), ensure the field is removed.
+    // Explicitly handle the 'reason' field.
     if (record.reason) {
+      // Only add the reason if it's provided (for 'On Leave' status).
       recordToSave.reason = record.reason;
     } else {
+      // For 'absent' or simple 'present', ensure the reason field is explicitly removed.
+      // This is critical to fix the bug where an old reason would persist.
       recordToSave.reason = deleteField();
     }
 
