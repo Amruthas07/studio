@@ -4,7 +4,7 @@ import React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Loader2, FileImage } from "lucide-react"
+import { Loader2, UserScan } from "lucide-react"
 import Image from 'next/image';
 
 import { Button } from "@/components/ui/button"
@@ -129,7 +129,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         <Image src={previewUrl} alt="Teacher preview" layout="fill" objectFit="cover" />
                     ) : (
                         <div className="text-center text-muted-foreground p-4">
-                            <FileImage className="mx-auto h-12 w-12" />
+                            <UserScan className="mx-auto h-12 w-12" />
                             <p className="mt-2 text-xs">Photo preview</p>
                         </div>
                     )}
@@ -154,7 +154,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                     )}
                 />
                 <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
-                    <FileImage className="mr-2 h-4 w-4" /> Upload Photo
+                    <UserScan className="mr-2 h-4 w-4" /> Upload Photo
                 </Button>
             </div>
         </div>
