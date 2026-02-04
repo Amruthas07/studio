@@ -74,7 +74,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     },
   })
   
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     const departmentStudentsCount = students.filter(
         (student) => student.department === values.department
     ).length;
@@ -88,32 +88,30 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       return;
     }
     
-    const { photo, ...studentDetails } = values;
+    try {
+      const { photo, ...studentDetails } = values;
+      await addStudent({
+        ...studentDetails,
+        dateOfBirth: values.dateOfBirth,
+        photoFile: photo,
+      });
 
-    // Fire-and-forget the addStudent promise
-    addStudent({
-      ...studentDetails,
-      dateOfBirth: values.dateOfBirth,
-      photoFile: photo,
-    }).catch((error: any) => {
-      // This catch block handles errors from the initial, fast part of addStudent
-      // (e.g., duplicate registration number check).
+      toast({
+        title: "Enrollment Successful",
+        description: `${values.name} has been added to the system.`,
+      });
+
+      onStudentAdded();
+      form.reset();
+      setPreviewUrl(null);
+
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Enrollment Failed",
-        description: error.message || "An unexpected error occurred during initial save.",
+        description: error.message || "An unexpected error occurred.",
       });
-    });
-
-    // Optimistically update the UI immediately.
-    toast({
-      title: "Enrollment Started",
-      description: `${values.name} has been added. The photo is being enrolled in the background.`,
-    });
-
-    onStudentAdded(); // This just closes the dialog.
-    form.reset();
-    setPreviewUrl(null);
+    }
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {

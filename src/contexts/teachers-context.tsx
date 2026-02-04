@@ -10,7 +10,7 @@ import { initializeApp, deleteApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from './auth-context';
 
 const ADMIN_EMAIL = "apdd46@gmail.com";
 
@@ -75,59 +75,55 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     }
 
     const { email, password, ...details } = teacherData;
-
-    if (email.toLowerCase() === ADMIN_EMAIL) {
-        throw new Error("This email is reserved for the administrator and cannot be used for a teacher.");
-    }
-
-    const q = query(collection(firestore, "teachers"), where("email", "==", email));
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-        throw new Error(`A teacher with email ${email} already exists.`);
-    }
-
+    const teacherDocRef = doc(firestore, 'teachers', email);
     const tempAppName = `create-user-teacher-${Date.now()}`;
     const tempApp = initializeApp(firebaseConfig, tempAppName);
     const tempAuth = getAuth(tempApp);
 
     try {
-        await createUserWithEmailAndPassword(tempAuth, email, password);
-    } catch (error: any) {
-        await deleteApp(tempApp);
-        let message = error.message;
-        if (error.code === 'auth/email-already-in-use') {
-            message = 'This email is already in use by another account.';
+        // Step 1: Check for duplicates
+        if (email.toLowerCase() === ADMIN_EMAIL) {
+            throw new Error("This email is reserved for the administrator.");
         }
-        if (error.code === 'auth/weak-password') {
-            message = 'Password must be at least 6 characters.';
+        const q = query(collection(firestore, "teachers"), where("email", "==", email));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+            throw new Error(`A teacher with email ${email} already exists.`);
         }
-        throw new Error(message);
+
+        // Step 2: Create Auth user
+        try {
+            await createUserWithEmailAndPassword(tempAuth, email, password);
+        } catch (authError: any) {
+            let message = authError.message;
+            if (authError.code === 'auth/email-already-in-use') {
+                message = 'This email is already in use by another account.';
+            }
+            if (authError.code === 'auth/weak-password') {
+                message = 'Password must be at least 6 characters.';
+            }
+            throw new Error(message);
+        }
+
+        // Step 3: Create Firestore document
+        const newTeacherData = {
+            ...details,
+            email,
+            teacherId: email,
+            profilePhotoUrl: "",
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        };
+        await setDoc(teacherDocRef, newTeacherData);
+
+        toast({ title: 'Teacher Registered', description: `${details.name} can now log in.` });
+
+    } catch (error) {
+        // Re-throw to be caught by the form's onSubmit handler
+        throw error;
     } finally {
         await deleteApp(tempApp);
     }
-
-    const teacherDocRef = doc(firestore, 'teachers', email);
-    const newTeacherData = {
-        ...details,
-        email,
-        teacherId: email,
-        profilePhotoUrl: "",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-    };
-    
-    setDoc(teacherDocRef, newTeacherData)
-      .then(() => {
-        toast({ title: 'Teacher Registered', description: `${details.name} can now log in.`});
-      })
-      .catch(error => {
-         if (error.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'create', requestResourceData: newTeacherData }));
-        } else {
-            toast({ variant: "destructive", title: "Database Error", description: error.message });
-        }
-    });
-
   }, [firestore, toast]);
   
   const updateTeacher = useCallback((teacherId: string, updates: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => {

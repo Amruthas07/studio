@@ -18,7 +18,7 @@ import { firebaseConfig } from '@/firebase/config';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getImageHash, resizeAndCompressImage } from '@/lib/utils';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from './auth-context';
 
 const ADMIN_EMAIL = "apdd46@gmail.com";
 
@@ -122,102 +122,104 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     if (!firestore || !firebaseApp) {
         throw new Error('Firebase services not initialized.');
     }
-
     const { photoFile, ...details } = studentData;
 
-    if (details.email.toLowerCase() === ADMIN_EMAIL) {
-      throw new Error("This email is reserved for the administrator and cannot be used for a student.");
-    }
-
-    const studentDocRef = doc(firestore, 'students', details.registerNumber);
-    const existingStudentSnap = await getDoc(studentDocRef);
-    if (existingStudentSnap.exists()) {
-        throw new Error(`A student with register number ${details.registerNumber} already exists.`);
-    }
-    
-    const q = query(collection(firestore, "students"), where("email", "==", details.email));
-    const emailSnap = await getDocs(q);
-    if (!emailSnap.empty) {
-        throw new Error(`A student with email ${details.email} already exists.`);
-    }
-
-    // Create a temporary, secondary Firebase app to create the user without affecting the admin's auth state.
     const tempAppName = `create-user-student-${Date.now()}`;
     const tempApp = initializeApp(firebaseConfig, tempAppName);
     const tempAuth = getAuth(tempApp);
 
+    const studentDocRef = doc(firestore, 'students', details.registerNumber);
+
     try {
-        await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
-    } catch (error: any) {
-        await deleteApp(tempApp); // Clean up on failure
-        if (error.code === 'auth/email-already-in-use') {
-            throw new Error('This email is already in use by another account.');
+        // Step 1: Check for duplicates
+        if (details.email.toLowerCase() === ADMIN_EMAIL) {
+            throw new Error("This email is reserved for the administrator.");
         }
-         if (error.code === 'auth/weak-password') {
-            throw new Error('Password is too weak. It must be at least 6 characters.');
+        const existingStudentSnap = await getDoc(studentDocRef);
+        if (existingStudentSnap.exists()) {
+            throw new Error(`A student with register number ${details.registerNumber} already exists.`);
         }
-        throw new Error(`Authentication error: ${error.message}`);
+        const q = query(collection(firestore, "students"), where("email", "==", details.email));
+        const emailSnap = await getDocs(q);
+        if (!emailSnap.empty) {
+            throw new Error(`A student with email ${details.email} already exists.`);
+        }
+
+        // Step 2: Create Auth user
+        try {
+            await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
+        } catch (authError: any) {
+            if (authError.code === 'auth/email-already-in-use') {
+                throw new Error('This email is already in use by another account.');
+            }
+            if (authError.code === 'auth/weak-password') {
+                throw new Error('Password is too weak. It must be at least 6 characters.');
+            }
+            throw new Error(`Authentication error: ${authError.message}`);
+        }
+
+        // Step 3: Create Firestore document
+        const initialStudentData = {
+            ...details,
+            profilePhotoUrl: '', 
+            photoHash: '', 
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        };
+
+        // Await the database write and handle errors directly
+        await setDoc(studentDocRef, initialStudentData);
+
+        // Step 4: Handle photo upload in the background (fire-and-forget is ok here)
+        (async () => {
+            try {
+                const storage = getStorage(firebaseApp);
+                const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
+
+                const processedPhoto = await resizeAndCompressImage(photoFile);
+                const photoHash = await getImageHash(processedPhoto);
+
+                const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
+                const duplicateSnap = await getDocs(duplicateQuery);
+
+                if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== details.registerNumber) {
+                    const duplicateStudent = duplicateSnap.docs[0].data();
+                    toast({
+                        variant: "destructive",
+                        title: "Duplicate Photo",
+                        description: `This photo is already enrolled for ${duplicateStudent.name}. Please use a different photo.`,
+                        duration: 9000,
+                    });
+                    return;
+                }
+
+                await uploadBytes(photoRef, processedPhoto);
+                const downloadURL = await getDownloadURL(photoRef);
+                
+                const photoData = {
+                    profilePhotoUrl: downloadURL,
+                    photoHash: photoHash,
+                    updatedAt: serverTimestamp(),
+                };
+
+                await updateDoc(studentDocRef, photoData);
+
+            } catch (error: any) {
+                toast({
+                    variant: "destructive",
+                    title: "Background Enrollment Failed",
+                    description: `Could not enroll photo for ${details.name}. Please try again from the student list. Reason: ${error.message}`,
+                    duration: 9000,
+                });
+            }
+        })();
+
+    } catch (error) {
+        // Re-throw the error to be caught by the form handler
+        throw error;
     } finally {
-        // Always clean up the temporary app instance.
         await deleteApp(tempApp);
     }
-
-    const initialStudentData = {
-        ...details,
-        profilePhotoUrl: '', 
-        photoHash: '', 
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-    };
-    
-    setDoc(studentDocRef, initialStudentData).catch(error => {
-      if (error.code === 'permission-denied') {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'create', requestResourceData: initialStudentData }));
-      } else {
-        toast({ variant: "destructive", title: "Database Error", description: error.message });
-      }
-    });
-
-    (async () => {
-        try {
-            const storage = getStorage(firebaseApp);
-            const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
-
-            const processedPhoto = await resizeAndCompressImage(photoFile);
-            const photoHash = await getImageHash(processedPhoto);
-
-            const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
-            const duplicateSnap = await getDocs(duplicateQuery);
-
-            if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== details.registerNumber) {
-                const duplicateStudent = duplicateSnap.docs[0].data();
-                throw new Error(`This photo is already enrolled for ${duplicateStudent.name}.`);
-            }
-
-            await uploadBytes(photoRef, processedPhoto);
-            const downloadURL = await getDownloadURL(photoRef);
-            
-            const photoData = {
-                profilePhotoUrl: downloadURL,
-                photoHash: photoHash,
-                updatedAt: serverTimestamp(),
-            };
-
-            updateDoc(studentDocRef, photoData).catch(error => {
-              if (error.code === 'permission-denied') {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'update', requestResourceData: photoData }));
-              }
-            });
-
-        } catch (error: any) {
-            toast({
-                variant: "destructive",
-                title: "Background Enrollment Failed",
-                description: `Could not enroll photo for ${details.name}. Please try again from the student list. Reason: ${error.message}`,
-                duration: 9000,
-            });
-        }
-    })();
   }, [firestore, firebaseApp, toast]);
 
 

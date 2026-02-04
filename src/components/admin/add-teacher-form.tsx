@@ -50,25 +50,18 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     },
   })
   
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Fire-and-forget style. The context handles background processing and toasts.
-    addTeacher(values).catch((error: any) => {
-        // This catch handles validation errors (e.g., duplicates) thrown
-        // before the background process starts.
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      await addTeacher(values);
+      onTeacherAdded();
+      form.reset();
+    } catch (error: any) {
         toast({
             variant: "destructive",
             title: "Registration Failed",
-            description: error.message || "An unexpected error occurred during validation.",
+            description: error.message || "An unexpected error occurred.",
         });
-    });
-    
-    // Optimistically update the UI.
-    toast({
-        title: "Registration Started",
-        description: `Teacher ${values.name} is being added to the system.`,
-    });
-    onTeacherAdded();
-    form.reset();
+    }
   }
   
   return (
