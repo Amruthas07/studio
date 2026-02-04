@@ -26,11 +26,6 @@ export default function MarkAttendancePage() {
 
   const today = React.useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
   
-  const todaysAttendanceRecords = React.useMemo(() => {
-    return attendanceRecords.filter(r => r.date === today);
-  }, [attendanceRecords, today]);
-
-
   const departmentStudents = React.useMemo(() => {
     if (!user?.department || user.department === 'all') return [];
     
@@ -56,26 +51,22 @@ export default function MarkAttendancePage() {
   };
   
   const handleMarkAllPresentForSemester = (studentsInSemester: Student[]) => {
-    let markedCount = 0;
-    studentsInSemester.forEach(student => {
-      const record = todaysAttendanceRecords.find(r => r.studentRegister === student.registerNumber);
-      if (!record) {
-        handleMarkAttendance(student.registerNumber, 'present');
-        markedCount++;
-      }
-    });
-
-    if (markedCount > 0) {
-        toast({
-            title: `Attendance Marked`,
-            description: `${markedCount} student(s) in the current view have been marked as present.`,
-        });
-    } else {
+    if (studentsInSemester.length === 0) {
         toast({
             title: "No Students to Mark",
-            description: "All students in the current view already have an attendance record for today.",
+            description: "There are no students in this semester.",
         });
+        return;
     }
+
+    studentsInSemester.forEach(student => {
+      handleMarkAttendance(student.registerNumber, 'present');
+    });
+
+    toast({
+        title: `Attendance Marked`,
+        description: `A "Present" status has been sent for all ${studentsInSemester.length} student(s) in this view.`,
+    });
   };
 
 
@@ -143,7 +134,6 @@ export default function MarkAttendancePage() {
                 <CardContent>
                   <MarkAttendanceStudentList 
                     students={semesterStudents}
-                    todaysAttendanceRecords={todaysAttendanceRecords}
                     allDepartmentRecords={attendanceRecords}
                     onMarkAttendance={handleMarkAttendance}
                   />
