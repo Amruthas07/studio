@@ -41,31 +41,37 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Students collection
+    // --- Students ---
     match /students/{studentId} {
-      // Any signed in user can read student data. This is required for students 
-      // to log in (by querying their email) and check their own attendance.
-      allow read: if isSignedIn();
-      // Only admins can write student data.
+      // Allow getting a single document for profile lookups and functions.
+      allow get: if isSignedIn();
+      // Only admins can modify student documents.
       allow write: if isAdmin();
     }
+    match /students {
+      // Admins can list all students.
+      // Teachers can list students from their department.
+      // A user can query for their own profile by email during login.
+      allow list: if isAdmin() ||
+                    (isTeacher() && request.query.where.department == getTeacherDepartment()) ||
+                    (isSignedIn() && request.query.where.email == request.auth.token.email);
+    }
 
-    // Attendance records collection
+
+    // --- Attendance ---
     match /attendance/{attendanceId} {
-      // Admins have full access.
-      allow read, write: if isAdmin();
+      // Admins can write. Get is handled below.
+      allow write: if isAdmin();
       
-      // Teachers can read attendance records from their own department.
-      // This relies on the client query being `where('department', '==', user.department)`
-      allow list: if isTeacher() && request.query.where.department == getTeacherDepartment();
-
-      // Students can read their own attendance records.
-      // This relies on the client query being `where('studentRegister', '==', user.registerNumber)`
-      allow list: if isSignedIn() && request.query.where.studentRegister != null && getStudentEmail(request.query.where.studentRegister) == request.auth.token.email;
-
-      // Allow getting a single document if admin, or student owns it. Teacher GET is covered by their department's records being readable.
+      // Admins can get any doc. Students can get their own.
       allow get: if isAdmin() || 
                    (isSignedIn() && get(/databases/$(database)/documents/attendance/$(attendanceId)).data.studentRegister != null && getStudentEmail(get(/databases/$(database)/documents/attendance/$(attendanceId)).data.studentRegister) == request.auth.token.email);
+    }
+    match /attendance {
+        // Define who can query the attendance collection.
+        allow list: if isAdmin() ||
+                      (isTeacher() && request.query.where.department == getTeacherDepartment()) ||
+                      (isSignedIn() && request.query.where.studentRegister != null && getStudentEmail(request.query.where.studentRegister) == request.auth.token.email);
     }
     
     // Default deny all other paths.
