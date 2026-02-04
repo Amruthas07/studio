@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { usePathname } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -28,6 +29,8 @@ export function LoginForm() {
   const { login, loading } = useAuth();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = React.useState(false);
+  const pathname = usePathname();
+  const isAdminLogin = pathname === '/admin-login';
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -81,9 +84,11 @@ export function LoginForm() {
                   <Lock className="h-4 w-4" />
                   Password
                 </span>
-                 <Link href="/reset-password" tabIndex={-1} className="text-xs hover:underline">
-                    Forgot Password?
-                </Link>
+                 {!isAdminLogin && (
+                    <Link href="/reset-password" tabIndex={-1} className="text-xs hover:underline">
+                        Forgot Password?
+                    </Link>
+                 )}
               </FormLabel>
               <FormControl>
                 <div className="relative">
