@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -221,6 +222,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
         // For existing users with wrong password or if user does not exist.
         throw new Error('Invalid credentials provided.');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Invalid format for email or register number.');
       } else {
         // Handle other login errors.
         console.error("Login error:", error.code, error.message);
@@ -257,3 +260,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
+    
