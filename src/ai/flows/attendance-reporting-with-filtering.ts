@@ -47,6 +47,7 @@ const AttendanceReportingWithFilteringInputSchema = z.object({
     .describe('The date for the attendance report (YYYY-MM-DD).'),
   endDate: z.string().describe('The end date for the report (will be same as start date).'),
   department: z.string().describe('The department to generate the report for (e.g., cs, ce, me).'),
+  statusFilter: z.enum(["all", "present", "absent", "on_leave"]).describe("The status to filter the report by."),
   students: z.array(StudentSchema).describe("List of all students"),
   attendanceRecords: z.array(AttendanceRecordSchema).describe("List of all attendance records"),
 });
@@ -100,7 +101,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
     const reportDate = input.startDate;
     const todaysRecords = input.attendanceRecords.filter(record => record.date === reportDate);
     
-    // 3. Create the roll call list using robust logic
+    // 3. Create the roll call list
     const rollCall = departmentStudents.map(student => {
         const recordsForStudent = todaysRecords.filter(
             rec => rec.studentRegister === student.registerNumber
@@ -123,7 +124,6 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
             };
         }
 
-        // Sort to find the most recent record
         recordsForStudent.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         const latestRecord = recordsForStudent[0];
         
@@ -146,30 +146,36 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
         }
     });
 
-    // 4. Calculate summary
-    const presentCount = rollCall.filter(s => s.Status === 'Present').length;
-    const onLeaveCount = rollCall.filter(s => s.Status === 'On Leave').length;
-    const totalAbsentCount = rollCall.length - presentCount - onLeaveCount;
-    
+    // 4. Filter by status
+    const filteredRollCall = rollCall.filter(entry => {
+        if (input.statusFilter === 'all') return true;
+        if (input.statusFilter === 'present') return entry.Status === 'Present';
+        if (input.statusFilter === 'absent') return entry.Status === 'Absent';
+        if (input.statusFilter === 'on_leave') return entry.Status === 'On Leave';
+        return true;
+    });
+
+    // 5. Calculate summary based on filtered data
     const summaryData = [
       { metric: `Report for Date`, value: reportDate },
       { metric: `Department`, value: input.department.toUpperCase() },
-      { metric: 'Total Students', value: rollCall.length },
-      { metric: 'Number of Students Present', value: presentCount },
-      { metric: 'Number of Students On Leave', value: onLeaveCount },
-      { metric: 'Number of Students Absent', value: totalAbsentCount },
+      { metric: `Status Filter`, value: input.statusFilter.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
+      { metric: 'Total Students Shown', value: filteredRollCall.length },
+      { metric: 'Present', value: filteredRollCall.filter(s => s.Status === 'Present').length },
+      { metric: 'On Leave', value: filteredRollCall.filter(s => s.Status === 'On Leave').length },
+      { metric: 'Absent', value: filteredRollCall.filter(s => s.Status === 'Absent').length },
     ];
     const summaryCsv = convertToCSV(summaryData);
     
-    // 5. Convert main data to CSV
-    const rollCallCsv = convertToCSV(rollCall.length > 0 ? rollCall : [
-        { "Message": "No students found for this department." }
+    // 6. Convert main data to CSV
+    const rollCallCsv = convertToCSV(filteredRollCall.length > 0 ? filteredRollCall : [
+        { "Message": "No students found matching the filters." }
     ]);
 
-    // 6. Combine summary and main data
+    // 7. Combine summary and main data
     const finalCsvData = `${summaryCsv}\r\n\r\n${rollCallCsv}`;
 
-    // 7. Create a data URI
+    // 8. Create a data URI
     const fileUrl = `data:text/csv;charset=utf-8,${encodeURIComponent(finalCsvData)}`;
 
     return {fileUrl};

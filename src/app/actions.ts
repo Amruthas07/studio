@@ -92,6 +92,7 @@ export async function generateDailyReport(input: GenerateDailyReportActionInput)
 type GenerateReportFormInput = {
     date: Date;
     department: string;
+    statusFilter: "all" | "present" | "absent" | "on_leave";
     students: Student[];
     attendanceRecords: AttendanceRecord[];
 };
@@ -117,6 +118,7 @@ export async function generateReport(input: GenerateReportFormInput) {
             startDate: dateStr,
             endDate: dateStr,
             department: input.department,
+            statusFilter: input.statusFilter,
             students: sanitizedStudents,
             attendanceRecords: sanitizedAttendance
         };

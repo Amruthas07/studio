@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -35,6 +36,7 @@ import { useAttendance } from "@/hooks/use-attendance"
 const formSchema = z.object({
   date: z.date(),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec", "all"]),
+  statusFilter: z.enum(["all", "present", "absent", "on_leave"]),
 })
 
 type ReportFormProps = {
@@ -52,22 +54,23 @@ export function ReportForm({ onReportGenerated }: ReportFormProps) {
     defaultValues: {
       date: new Date(),
       department: "all",
+      statusFilter: "all",
     },
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
-      // The generateReport action now expects a single date, so we adapt the input
       const reportValues = {
         date: values.date,
         department: values.department,
+        statusFilter: values.statusFilter,
         students, // Pass live data
         attendanceRecords // Pass live data
       };
 
       const result = await generateReport(reportValues)
       if (result.success && result.fileUrl) {
-        const fileName = `Students_${values.department.toUpperCase()}_Report_${format(values.date, "yyyy-MM-dd")}.csv`;
+        const fileName = `Students_${values.department.toUpperCase()}_${values.statusFilter.replace('_', '-').toUpperCase()}_Report_${format(values.date, "yyyy-MM-dd")}.csv`;
         
         const newExport: RecentExport = {
             fileName,
@@ -165,6 +168,29 @@ export function ReportForm({ onReportGenerated }: ReportFormProps) {
                   <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
                   <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
                   <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="statusFilter"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Attendance Status</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a status to filter" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="present">Present</SelectItem>
+                  <SelectItem value="absent">Absent</SelectItem>
+                  <SelectItem value="on_leave">On Leave</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

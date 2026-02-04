@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -15,6 +16,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { generateReport } from "@/app/actions"
 import type { RecentExport } from "@/lib/types"
@@ -27,6 +35,7 @@ import { useAttendance } from "@/hooks/use-attendance"
 
 const formSchema = z.object({
   date: z.date(),
+  statusFilter: z.enum(["all", "present", "absent", "on_leave"]),
 })
 
 type ReportFormProps = {
@@ -44,6 +53,7 @@ export function TeacherAttendanceReportForm({ onReportGenerated, department }: R
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date(),
+      statusFilter: "all",
     },
   })
 
@@ -61,13 +71,14 @@ export function TeacherAttendanceReportForm({ onReportGenerated, department }: R
       const reportValues = {
         date: values.date,
         department: department,
+        statusFilter: values.statusFilter,
         students,
         attendanceRecords
       };
 
       const result = await generateReport(reportValues)
       if (result.success && result.fileUrl) {
-        const fileName = `Students_${department.toUpperCase()}_Report_${format(values.date, "yyyy-MM-dd")}.csv`;
+        const fileName = `Students_${department.toUpperCase()}_${values.statusFilter.replace('_', '-').toUpperCase()}_Report_${format(values.date, "yyyy-MM-dd")}.csv`;
         
         const newExport: RecentExport = {
             fileName,
@@ -143,6 +154,29 @@ export function TeacherAttendanceReportForm({ onReportGenerated, department }: R
                 <FormMessage />
                 </FormItem>
             )}
+        />
+        <FormField
+          control={form.control}
+          name="statusFilter"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Attendance Status</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a status to filter" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="present">Present</SelectItem>
+                  <SelectItem value="absent">Absent</SelectItem>
+                  <SelectItem value="on_leave">On Leave</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
         />
         
         <Button type="submit" disabled={isLoading}>
