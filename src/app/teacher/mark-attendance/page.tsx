@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -17,7 +18,7 @@ import type { Student } from '@/lib/types';
 export default function MarkAttendancePage() {
   const { user, loading: authLoading } = useAuth();
   const { students, loading: studentsLoading } = useStudents();
-  const { attendanceRecords, loading: attendanceLoading, saveAttendanceRecord, getTodaysRecordForStudent } = useAttendance();
+  const { attendanceRecords, loading: attendanceLoading, saveAttendanceRecord } = useAttendance();
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -25,6 +26,11 @@ export default function MarkAttendancePage() {
   const loading = authLoading || studentsLoading || attendanceLoading;
 
   const today = React.useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
+  
+  const todaysAttendanceRecords = React.useMemo(() => {
+    return attendanceRecords.filter(r => r.date === today);
+  }, [attendanceRecords, today]);
+
 
   const departmentStudents = React.useMemo(() => {
     if (!user?.department || user.department === 'all') return [];
@@ -46,15 +52,14 @@ export default function MarkAttendancePage() {
         status,
         reason,
         method: 'manual',
-        markedBy: user.email,
+        markedBy: user!.email,
     });
   };
   
   const handleMarkAllPresentForSemester = (studentsInSemester: Student[]) => {
     let markedCount = 0;
     studentsInSemester.forEach(student => {
-      // Only mark students who are visible in the current filtered list
-      const record = getTodaysRecordForStudent(student.registerNumber, today);
+      const record = todaysAttendanceRecords.find(r => r.studentRegister === student.registerNumber);
       if (!record) {
         handleMarkAttendance(student.registerNumber, 'present');
         markedCount++;
@@ -139,9 +144,8 @@ export default function MarkAttendancePage() {
                 <CardContent>
                   <MarkAttendanceStudentList 
                     students={semesterStudents}
-                    attendanceRecords={attendanceRecords}
+                    attendanceRecords={todaysAttendanceRecords}
                     onMarkAttendance={handleMarkAttendance}
-                    today={today}
                   />
                 </CardContent>
               </Card>

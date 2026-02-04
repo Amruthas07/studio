@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -23,7 +24,6 @@ import { Badge } from '../ui/badge';
 
 interface MarkAttendanceStudentListProps {
   students: Student[];
-  today: string;
   attendanceRecords: AttendanceRecord[];
   onMarkAttendance: (studentRegister: string, status: 'present' | 'absent', reason?: string) => void;
 }
@@ -95,7 +95,7 @@ const MarkLeaveButton = ({ student, onMarkAttendance }: { student: Student; onMa
 };
 
 
-export function MarkAttendanceStudentList({ students, today, attendanceRecords, onMarkAttendance }: MarkAttendanceStudentListProps) {
+export function MarkAttendanceStudentList({ students, attendanceRecords, onMarkAttendance }: MarkAttendanceStudentListProps) {
   
   if (students.length === 0) {
     return <div className="text-center text-muted-foreground p-8">No students found for this semester.</div>;
@@ -104,7 +104,7 @@ export function MarkAttendanceStudentList({ students, today, attendanceRecords, 
   return (
     <div className="space-y-4">
       {students.sort((a, b) => a.name.localeCompare(b.name)).map(student => {
-        const record = attendanceRecords.find(r => r.studentRegister === student.registerNumber && r.date === today);
+        const record = attendanceRecords.find(r => r.studentRegister === student.registerNumber);
         
         return (
           <div key={student.registerNumber} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
@@ -123,16 +123,16 @@ export function MarkAttendanceStudentList({ students, today, attendanceRecords, 
               {record ? (
                 record.status === 'present' ? (
                   record.reason ? (
-                     <Badge variant="secondary" className="text-base">
+                     <Badge variant="secondary" className="text-base bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-100 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-700">
                         <LogOut className="mr-2 h-4 w-4"/> Status: On Leave
                      </Badge>
                   ) : (
-                     <Badge variant="default" className="text-base">
+                     <Badge variant="default" className="text-base bg-green-100 text-green-800 border-green-300 hover:bg-green-100 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700">
                         <Check className="mr-2 h-4 w-4"/> Status: Present
                      </Badge>
                   )
                 ) : (
-                    <Badge variant="destructive" className="text-base">
+                    <Badge variant="destructive" className="text-base bg-red-100 text-red-800 border-red-300 hover:bg-red-100 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700">
                         <X className="mr-2 h-4 w-4"/> Status: Absent
                     </Badge>
                 )
