@@ -77,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Use email as the single source of truth for identifying the admin role.
         if (user.email === ADMIN_EMAIL) {
            profile = {
+              uid: user.uid,
               name: user.displayName || 'Administrator',
               email: user.email!,
               role: 'admin',
@@ -96,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (teacherDocSnap.exists()) {
                 const foundTeacher = teacherDocSnap.data() as Teacher;
                 profile = {
+                    uid: user.uid,
                     name: foundTeacher.name,
                     email: foundTeacher.email,
                     role: 'teacher',
