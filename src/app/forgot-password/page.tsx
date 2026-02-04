@@ -3,12 +3,13 @@
 import * as React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { useAuth as useFirebaseAuth } from '@/firebase/provider';
-import { sendPasswordResetEmail, confirmPasswordReset } from 'firebase/auth';
+import { useAuth as useFirebaseAuthHook } from '@/hooks/use-auth';
+import { useAuth as useFirebaseAuthInstance } from '@/firebase/provider';
+import { updatePassword } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
@@ -22,13 +23,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Loader2, Mail, Send, KeyRound, BrainCircuit, Eye, EyeOff } from 'lucide-react';
+import { Loader2, KeyRound, BrainCircuit, Eye, EyeOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-
-// Schema for the email form
-const emailSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
-});
 
 // Schema for the password reset form
 const passwordSchema = z.object({
@@ -39,11 +35,10 @@ const passwordSchema = z.object({
     path: ["confirmPassword"],
 });
 
-
-// Component for entering a new password
-function ResetPasswordForm({ oobCode }: { oobCode: string }) {
+function DirectUpdatePasswordForm() {
   const { toast } = useToast();
-  const auth = useFirebaseAuth();
+  const authInstance = useFirebaseAuthInstance();
+  const { user: authUser, loading: authLoading } = useFirebaseAuthHook();
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
   const [showNewPassword, setShowNewPassword] = React.useState(false);
@@ -54,23 +49,63 @@ function ResetPasswordForm({ oobCode }: { oobCode: string }) {
     defaultValues: { newPassword: '', confirmPassword: '' },
   });
 
+  React.useEffect(() => {
+      if (!authLoading && !authUser) {
+          toast({
+              variant: 'destructive',
+              title: 'Authentication Required',
+              description: 'You must be logged in to change your password. Redirecting to login...',
+          });
+          router.push('/');
+      }
+  }, [authUser, authLoading, router, toast]);
+
   async function onSubmit(values: z.infer<typeof passwordSchema>) {
+    if (!authInstance.currentUser) {
+        toast({
+            variant: 'destructive',
+            title: 'Not Logged In',
+            description: 'Could not find an authenticated user.',
+        });
+        return;
+    }
+
     setLoading(true);
     try {
-      await confirmPasswordReset(auth, oobCode, values.newPassword);
+      await updatePassword(authInstance.currentUser, values.newPassword);
       toast({
-        title: 'Password Reset Successful',
-        description: 'Your password has been changed. You can now log in.',
+        title: 'Password Updated Successfully',
+        description: 'Your password has been changed. Please log in again.',
       });
-      setTimeout(() => router.push('/'), 2000);
+      router.push('/'); 
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error Resetting Password',
-        description: 'This link may have expired. Please try again.',
-      });
-      setLoading(false);
+      if (error.code === 'auth/requires-recent-login') {
+          toast({
+              variant: 'destructive',
+              title: 'Action Requires Recent Login',
+              description: 'Please log out and log back in to change your password.',
+          });
+          router.push('/');
+      } else {
+          toast({
+            variant: 'destructive',
+            title: 'Error Updating Password',
+            description: error.message || 'An unexpected error occurred.',
+          });
+      }
+    } finally {
+        setLoading(false);
     }
+  }
+
+  if (authLoading || !authUser) {
+      return (
+          <div className="flex flex-col space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+          </div>
+      );
   }
 
   return (
@@ -129,114 +164,14 @@ function ResetPasswordForm({ oobCode }: { oobCode: string }) {
           )}
         />
         <Button type="submit" className="w-full" size="lg" disabled={loading}>
-          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save New Password'}
+          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Update Password'}
         </Button>
       </form>
     </Form>
   );
 }
 
-// Component for sending the reset email
-function SendEmailForm() {
-    const auth = useFirebaseAuth();
-    const { toast } = useToast();
-    const [loading, setLoading] = React.useState(false);
-    const [emailSent, setEmailSent] = React.useState(false);
-
-    const form = useForm<z.infer<typeof emailSchema>>({
-        resolver: zodResolver(emailSchema),
-        defaultValues: { email: '' },
-    });
-
-    async function onSubmit(values: z.infer<typeof emailSchema>) {
-        setLoading(true);
-        try {
-            const actionCodeSettings = {
-                url: `${window.location.origin}/forgot-password`,
-                handleCodeInApp: true,
-            };
-            await sendPasswordResetEmail(auth, values.email, actionCodeSettings);
-            setEmailSent(true);
-        } catch (error: any) {
-            toast({
-                variant: 'destructive',
-                title: 'Error Sending Email',
-                description: 'Could not send password reset email. Please check the address.',
-            });
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    if (emailSent) {
-        return (
-            <div className="text-center p-6 rounded-lg bg-muted border">
-                <Send className="h-12 w-12 mx-auto text-primary" />
-                <h3 className="mt-4 text-lg font-semibold">Check Your Email</h3>
-                <p className="mt-2 text-muted-foreground">
-                    A password reset link is on its way to <span className="font-bold">{form.getValues('email')}</span>. Click it to reset your password.
-                </p>
-            </div>
-        );
-    }
-    
-    return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                                <Mail className="h-4 w-4" />Email Address
-                            </FormLabel>
-                            <FormControl>
-                                <Input type="email" placeholder="Enter your email" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <Button type="submit" className="w-full" size="lg" disabled={loading}>
-                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Send Reset Link'}
-                </Button>
-            </form>
-        </Form>
-    )
-}
-
-// The main page component that decides which form to show
-function ForgotPasswordContent() {
-    const searchParams = useSearchParams();
-    const oobCode = searchParams.get('oobCode');
-
-    return (
-      <Card className="w-full max-w-md shadow-2xl">
-          <CardHeader className="text-center">
-              <CardTitle className="font-headline text-3xl">
-                {oobCode ? "Create New Password" : "Forgot Password"}
-              </CardTitle>
-              <CardDescription>
-                  {oobCode ? "Create a new password for your account." : "Enter your email to receive a password reset link."}
-              </CardDescription>
-          </CardHeader>
-          <CardContent>
-              <React.Suspense fallback={<Skeleton className="h-40 w-full" />}>
-                 {oobCode ? <ResetPasswordForm oobCode={oobCode} /> : <SendEmailForm />}
-              </React.Suspense>
-          </CardContent>
-           <CardFooter className="justify-center pt-4">
-              <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary">
-                  Back to Login
-              </Link>
-          </CardFooter>
-      </Card>
-    )
-}
-
 export default function ForgotPasswordPage() {
-
   return (
       <main className="relative grid min-h-screen grid-cols-1 lg:grid-cols-2 bg-background">
           <div className="flex flex-col items-center justify-center p-8">
@@ -250,9 +185,26 @@ export default function ForgotPasswordPage() {
                 </div>
             </div>
             <div className="flex-1 flex items-center justify-center w-full">
-              <React.Suspense fallback={<Skeleton className="h-96 w-full max-w-md" />}>
-                 <ForgotPasswordContent />
-              </React.Suspense>
+               <Card className="w-full max-w-md shadow-2xl">
+                    <CardHeader className="text-center">
+                        <CardTitle className="font-headline text-3xl">
+                            Change Password
+                        </CardTitle>
+                        <CardDescription>
+                            Enter a new password for your account.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <React.Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                           <DirectUpdatePasswordForm />
+                        </React.Suspense>
+                    </CardContent>
+                     <CardFooter className="justify-center pt-4">
+                        <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary">
+                            Back to Home
+                        </Link>
+                    </CardFooter>
+                </Card>
             </div>
              <footer className="w-full text-center text-xs text-foreground mt-8">
                 <div className="flex justify-center items-center gap-4 mb-2">
@@ -275,7 +227,7 @@ export default function ForgotPasswordPage() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/10" />
               <div className="absolute bottom-12 left-12 text-white max-w-md z-10">
                   <h2 className="text-4xl font-bold font-headline">Secure & Simple.</h2>
-                  <p className="mt-2 text-lg text-white/80">Reset your password with confidence. We've made it easy to get back into your account securely.</p>
+                  <p className="mt-2 text-lg text-white/80">Update your password with confidence.</p>
               </div>
           </div>
       </main>
