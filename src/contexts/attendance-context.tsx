@@ -131,7 +131,6 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       recordToSave.reason = record.reason;
     } else {
       // For 'absent' or simple 'present', ensure the reason field is explicitly removed.
-      // This is critical to fix the bug where an old reason would persist.
       recordToSave.reason = deleteField();
     }
 
