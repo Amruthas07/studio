@@ -112,7 +112,6 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const docId = `${record.date}_${record.studentRegister}`;
     const recordDocRef = doc(firestore, 'attendance', docId);
 
-    // Use a generic object type to allow for `deleteField()`
     const dataToSave: { [key: string]: any } = {
       studentRegister: record.studentRegister,
       date: record.date,
@@ -124,14 +123,16 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       timestamp: serverTimestamp(),
     };
     
-    // Explicitly handle the 'reason' field to ensure it is removed when not needed.
+    // Explicitly handle the 'reason' field. This is critical for the UI to update correctly.
+    // When marking 'Present' or 'Absent', we MUST remove the 'reason' field if it exists.
     if (record.reason) {
-      dataToSave.reason = record.reason; // Add reason if it exists (for 'On Leave')
+      dataToSave.reason = record.reason;
     } else {
-      dataToSave.reason = deleteField(); // Remove reason field for 'Present' or 'Absent'
+      dataToSave.reason = deleteField(); // This sentinel value removes the field from the document.
     }
 
     const handleFirestoreError = (error: any, path: string, operation: 'write' | 'update' | 'create', data: any) => {
+      console.error(`Firestore Error (${operation}) on path '${path}':`, { error, data });
       if (error.code === 'permission-denied') {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path, operation, requestResourceData: data }));
       } else {
@@ -139,7 +140,8 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       }
     };
     
-    // Use setDoc with merge: true to create or update. This will correctly add, update, or remove the 'reason' field.
+    // Use setDoc with merge: true to create or update. 
+    // This correctly handles the "upsert" logic and applies field deletions.
     setDoc(recordDocRef, dataToSave, { merge: true })
         .catch(err => handleFirestoreError(err, recordDocRef.path, 'write', dataToSave));
   }, [firestore, toast, students]);

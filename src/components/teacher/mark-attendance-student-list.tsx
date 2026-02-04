@@ -51,6 +51,7 @@ const MarkLeaveButton = ({ student, onMarkAttendance }: { student: Student; onMa
       });
       return;
     }
+    // "On Leave" is a "present" status with a reason
     onMarkAttendance(student.registerNumber, 'present', reason);
     setReason('');
     setIsDialogOpen(false);
@@ -58,7 +59,7 @@ const MarkLeaveButton = ({ student, onMarkAttendance }: { student: Student; onMa
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      setReason(''); // Reset reason when dialog is closed
+      setReason('');
     }
     setIsDialogOpen(open);
   }
@@ -66,7 +67,7 @@ const MarkLeaveButton = ({ student, onMarkAttendance }: { student: Student; onMa
   return (
     <AlertDialog open={isDialogOpen} onOpenChange={handleOpenChange}>
       <AlertDialogTrigger asChild>
-         <Button size="sm" variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300 dark:bg-yellow-900/50 dark:text-yellow-300 dark:hover:bg-yellow-900 dark:border-yellow-700">
+         <Button size="sm" variant="outline" className="w-[110px] bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300 dark:bg-yellow-900/50 dark:text-yellow-300 dark:hover:bg-yellow-900 dark:border-yellow-700">
             <FileClock className="mr-2 h-4 w-4" /> On Leave
          </Button>
       </AlertDialogTrigger>
@@ -99,7 +100,11 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
   const today = React.useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
 
   const getStudentData = React.useCallback((student: Student) => {
-    const todaysRecord = allDepartmentRecords.find(r => r.date === today && r.studentRegister === student.registerNumber);
+    // Find the latest record for today for a specific student.
+    const todaysRecord = allDepartmentRecords
+      .filter(r => r.date === today && r.studentRegister === student.registerNumber)
+      .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]; // Get the most recent one
+
     const studentOverallRecords = allDepartmentRecords.filter(r => r.studentRegister === student.registerNumber);
     const allWorkingDayStrings = new Set(allDepartmentRecords.map(r => r.date));
     const enrollmentDayStart = new Date(student.createdAt);
@@ -176,20 +181,20 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
                   {todaysRecord.status === 'present' && !todaysRecord.reason && <CheckCircle className="h-4 w-4 flex-shrink-0" />}
 
                   <div className="flex flex-col items-center justify-center">
-                    <span className="-mb-0.5">
+                    <span className="-mb-0.5 truncate">
                         {todaysRecord.status === 'absent' ? 'Absent' : (!!todaysRecord.reason ? 'On Leave' : 'Present')}
                     </span>
                     {todaysRecord.status === 'present' && todaysRecord.reason && (
-                      <span className="text-xs font-normal italic opacity-80 truncate">({todaysRecord.reason})</span>
+                      <span className="text-xs font-normal italic opacity-80 truncate" title={todaysRecord.reason}>({todaysRecord.reason})</span>
                     )}
                   </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                   <Button size="sm" variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-700" onClick={() => onMarkAttendance(student.registerNumber, 'absent')}>
+                   <Button size="sm" variant="outline" className="w-[110px] bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-700" onClick={() => onMarkAttendance(student.registerNumber, 'absent')}>
                       <XCircle className="mr-2 h-4 w-4" /> Absent
                   </Button>
-                   <Button size="sm" variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 dark:border-green-700" onClick={() => onMarkAttendance(student.registerNumber, 'present')}>
+                   <Button size="sm" variant="outline" className="w-[110px] bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 dark:border-green-700" onClick={() => onMarkAttendance(student.registerNumber, 'present')}>
                       <CheckCircle className="mr-2 h-4 w-4" /> Present
                   </Button>
                   <MarkLeaveButton student={student} onMarkAttendance={onMarkAttendance} />
