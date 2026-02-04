@@ -90,12 +90,21 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         if (email.toLowerCase() === ADMIN_EMAIL) {
             throw new Error("This email is reserved for the administrator.");
         }
-        const q = query(collection(firestore, "teachers"), where("email", "==", email));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-            throw new Error(`A teacher with email ${email} already exists.`);
-        }
         
+        // Check if email is used by another teacher
+        const teacherQuery = query(collection(firestore, "teachers"), where("email", "==", email));
+        const teacherSnap = await getDocs(teacherQuery);
+        if (!teacherSnap.empty) {
+            throw new Error(`A teacher account with email ${email} already exists.`);
+        }
+
+        // Check if email is used by a student
+        const studentQuery = query(collection(firestore, "students"), where("email", "==", email));
+        const studentSnap = await getDocs(studentQuery);
+        if (!studentSnap.empty) {
+            throw new Error(`This email is already in use by a student account.`);
+        }
+
         const avatarPlaceholder = PlaceHolderImages.find((img) => img.id === 'avatar-placeholder');
         const downloadURL = avatarPlaceholder?.imageUrl.replace('avatar', email) || `https://picsum.photos/seed/${email}/100/100`;
         
@@ -119,6 +128,11 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         if (userCredential) {
             await userCredential.user.delete().catch(e => console.warn("Auth user cleanup failed", e));
         }
+
+        if (error.code === 'auth/email-already-in-use') {
+            return { success: false, error: 'This email address is already registered. It may be in use by another teacher or student.' };
+        }
+        
         return { success: false, error: error.message };
     } finally {
         await deleteApp(tempApp);
