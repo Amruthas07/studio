@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { MarkAttendanceStudentList } from '@/components/teacher/mark-attendance-student-list';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { Student } from '@/lib/types';
 
 export default function MarkAttendancePage() {
   const { user, loading: authLoading } = useAuth();
@@ -48,9 +50,9 @@ export default function MarkAttendancePage() {
     });
   };
   
-  const handleMarkAllPresent = () => {
+  const handleMarkAllPresentForSemester = (studentsInSemester: Student[]) => {
     let markedCount = 0;
-    departmentStudents.forEach(student => {
+    studentsInSemester.forEach(student => {
       // Only mark students who are visible in the current filtered list
       const record = getTodaysRecordForStudent(student.registerNumber, today);
       if (!record) {
@@ -81,6 +83,7 @@ export default function MarkAttendancePage() {
     );
   }
 
+  const semesters = [1, 2, 3, 4, 5, 6];
 
   return (
     <div className="flex flex-col gap-6">
@@ -103,28 +106,49 @@ export default function MarkAttendancePage() {
             className="pl-10"
             />
         </div>
-        <Button onClick={handleMarkAllPresent}>
-            <CheckCheck className="mr-2 h-4 w-4" />
-            Mark All Present
-        </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Student List</CardTitle>
-          <CardDescription>
-            Mark attendance for each student. Students with attendance already recorded will show their status.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <MarkAttendanceStudentList 
-            students={departmentStudents}
-            getTodaysRecordForStudent={getTodaysRecordForStudent}
-            onMarkAttendance={handleMarkAttendance}
-            today={today}
-          />
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="1" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
+          {semesters.map(sem => (
+            <TabsTrigger key={sem} value={String(sem)}>Sem {sem}</TabsTrigger>
+          ))}
+        </TabsList>
+
+        {semesters.map(sem => {
+          const semesterStudents = departmentStudents.filter(s => s.semester === sem);
+          
+          return (
+            <TabsContent key={sem} value={String(sem)} className="mt-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Semester {sem} Students</CardTitle>
+                        <CardDescription>
+                            A list of students in this semester.
+                        </CardDescription>
+                    </div>
+                      <Button 
+                          onClick={() => handleMarkAllPresentForSemester(semesterStudents)}
+                          disabled={semesterStudents.length === 0}
+                      >
+                        <CheckCheck className="mr-2 h-4 w-4" />
+                        Mark All Present
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                  <MarkAttendanceStudentList 
+                    students={semesterStudents}
+                    getTodaysRecordForStudent={getTodaysRecordForStudent}
+                    onMarkAttendance={handleMarkAttendance}
+                    today={today}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )
+        })}
+      </Tabs>
     </div>
   );
 }
