@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -15,6 +14,72 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Student } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// New component for the tab content
+const SemesterTabContent = ({ sem, students, allRecords, user, onMarkAttendance, onMarkAllPresent }: {
+    sem: number;
+    students: Student[];
+    allRecords: any[];
+    user: any;
+    onMarkAttendance: (studentRegister: string, status: 'present' | 'absent', reason?: string) => void;
+    onMarkAllPresent: (studentsInSemester: Student[]) => void;
+}) => {
+    const subjectsForSemester = user.subjects?.[sem] || [];
+    const [selectedSubject, setSelectedSubject] = React.useState(subjectsForSemester[0] || '');
+
+    React.useEffect(() => {
+        if (subjectsForSemester.length > 0 && !subjectsForSemester.includes(selectedSubject)) {
+            setSelectedSubject(subjectsForSemester[0]);
+        }
+    }, [subjectsForSemester, selectedSubject]);
+
+    return (
+        <TabsContent value={String(sem)} className="mt-4">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Semester {sem} Students</CardTitle>
+                        <CardDescription className="flex items-center gap-2 mt-1">
+                            {subjectsForSemester.length > 0 ? (
+                                <>
+                                    <span>Subject:</span>
+                                    {subjectsForSemester.length === 1 ? (
+                                        <span className="font-semibold">{subjectsForSemester[0]}</span>
+                                    ) : (
+                                        <Select onValueChange={setSelectedSubject} value={selectedSubject}>
+                                            <SelectTrigger className="w-[250px] h-8">
+                                                <SelectValue placeholder="Select a subject" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {subjectsForSemester.map(subj => (
+                                                    <SelectItem key={subj} value={subj}>{subj}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </>
+                            ) : 'No subject assigned for this semester.'}
+                        </CardDescription>
+                    </div>
+                    <Button
+                        onClick={() => onMarkAllPresent(students)}
+                        disabled={students.length === 0}
+                    >
+                        <CheckCheck className="mr-2 h-4 w-4" />
+                        Mark All Present
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    <MarkAttendanceStudentList
+                        students={students}
+                        allDepartmentRecords={allRecords}
+                        onMarkAttendance={onMarkAttendance}
+                    />
+                </CardContent>
+            </Card>
+        </TabsContent>
+    );
+};
 
 
 export default function MarkAttendancePage() {
@@ -116,60 +181,17 @@ export default function MarkAttendancePage() {
 
         {semesters.map(sem => {
           const semesterStudents = departmentStudents.filter(s => s.semester === sem);
-          const subjectsForSemester = user.subjects?.[sem] || [];
-          const [selectedSubject, setSelectedSubject] = React.useState(subjectsForSemester[0] || '');
-
-          React.useEffect(() => {
-            if (subjectsForSemester.length > 0 && !subjectsForSemester.includes(selectedSubject)) {
-                setSelectedSubject(subjectsForSemester[0]);
-            }
-          }, [subjectsForSemester, selectedSubject]);
           
           return (
-            <TabsContent key={sem} value={String(sem)} className="mt-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle>Semester {sem} Students</CardTitle>
-                        <CardDescription className="flex items-center gap-2 mt-1">
-                          {subjectsForSemester.length > 0 ? (
-                            <>
-                              <span>Subject:</span>
-                              {subjectsForSemester.length === 1 ? (
-                                <span className="font-semibold">{subjectsForSemester[0]}</span>
-                              ) : (
-                                <Select onValueChange={setSelectedSubject} value={selectedSubject}>
-                                  <SelectTrigger className="w-[250px] h-8">
-                                      <SelectValue placeholder="Select a subject" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                      {subjectsForSemester.map(subj => (
-                                          <SelectItem key={subj} value={subj}>{subj}</SelectItem>
-                                      ))}
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </>
-                          ) : 'No subject assigned for this semester.'}
-                        </CardDescription>
-                    </div>
-                      <Button 
-                          onClick={() => handleMarkAllPresentForSemester(semesterStudents)}
-                          disabled={semesterStudents.length === 0}
-                      >
-                        <CheckCheck className="mr-2 h-4 w-4" />
-                        Mark All Present
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                  <MarkAttendanceStudentList 
-                    students={semesterStudents}
-                    allDepartmentRecords={attendanceRecords}
-                    onMarkAttendance={handleMarkAttendance}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
+            <SemesterTabContent
+                key={sem}
+                sem={sem}
+                students={semesterStudents}
+                allRecords={attendanceRecords}
+                user={user}
+                onMarkAttendance={handleMarkAttendance}
+                onMarkAllPresent={handleMarkAllPresentForSemester}
+            />
           )
         })}
       </Tabs>
