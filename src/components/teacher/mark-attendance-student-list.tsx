@@ -97,50 +97,15 @@ const MarkLeaveButton = ({ student, onMarkAttendance }: { student: Student; onMa
 
 const StudentAttendanceRow = ({
   student,
-  allDepartmentRecords,
+  todaysRecord,
+  overallAttendancePercentage,
   onMarkAttendance,
 }: {
   student: Student;
-  allDepartmentRecords: AttendanceRecord[];
+  todaysRecord: AttendanceRecord | undefined;
+  overallAttendancePercentage: number;
   onMarkAttendance: MarkAttendanceStudentListProps['onMarkAttendance'];
 }) => {
-  const today = React.useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
-  
-  const record = React.useMemo(
-    () => allDepartmentRecords.find(r => r.date === today && r.studentRegister === student.registerNumber),
-    [allDepartmentRecords, student.registerNumber, today]
-  );
-
-  const { percentage } = React.useMemo(() => {
-    const studentOverallRecords = allDepartmentRecords.filter(r => r.studentRegister === student.registerNumber);
-    const allWorkingDayStrings = new Set(allDepartmentRecords.map(r => r.date));
-    const enrollmentDayStart = new Date(student.createdAt);
-    enrollmentDayStart.setHours(0, 0, 0, 0);
-
-    const studentWorkingDays = Array.from(allWorkingDayStrings).filter(dateStr => {
-      const recordDate = new Date(`${dateStr}T00:00:00`);
-      return recordDate >= enrollmentDayStart;
-    });
-
-    const totalDays = studentWorkingDays.length;
-
-    const presentAndOnLeaveDays = new Set(
-      studentOverallRecords
-        .filter(r => r.status === 'present')
-        .map(r => r.date)
-    ).size;
-
-    if (totalDays === 0) {
-      return { percentage: 100 };
-    }
-
-    const attendancePercentage = Math.round((presentAndOnLeaveDays / totalDays) * 100);
-
-    return {
-      percentage: attendancePercentage > 100 ? 100 : attendancePercentage,
-    };
-  }, [allDepartmentRecords, student]);
-
   const getIndicatorColor = (p: number) => {
     if (p >= 75) return 'bg-green-500';
     if (p >= 45) return 'bg-orange-500';
@@ -158,19 +123,30 @@ const StudentAttendanceRow = ({
           <p className="font-semibold">{student.name}</p>
           <p className="text-sm text-muted-foreground">{student.registerNumber}</p>
           <div className="flex items-center gap-2 mt-2">
-            <Progress value={percentage} className="h-2 w-20" indicatorClassName={getIndicatorColor(percentage)} />
-            <span className="text-xs font-medium text-muted-foreground">{percentage}%</span>
+            <Progress value={overallAttendancePercentage} className="h-2 w-20" indicatorClassName={getIndicatorColor(overallAttendancePercentage)} />
+            <span className="text-xs font-medium text-muted-foreground">{overallAttendancePercentage}%</span>
           </div>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
-        {record ? (
-          <Badge variant={record.reason ? 'secondary' : record.status === 'present' ? 'default' : 'destructive'} className="text-base">
-            {record.status === 'present' && !record.reason && <Check className="mr-2 h-4 w-4" />}
-            {record.reason && <LogOut className="mr-2 h-4 w-4" />}
-            {record.status === 'absent' && <X className="mr-2 h-4 w-4" />}
-            Status: {record.reason ? 'On Leave' : record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+        {todaysRecord ? (
+          <Badge variant={todaysRecord.reason ? 'secondary' : todaysRecord.status === 'present' ? 'default' : 'destructive'} className="h-auto p-2 text-left">
+            <div className="flex items-start gap-2">
+                {todaysRecord.status === 'present' && !todaysRecord.reason && <Check className="mt-1 h-4 w-4 flex-shrink-0" />}
+                {todaysRecord.reason && <LogOut className="mt-1 h-4 w-4 flex-shrink-0" />}
+                {todaysRecord.status === 'absent' && <X className="mt-1 h-4 w-4 flex-shrink-0" />}
+                <div className="flex flex-col">
+                    <span className="font-semibold">
+                        Status: {todaysRecord.reason ? 'On Leave' : todaysRecord.status.charAt(0).toUpperCase() + todaysRecord.status.slice(1)}
+                    </span>
+                    {todaysRecord.reason && (
+                        <span className="text-xs font-normal italic">
+                            Reason: {todaysRecord.reason}
+                        </span>
+                    )}
+                </div>
+            </div>
           </Badge>
         ) : (
           <>
@@ -189,7 +165,42 @@ const StudentAttendanceRow = ({
 };
 
 export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMarkAttendance }: MarkAttendanceStudentListProps) {
-  
+  const today = React.useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
+
+  const getStudentData = React.useCallback((student: Student) => {
+    // Find today's record for this student
+    const todaysRecord = allDepartmentRecords.find(r => r.date === today && r.studentRegister === student.registerNumber);
+    
+    // Calculate overall attendance percentage
+    const studentOverallRecords = allDepartmentRecords.filter(r => r.studentRegister === student.registerNumber);
+    const allWorkingDayStrings = new Set(allDepartmentRecords.map(r => r.date));
+    const enrollmentDayStart = new Date(student.createdAt);
+    enrollmentDayStart.setHours(0, 0, 0, 0);
+
+    const studentWorkingDays = Array.from(allWorkingDayStrings).filter(dateStr => {
+        const recordDate = new Date(`${dateStr}T00:00:00`);
+        return recordDate >= enrollmentDayStart;
+    });
+
+    const totalDays = studentWorkingDays.length;
+
+    const presentAndOnLeaveDays = new Set(
+        studentOverallRecords
+            .filter(r => r.status === 'present')
+            .map(r => r.date)
+    ).size;
+    
+    let percentage = 100;
+    if (totalDays > 0) {
+        percentage = Math.round((presentAndOnLeaveDays / totalDays) * 100);
+    }
+    
+    const overallAttendancePercentage = percentage > 100 ? 100 : percentage;
+
+    return { todaysRecord, overallAttendancePercentage };
+  }, [allDepartmentRecords, today]);
+
+
   if (students.length === 0) {
     return <div className="text-center text-muted-foreground p-8">No students found for this semester.</div>;
   }
@@ -197,11 +208,13 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
   return (
     <div className="space-y-4">
       {students.sort((a, b) => a.name.localeCompare(b.name)).map(student => {
+        const { todaysRecord, overallAttendancePercentage } = getStudentData(student);
         return (
           <StudentAttendanceRow
             key={student.registerNumber}
             student={student}
-            allDepartmentRecords={allDepartmentRecords}
+            todaysRecord={todaysRecord}
+            overallAttendancePercentage={overallAttendancePercentage}
             onMarkAttendance={onMarkAttendance}
           />
         );
