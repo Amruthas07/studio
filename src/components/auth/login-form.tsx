@@ -97,11 +97,6 @@ export function LoginForm() {
                     <Lock className="h-4 w-4" />
                     Password
                  </span>
-                 {!isAdminLogin && (
-                    <Link href="/reset-password" className="text-sm font-medium text-muted-foreground hover:text-primary">
-                        Forgot Password?
-                    </Link>
-                 )}
               </FormLabel>
               <FormControl>
                 <div className="relative">

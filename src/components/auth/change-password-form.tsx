@@ -19,7 +19,6 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
 const formSchema = z.object({
-  currentPassword: z.string().min(1, { message: 'Current password is required.' }),
   newPassword: z.string().min(6, { message: 'New password must be at least 6 characters.' }),
   confirmPassword: z.string(),
 }).refine(data => data.newPassword === data.confirmPassword, {
@@ -39,7 +38,6 @@ export function ChangePasswordForm({ onPasswordChanged }: ChangePasswordFormProp
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      currentPassword: '',
       newPassword: '',
       confirmPassword: '',
     },
@@ -47,7 +45,7 @@ export function ChangePasswordForm({ onPasswordChanged }: ChangePasswordFormProp
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-    const result = await changePassword(values.currentPassword, values.newPassword);
+    const result = await changePassword(values.newPassword);
     
     if (result.success) {
         toast({
@@ -68,23 +66,6 @@ export function ChangePasswordForm({ onPasswordChanged }: ChangePasswordFormProp
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="currentPassword"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Current Password</FormLabel>
-              <FormControl>
-                <Input
-                  type="password"
-                  placeholder="Enter your current password"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <FormField
           control={form.control}
           name="newPassword"

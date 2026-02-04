@@ -41,7 +41,7 @@ interface AuthContextType {
   loading: boolean;
   login: (identifier: string, pass: string) => Promise<void>;
   logout: () => void;
-  changePassword: (currentPass: string, newPass: string) => Promise<{ success: boolean; error?: string }>;
+  changePassword: (newPass: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(
@@ -59,6 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const firestore = useFirestore();
   const auth = useFirebaseAuth();
   const { user: firebaseUser, isUserLoading } = useUser();
+
+  const logout = useCallback(async () => {
+    await signOut(auth);
+    setAuthUser(null);
+    router.push('/');
+  }, [auth, router]);
 
   useEffect(() => {
     if (isUserLoading || !firestore) {
@@ -223,36 +229,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [auth, firestore]);
 
-  const changePassword = useCallback(async (currentPass: string, newPass: string): Promise<{ success: boolean; error?: string }> => {
+  const changePassword = useCallback(async (newPass: string): Promise<{ success: boolean; error?: string }> => {
     const user = auth.currentUser;
-    if (!user || !user.email) {
+    if (!user) {
         return { success: false, error: 'No user is currently signed in.' };
     }
 
-    const credential = EmailAuthProvider.credential(user.email, currentPass);
-
     try {
-        await reauthenticateWithCredential(user, credential);
-        // User re-authenticated, now they can update the password.
         await updatePassword(user, newPass);
         return { success: true };
     } catch (error: any) {
         console.error("Password change error:", error);
         let errorMessage = 'An unexpected error occurred.';
-        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-            errorMessage = 'The current password you entered is incorrect.';
+        if (error.code === 'auth/requires-recent-login') {
+            errorMessage = 'This action is sensitive and requires recent authentication. Please log out and log back in to change your password.';
+            logout();
         } else if (error.code === 'auth/weak-password') {
-            errorMessage = 'The new password is too weak. It must be at least 6 characters.';
+            errorMessage = 'The new password is too weak. It must be at least 6 characters long.';
         }
         return { success: false, error: errorMessage };
     }
-  }, [auth]);
-
-  const logout = useCallback(async () => {
-    await signOut(auth);
-    setAuthUser(null);
-    router.push('/');
-  }, [auth, router]);
+  }, [auth, logout]);
 
   return (
     <AuthContext.Provider value={{ user: authUser, loading, login, logout, changePassword }}>
