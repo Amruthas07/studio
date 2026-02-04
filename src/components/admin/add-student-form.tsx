@@ -7,7 +7,6 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
 import { CalendarIcon, Loader2 } from "lucide-react"
-import Image from 'next/image';
 
 import { Button } from "@/components/ui/button"
 import {
@@ -32,7 +31,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useStudents } from "@/hooks/use-students"
-import type { Student } from "@/lib/types"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -46,9 +44,6 @@ const formSchema = z.object({
   dateOfBirth: z.date({
     required_error: "A date of birth is required.",
   }),
-  photo: z.instanceof(File, { message: "A profile photo is required." })
-    .refine(file => file.size > 0, "A profile photo is required.")
-    .refine(file => file.size < 5 * 1024 * 1024, "Photo must be less than 5MB."),
 })
 
 type AddStudentFormProps = {
@@ -60,10 +55,7 @@ const DEPARTMENT_LIMIT = 700;
 export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const { toast } = useToast()
   const { addStudent, students } = useStudents();
-  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -97,12 +89,9 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
         description: `Your request to enroll ${values.name} is being processed.`,
     });
     
-    const { photo, ...studentDetails } = values;
-    
     addStudent({
-        ...studentDetails,
+        ...values,
         dateOfBirth: values.dateOfBirth,
-        photoFile: photo,
     }).then((result) => {
       if (result.success) {
           toast({
@@ -120,86 +109,38 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     });
 
     form.reset();
-    setPreviewUrl(null);
   }
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      form.setValue('photo', file, { shouldValidate: true });
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
-    }
-  }
-  
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-4">
-                     <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Student Name</FormLabel>
-                            <FormControl>
-                                <Input placeholder="John Doe" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                        <FormField
-                        control={form.control}
-                        name="registerNumber"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Register Number</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Unique ID" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-                <div className="space-y-2">
-                    <FormLabel>Profile Photo</FormLabel>
-                    <div className="w-full aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
-                        {previewUrl ? (
-                            <Image src={previewUrl} alt="Student preview" layout="fill" objectFit="cover" />
-                        ) : (
-                            <div className="text-center text-muted-foreground p-4">
-                                
-                            </div>
-                        )}
-                    </div>
-                     
-                    <FormField
-                        control={form.control}
-                        name="photo"
-                        render={() => (
-                           <FormItem>
-                                <FormControl>
-                                    <Input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept="image/png, image/jpeg"
-                                        onChange={handlePhotoChange}
-                                        className="hidden"
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                           </FormItem>
-                        )}
-                    />
-                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
-                        Upload Photo
-                    </Button>
-                </div>
-            </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Student Name</FormLabel>
+                    <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="registerNumber"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Register Number</FormLabel>
+                    <FormControl>
+                        <Input placeholder="Unique ID" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
                 <FormField
                 control={form.control}
                 name="fatherName"
@@ -257,7 +198,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Current Semester</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                      <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a semester" />

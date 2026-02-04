@@ -52,7 +52,7 @@ export interface StudentsContextType {
   students: Student[];
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   loading: boolean;
-  addStudent: (studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt' | 'uid'> & { photoFile: File }) => Promise<{ success: boolean; error?: string; }>;
+  addStudent: (studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt' | 'uid'>) => Promise<{ success: boolean; error?: string; }>;
   updateStudent: (
     registerNumber: string,
     studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'profilePhotoUrl' | 'photoHash' | 'updatedAt'>> & { newPhotoFile?: File }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -19,6 +20,7 @@ import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getImageHash, resizeAndCompressImage } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const ADMIN_EMAIL = "apdd46@gmail.com";
 
@@ -118,12 +120,12 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   }, [firestore, user, authLoading]);
 
   const addStudent = useCallback(async (
-    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt' | 'uid'> & { photoFile: File }
+    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt' | 'uid'>
   ): Promise<{ success: boolean; error?: string }> => {
-    if (!firestore || !firebaseApp) {
+    if (!firestore) {
         return { success: false, error: 'Firebase services not initialized.' };
     }
-    const { photoFile, ...details } = studentData;
+    const details = studentData;
 
     const tempAppName = `create-user-student-${Date.now()}`;
     const tempApp = initializeApp(firebaseConfig, tempAppName);
@@ -146,28 +148,16 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             throw new Error(`A student with email ${details.email} already exists.`);
         }
 
-        const storage = getStorage(firebaseApp);
-        const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
-        const processedPhoto = await resizeAndCompressImage(photoFile);
-        const photoHash = await getImageHash(processedPhoto);
+        const avatarPlaceholder = PlaceHolderImages.find((img) => img.id === 'avatar-placeholder');
+        const downloadURL = avatarPlaceholder?.imageUrl || `https://picsum.photos/seed/${details.registerNumber}/100/100`;
 
-        const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
-        const duplicateSnap = await getDocs(duplicateQuery);
-        if (!duplicateSnap.empty) {
-            throw new Error(`This photo is already enrolled for ${duplicateSnap.docs[0].data().name}.`);
-        }
-
-        await uploadBytes(photoRef, processedPhoto);
-        const downloadURL = await getDownloadURL(photoRef);
-        
         userCredential = await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
         const uid = userCredential.user.uid;
 
         const newStudentData = {
             ...details,
             uid,
-            profilePhotoUrl: downloadURL, 
-            photoHash: photoHash, 
+            profilePhotoUrl: downloadURL,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
@@ -187,7 +177,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     } finally {
         await deleteApp(tempApp);
     }
-  }, [firestore, firebaseApp]);
+  }, [firestore]);
 
 
   const updateStudent = useCallback(async (
