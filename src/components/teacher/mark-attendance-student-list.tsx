@@ -24,7 +24,7 @@ import { Badge } from '../ui/badge';
 interface MarkAttendanceStudentListProps {
   students: Student[];
   today: string;
-  getTodaysRecordForStudent: (studentRegister: string, date: string) => AttendanceRecord | undefined;
+  attendanceRecords: AttendanceRecord[];
   onMarkAttendance: (studentRegister: string, status: 'present' | 'absent', reason?: string) => void;
 }
 
@@ -95,7 +95,7 @@ const MarkLeaveButton = ({ student, onMarkAttendance }: { student: Student; onMa
 };
 
 
-export function MarkAttendanceStudentList({ students, today, getTodaysRecordForStudent, onMarkAttendance }: MarkAttendanceStudentListProps) {
+export function MarkAttendanceStudentList({ students, today, attendanceRecords, onMarkAttendance }: MarkAttendanceStudentListProps) {
   
   if (students.length === 0) {
     return <div className="text-center text-muted-foreground p-8">No students found for this semester.</div>;
@@ -104,7 +104,7 @@ export function MarkAttendanceStudentList({ students, today, getTodaysRecordForS
   return (
     <div className="space-y-4">
       {students.sort((a, b) => a.name.localeCompare(b.name)).map(student => {
-        const record = getTodaysRecordForStudent(student.registerNumber, today);
+        const record = attendanceRecords.find(r => r.studentRegister === student.registerNumber && r.date === today);
         
         return (
           <div key={student.registerNumber} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">

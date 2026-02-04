@@ -139,7 +139,7 @@ export default function MarkAttendancePage() {
                 <CardContent>
                   <MarkAttendanceStudentList 
                     students={semesterStudents}
-                    getTodaysRecordForStudent={getTodaysRecordForStudent}
+                    attendanceRecords={attendanceRecords}
                     onMarkAttendance={handleMarkAttendance}
                     today={today}
                   />
