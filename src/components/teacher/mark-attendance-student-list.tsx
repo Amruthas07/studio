@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -39,7 +38,7 @@ const getInitials = (name: string) => {
     return name.substring(0, 2).toUpperCase();
 };
 
-const MarkLeaveButton = ({ student, onMarkAttendance, disabled }: { student: Student; onMarkAttendance: MarkAttendanceStudentListProps['onMarkAttendance'], disabled: boolean }) => {
+const MarkLeaveButton = ({ student, onMarkAttendance, disabled, isOnLeave }: { student: Student & { todaysRecord?: AttendanceRecord }; onMarkAttendance: MarkAttendanceStudentListProps['onMarkAttendance'], disabled: boolean, isOnLeave: boolean }) => {
   const { toast } = useToast();
   const [reason, setReason] = React.useState('');
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -68,7 +67,16 @@ const MarkLeaveButton = ({ student, onMarkAttendance, disabled }: { student: Stu
   return (
     <AlertDialog open={isDialogOpen} onOpenChange={handleOpenChange}>
       <AlertDialogTrigger asChild>
-         <Button size="sm" variant="outline" className="w-[110px] bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300 dark:bg-yellow-900/50 dark:text-yellow-300 dark:hover:bg-yellow-900 dark:border-yellow-700 disabled:opacity-50 disabled:bg-muted" disabled={disabled}>
+         <Button 
+            size="sm" 
+            variant="outline"
+            className={cn(
+                "w-[110px]",
+                isOnLeave 
+                    ? 'bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-600'
+                    : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300 dark:bg-yellow-900/50 dark:text-yellow-300 dark:hover:bg-yellow-900 dark:border-yellow-700'
+                )} 
+            disabled={disabled}>
             <FileClock className="mr-2 h-4 w-4" /> On Leave
          </Button>
       </AlertDialogTrigger>
@@ -77,6 +85,12 @@ const MarkLeaveButton = ({ student, onMarkAttendance, disabled }: { student: Stu
               <AlertDialogTitle>Mark Leave for {student.name}</AlertDialogTitle>
               <AlertDialogDescription>
                   This will mark the student as present but on leave. Please provide a reason below.
+                   {isOnLeave && student.todaysRecord?.reason && (
+                    <div className="mt-4 rounded-md border border-yellow-200 bg-yellow-50 p-3 text-yellow-900 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-200">
+                        <p className="font-bold text-sm">Current reason:</p>
+                        <p className="text-sm">{student.todaysRecord.reason}</p>
+                    </div>
+                  )}
               </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="grid gap-2">
@@ -110,10 +124,15 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
     <div className="space-y-4">
       {students.sort((a, b) => a.name.localeCompare(b.name)).map(student => {
         
-        // This logic is now inside the map loop, ensuring it re-evaluates on every render with fresh props.
         const todaysRecord = allDepartmentRecords
           .filter(r => r.date === today && r.studentRegister === student.registerNumber)
           .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+
+        const isPresent = todaysRecord?.status === 'present' && !todaysRecord.reason;
+        const isAbsent = todaysRecord?.status === 'absent';
+        const isOnLeave = todaysRecord?.status === 'present' && !!todaysRecord.reason;
+
+        const studentWithRecord = {...student, todaysRecord};
 
         const studentOverallRecords = allDepartmentRecords.filter(r => r.studentRegister === student.registerNumber);
         const allWorkingDayStrings = new Set(allDepartmentRecords.map(r => r.date));
@@ -150,39 +169,33 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-              {todaysRecord ? (
-                <div className={cn(
-                  "flex items-center justify-center gap-2 rounded-md px-3 h-9 w-[170px] text-sm font-semibold",
-                  {
-                    'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300': todaysRecord.status === 'absent',
-                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300': todaysRecord.status === 'present' && !!todaysRecord.reason,
-                    'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300': todaysRecord.status === 'present' && !todaysRecord.reason,
-                  }
-                )}>
-                  {todaysRecord.status === 'absent' && <XCircle className="h-4 w-4 flex-shrink-0" />}
-                  {todaysRecord.status === 'present' && !!todaysRecord.reason && <FileClock className="h-4 w-4 flex-shrink-0" />}
-                  {todaysRecord.status === 'present' && !todaysRecord.reason && <CheckCircle className="h-4 w-4 flex-shrink-0" />}
-
-                  <div className="flex flex-col items-center justify-center">
-                    <span className="-mb-0.5 truncate">
-                        {todaysRecord.status === 'absent' ? 'Absent' : (!!todaysRecord.reason ? 'On Leave' : 'Present')}
-                    </span>
-                    {todaysRecord.status === 'present' && todaysRecord.reason && (
-                      <span className="text-xs font-normal italic opacity-80 truncate" title={todaysRecord.reason}>({todaysRecord.reason})</span>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                   <Button size="sm" variant="outline" className="w-[110px] bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-700 disabled:opacity-50 disabled:bg-muted" onClick={() => onMarkAttendance(student.registerNumber, 'absent')} disabled={!isTeacher}>
-                      <XCircle className="mr-2 h-4 w-4" /> Absent
-                  </Button>
-                   <Button size="sm" variant="outline" className="w-[110px] bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 dark:border-green-700 disabled:opacity-50 disabled:bg-muted" onClick={() => onMarkAttendance(student.registerNumber, 'present')} disabled={!isTeacher}>
-                      <CheckCircle className="mr-2 h-4 w-4" /> Present
-                  </Button>
-                  <MarkLeaveButton student={student} onMarkAttendance={onMarkAttendance} disabled={!isTeacher} />
-                </div>
-              )}
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className={cn(
+                    "w-[110px]",
+                    isPresent && 'bg-green-600 text-white hover:bg-green-700 border-green-700',
+                    !isPresent && 'bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 dark:border-green-700'
+                )} 
+                onClick={() => onMarkAttendance(student.registerNumber, 'present')} 
+                disabled={!isTeacher}
+              >
+                  <CheckCircle className="mr-2 h-4 w-4" /> Present
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className={cn(
+                    "w-[110px]",
+                    isAbsent && 'bg-red-600 text-white hover:bg-red-700 border-red-700',
+                    !isAbsent && 'bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-700'
+                )}
+                onClick={() => onMarkAttendance(student.registerNumber, 'absent')} 
+                disabled={!isTeacher}
+              >
+                  <XCircle className="mr-2 h-4 w-4" /> Absent
+              </Button>
+              <MarkLeaveButton student={studentWithRecord} onMarkAttendance={onMarkAttendance} disabled={!isTeacher} isOnLeave={isOnLeave} />
             </div>
           </div>
         );
