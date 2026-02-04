@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -21,7 +22,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Loader2, Mail, Send, KeyRound } from 'lucide-react';
+import { Loader2, Mail, Send, KeyRound, BrainCircuit, Eye, EyeOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Schema for the email form
@@ -45,6 +46,8 @@ function ResetPasswordForm({ oobCode }: { oobCode: string }) {
   const auth = useFirebaseAuth();
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
+  const [showNewPassword, setShowNewPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const form = useForm<z.infer<typeof passwordSchema>>({
     resolver: zodResolver(passwordSchema),
@@ -80,7 +83,20 @@ function ResetPasswordForm({ oobCode }: { oobCode: string }) {
             <FormItem>
               <FormLabel className="flex items-center gap-2"><KeyRound className="h-4 w-4" />New Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="Enter new password" {...field} />
+                <div className="relative">
+                  <Input type={showNewPassword ? 'text' : 'password'} placeholder="Enter new password" {...field} />
+                   <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute inset-y-0 right-0 h-full px-3 text-muted-foreground hover:bg-transparent"
+                    onClick={() => setShowNewPassword((prev) => !prev)}
+                    tabIndex={-1}
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <span className="sr-only">{showNewPassword ? 'Hide password' : 'Show password'}</span>
+                  </Button>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -93,7 +109,20 @@ function ResetPasswordForm({ oobCode }: { oobCode: string }) {
             <FormItem>
               <FormLabel className="flex items-center gap-2"><KeyRound className="h-4 w-4" />Confirm New Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="Confirm new password" {...field} />
+                <div className="relative">
+                  <Input type={showConfirmPassword ? 'text' : 'password'} placeholder="Confirm new password" {...field} />
+                   <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute inset-y-0 right-0 h-full px-3 text-muted-foreground hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <span className="sr-only">{showConfirmPassword ? 'Hide password' : 'Show password'}</span>
+                  </Button>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -182,39 +211,73 @@ function ForgotPasswordContent() {
     const searchParams = useSearchParams();
     const oobCode = searchParams.get('oobCode');
 
-    if (oobCode) {
-        return <ResetPasswordForm oobCode={oobCode} />;
-    }
-    
-    return <SendEmailForm />;
+    return (
+      <Card className="w-full max-w-md shadow-2xl">
+          <CardHeader className="text-center">
+              <CardTitle className="font-headline text-3xl">
+                {oobCode ? "Create New Password" : "Forgot Password"}
+              </CardTitle>
+              <CardDescription>
+                  {oobCode ? "Create a new password for your account." : "Enter your email to receive a password reset link."}
+              </CardDescription>
+          </CardHeader>
+          <CardContent>
+              <React.Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                 {oobCode ? <ResetPasswordForm oobCode={oobCode} /> : <SendEmailForm />}
+              </React.Suspense>
+          </CardContent>
+           <CardFooter className="justify-center pt-4">
+              <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary">
+                  Back to Login
+              </Link>
+          </CardFooter>
+      </Card>
+    )
 }
 
 export default function ForgotPasswordPage() {
-  const searchParams = useSearchParams();
-  // We read this here just to change the title/description
-  const oobCode = searchParams.get('oobCode');
 
   return (
-      <main className="relative flex min-h-screen flex-col items-center justify-center p-4 bg-background">
-          <div className="absolute inset-0 bg-gradient-to-br from-background via-muted/50 to-background"></div>
-          <Card className="w-full max-w-md bg-card/60 backdrop-blur-sm border shadow-lg z-10">
-              <CardHeader className="text-center">
-                  <CardTitle className="font-headline text-3xl">Forgot Password</CardTitle>
-                  <CardDescription>
-                      {oobCode ? "Create a new password for your account." : "Enter your email to receive a password reset link."}
-                  </CardDescription>
-              </CardHeader>
-              <CardContent>
-                  <React.Suspense fallback={<Skeleton className="h-40 w-full" />}>
-                     <ForgotPasswordContent />
-                  </React.Suspense>
-              </CardContent>
-               <CardFooter className="justify-center pt-4">
-                  <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary">
-                      Back to Login
-                  </Link>
-              </CardFooter>
-          </Card>
+      <main className="relative grid min-h-screen grid-cols-1 lg:grid-cols-2 bg-background">
+          <div className="flex flex-col items-center justify-center p-8">
+            <div className="flex items-center gap-4 mb-8 z-10 self-start">
+                <div className="bg-primary p-3 rounded-lg">
+                    <BrainCircuit className="w-8 h-8 text-primary-foreground" />
+                </div>
+                <div>
+                    <h1 className="text-3xl font-bold font-headline text-primary">Smart Institute</h1>
+                    <p className="text-xl text-foreground">Attendance Management</p>
+                </div>
+            </div>
+            <div className="flex-1 flex items-center justify-center w-full">
+              <React.Suspense fallback={<Skeleton className="h-96 w-full max-w-md" />}>
+                 <ForgotPasswordContent />
+              </React.Suspense>
+            </div>
+             <footer className="w-full text-center text-xs text-foreground mt-8">
+                <div className="flex justify-center items-center gap-4 mb-2">
+                    <Link href="/terms" className="hover:text-primary">Terms</Link>
+                    <span className="text-muted-foreground">|</span>
+                    <Link href="/privacy" className="hover:text-primary">Privacy</Link>
+                </div>
+                <p>&copy; {new Date().getFullYear()} Smart Institute. All rights reserved.</p>
+            </footer>
+          </div>
+          <div className="relative hidden lg:block">
+              <Image 
+                src="https://picsum.photos/seed/secure-login/1920/1080" 
+                alt="Abstract decorative background" 
+                fill 
+                className="object-cover"
+                data-ai-hint="security abstract"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/10" />
+              <div className="absolute bottom-12 left-12 text-white max-w-md z-10">
+                  <h2 className="text-4xl font-bold font-headline">Secure & Simple.</h2>
+                  <p className="mt-2 text-lg text-white/80">Reset your password with confidence. We've made it easy to get back into your account securely.</p>
+              </div>
+          </div>
       </main>
   );
 }
