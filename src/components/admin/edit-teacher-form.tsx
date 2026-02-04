@@ -5,7 +5,7 @@ import React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Loader2, ScanFace } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import Image from 'next/image';
 
 import { Button } from "@/components/ui/button"
@@ -110,8 +110,7 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                             <Image src={previewUrl} alt="Teacher preview" layout="fill" objectFit="cover" />
                         ) : (
                             <div className="text-center text-muted-foreground p-4">
-                                <ScanFace className="mx-auto h-12 w-12" />
-                                <p className="mt-2 text-xs">Upload new photo (optional)</p>
+                               <p className="text-xs">Upload new photo (optional)</p>
                             </div>
                         )}
                     </div>

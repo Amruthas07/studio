@@ -5,6 +5,7 @@ export interface Student {
   fatherName: string;
   motherName: string;
   department: 'cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec';
+  semester: number;
   profilePhotoUrl: string;
   email: string;
   contact: string;

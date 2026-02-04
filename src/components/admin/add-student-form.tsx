@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2, ScanFace } from "lucide-react"
+import { CalendarIcon, Loader2 } from "lucide-react"
 import Image from 'next/image';
 
 import { Button } from "@/components/ui/button"
@@ -38,6 +38,7 @@ const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   registerNumber: z.string().min(1, "Register number is required."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
+  semester: z.coerce.number().min(1).max(8),
   email: z.string().email(),
   contact: z.string().length(10, "Contact number must be exactly 10 digits.").regex(/^[0-9]+$/, "Contact number must only contain digits."),
   fatherName: z.string().min(2, "Father's name is required."),
@@ -72,6 +73,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       contact: "",
       fatherName: "",
       motherName: "",
+      semester: 1,
     },
   })
   
@@ -169,8 +171,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                             <Image src={previewUrl} alt="Student preview" layout="fill" objectFit="cover" />
                         ) : (
                             <div className="text-center text-muted-foreground p-4">
-                                <ScanFace className="mx-auto h-12 w-12" />
-                                <p className="mt-2 text-xs">Photo preview</p>
+                                <p className="text-xs">Photo preview</p>
                             </div>
                         )}
                     </div>
@@ -249,6 +250,31 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                     <FormMessage />
                     </FormItem>
                 )}
+                />
+                <FormField
+                  control={form.control}
+                  name="semester"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Current Semester</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a semester" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {[1,2,3,4,5,6,7,8].map(sem => (
+                             <SelectItem key={sem} value={String(sem)}>{sem}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        The student will be automatically promoted after each semester.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
                 <FormField
                 control={form.control}

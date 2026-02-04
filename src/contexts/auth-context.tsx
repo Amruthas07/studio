@@ -24,9 +24,10 @@ import type { Student, Teacher } from '@/lib/types';
 
 type Role = 'admin' | 'student' | 'teacher';
 
-export interface AuthUser extends Omit<Student, 'department'> {
+export interface AuthUser extends Omit<Student, 'department' | 'semester'> {
   role: Role;
   department: Student['department'] | 'all';
+  semester?: number;
 }
 
 interface AuthContextType {
@@ -119,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         email: foundStudent.email,
                         role: 'student',
                         department: foundStudent.department,
+                        semester: foundStudent.semester,
                         registerNumber: foundStudent.registerNumber,
                         fatherName: foundStudent.fatherName,
                         motherName: foundStudent.motherName,

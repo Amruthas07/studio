@@ -28,6 +28,10 @@
           "description": "The department the student belongs to (e.g., cs, ce, me).",
           "format": "string"
         },
+        "semester": {
+          "type": "number",
+          "description": "The current semester of the student (e.g., 1, 2, ... 8)."
+        },
         "photoURL": {
           "type": "string",
           "description": "URL of the student's photo in Firebase Storage.",
@@ -62,6 +66,7 @@
         "fatherName",
         "motherName",
         "department",
+        "semester",
         "photoURL",
         "email",
         "contact",

@@ -1,7 +1,7 @@
 'use client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Mail, Phone, Building, Briefcase, Hash, Cake, User } from 'lucide-react';
+import { Mail, Phone, GraduationCap, Briefcase, Hash, Cake, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import type { Student } from '@/lib/types';
@@ -26,6 +26,7 @@ export function StudentProfileCard({ student }: StudentProfileCardProps) {
         { icon: Phone, label: 'Contact', value: student.contact },
         { icon: Hash, label: 'Register No.', value: student.registerNumber },
         { icon: Briefcase, label: 'Department', value: <Badge variant="secondary" className="uppercase">{student.department}</Badge> },
+        { icon: GraduationCap, label: 'Semester', value: student.semester },
         { icon: Cake, label: 'Date of Birth', value: format(new Date(student.dateOfBirth), "PPP") },
         { icon: User, label: "Father's Name", value: student.fatherName },
         { icon: User, label: "Mother's Name", value: student.motherName },
