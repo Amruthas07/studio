@@ -11,6 +11,7 @@ interface AnalyticsChartProps {
     teachers: Teacher[];
 }
 
+// This component is no longer in use on the admin dashboard, but is kept for reference.
 export function AnalyticsChart({ students, teachers }: AnalyticsChartProps) {
     const data = useMemo(() => {
         const studentCounts: { [key: string]: number } = {};

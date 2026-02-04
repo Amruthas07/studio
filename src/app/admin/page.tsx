@@ -1,4 +1,3 @@
-
 'use client';
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Users, UserCog, Loader2 } from "lucide-react";
 import { useStudents } from "@/hooks/use-students";
 import { useTeachers } from "@/hooks/use-teachers";
 import { useAuth } from "@/hooks/use-auth";
-import { AnalyticsChart } from '@/components/admin/analytics-chart';
+import { DepartmentDistributionChart } from '@/components/admin/department-distribution-chart';
 
 
 export default function AdminDashboard() {
@@ -56,7 +55,7 @@ export default function AdminDashboard() {
         </Card>
       </div>
       
-      <AnalyticsChart students={students} teachers={teachers} />
+      <DepartmentDistributionChart students={students} />
     </div>
   );
 }
