@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
-import { useFirestore, useAuth as useFirebaseAuthHook } from '@/firebase';
+import { useFirestore, useAuth as useFirebaseAuthHook } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -10,7 +10,7 @@ import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 
-const ADMIN_EMAIL = "apdd46@gmail.com";
+const ADMIN_EMAIL = "smart46@gmail.com";
 
 export const TeachersContext = createContext<TeachersContextType | undefined>(undefined);
 

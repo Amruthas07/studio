@@ -17,7 +17,7 @@ import {
   signOut,
   User as FirebaseUser,
 } from 'firebase/auth';
-import { useFirestore, useAuth as useFirebaseAuth, useUser } from '@/firebase';
+import { useFirestore, useAuth as useFirebaseAuth, useUser } from '@/firebase/provider';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import type { Student, Teacher } from '@/lib/types';
@@ -41,7 +41,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(
 );
 
 // The administrator email. This is the single source of truth for the admin role.
-const ADMIN_EMAIL = "apdd46@gmail.com";
+const ADMIN_EMAIL = "smart46@gmail.com";
 
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -163,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // If the user is not found and it's the admin email, attempt to create the admin user.
       if (error.code === 'auth/user-not-found' && email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
         try {
-          await createUserWithEmailAndPassword(auth, email, pass);
+          await createUserWithEmailAndPassword(auth, email, "apdd46@");
           // On successful creation, the onAuthStateChanged listener will fire,
           // fetch the profile, and handle the redirect.
         } catch (creationError: any) {
