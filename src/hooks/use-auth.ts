@@ -16,6 +16,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, pass: string) => Promise<void>;
   logout: () => void;
+  changePassword: (currentPass: string, newPass: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 

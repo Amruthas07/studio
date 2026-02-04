@@ -3,11 +3,17 @@
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, User, Mail, Briefcase, Award } from 'lucide-react';
+import { Loader2, User, Mail, Briefcase, Award, KeyRound } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import React from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { ChangePasswordForm } from '@/components/auth/change-password-form';
+
 
 export default function TeacherProfilePage() {
   const { user, loading } = useAuth();
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
 
   if (loading || !user) {
     return (
@@ -40,17 +46,36 @@ export default function TeacherProfilePage() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-            <Avatar className="h-24 w-24 border-2 border-primary">
-              <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
-              <AvatarFallback className="text-3xl">{getInitials(user.name)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <CardTitle className="font-headline text-3xl">{user.name}</CardTitle>
-              <CardDescription className="mt-1">
-                {user.position || 'Teacher'}, {user.department.toUpperCase()} Department
-              </CardDescription>
-            </div>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+                <Avatar className="h-24 w-24 border-2 border-primary">
+                    <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
+                    <AvatarFallback className="text-3xl">{getInitials(user.name)}</AvatarFallback>
+                </Avatar>
+                <div>
+                    <CardTitle className="font-headline text-3xl">{user.name}</CardTitle>
+                    <CardDescription className="mt-1">
+                        {user.position || 'Teacher'}, {user.department.toUpperCase()} Department
+                    </CardDescription>
+                </div>
+              </div>
+              <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2 shrink-0">
+                        <KeyRound className="h-4 w-4" />
+                        Change Password
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="font-headline text-2xl">Change Your Password</DialogTitle>
+                        <DialogDescription>
+                            Enter your current password and a new one.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <ChangePasswordForm onPasswordChanged={() => setIsChangePasswordOpen(false)} />
+                </DialogContent>
+            </Dialog>
           </div>
         </CardHeader>
         <CardContent>

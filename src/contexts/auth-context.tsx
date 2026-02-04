@@ -16,6 +16,9 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   User as FirebaseUser,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from 'firebase/auth';
 import { useFirestore, useAuth as useFirebaseAuth, useUser } from '@/firebase/provider';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -38,6 +41,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, pass: string) => Promise<void>;
   logout: () => void;
+  changePassword: (currentPass: string, newPass: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(
@@ -203,6 +207,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [auth]);
 
+  const changePassword = useCallback(async (currentPass: string, newPass: string): Promise<{ success: boolean; error?: string }> => {
+    const user = auth.currentUser;
+    if (!user || !user.email) {
+        return { success: false, error: 'No user is currently signed in.' };
+    }
+
+    const credential = EmailAuthProvider.credential(user.email, currentPass);
+
+    try {
+        await reauthenticateWithCredential(user, credential);
+        // User re-authenticated, now they can update the password.
+        await updatePassword(user, newPass);
+        return { success: true };
+    } catch (error: any) {
+        console.error("Password change error:", error);
+        let errorMessage = 'An unexpected error occurred.';
+        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            errorMessage = 'The current password you entered is incorrect.';
+        } else if (error.code === 'auth/weak-password') {
+            errorMessage = 'The new password is too weak. It must be at least 6 characters.';
+        }
+        return { success: false, error: errorMessage };
+    }
+  }, [auth]);
 
   const logout = useCallback(async () => {
     await signOut(auth);
@@ -211,7 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [auth, router]);
 
   return (
-    <AuthContext.Provider value={{ user: authUser, loading, login, logout }}>
+    <AuthContext.Provider value={{ user: authUser, loading, login, logout, changePassword }}>
       {children}
     </AuthContext.Provider>
   );
