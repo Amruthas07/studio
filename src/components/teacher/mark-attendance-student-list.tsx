@@ -20,10 +20,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
+import { Progress } from '../ui/progress';
 
 interface MarkAttendanceStudentListProps {
   students: Student[];
-  attendanceRecords: AttendanceRecord[];
+  todaysAttendanceRecords: AttendanceRecord[];
+  allDepartmentRecords: AttendanceRecord[];
   onMarkAttendance: (studentRegister: string, status: 'present' | 'absent', reason?: string) => void;
 }
 
@@ -94,7 +96,7 @@ const MarkLeaveButton = ({ student, onMarkAttendance }: { student: Student; onMa
 };
 
 
-export function MarkAttendanceStudentList({ students, attendanceRecords, onMarkAttendance }: MarkAttendanceStudentListProps) {
+export function MarkAttendanceStudentList({ students, todaysAttendanceRecords, allDepartmentRecords, onMarkAttendance }: MarkAttendanceStudentListProps) {
   
   if (students.length === 0) {
     return <div className="text-center text-muted-foreground p-8">No students found for this semester.</div>;
@@ -103,8 +105,49 @@ export function MarkAttendanceStudentList({ students, attendanceRecords, onMarkA
   return (
     <div className="space-y-4">
       {students.sort((a, b) => a.name.localeCompare(b.name)).map(student => {
-        const record = attendanceRecords.find(r => r.studentRegister === student.registerNumber);
+        const record = todaysAttendanceRecords.find(r => r.studentRegister === student.registerNumber);
         
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const studentOverallRecords = React.useMemo(() => {
+            return allDepartmentRecords.filter(r => r.studentRegister === student.registerNumber);
+        }, [allDepartmentRecords, student.registerNumber]);
+
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const { percentage } = React.useMemo(() => {
+            const allWorkingDayStrings = new Set(allDepartmentRecords.map(r => r.date));
+            const enrollmentDayStart = new Date(student.createdAt);
+            enrollmentDayStart.setHours(0, 0, 0, 0);
+
+            const studentWorkingDays = Array.from(allWorkingDayStrings).filter(dateStr => {
+                const recordDate = new Date(`${dateStr}T00:00:00`);
+                return recordDate >= enrollmentDayStart;
+            });
+
+            const totalDays = studentWorkingDays.length;
+
+            const presentAndOnLeaveDays = new Set(
+                studentOverallRecords
+                    .filter(r => r.status === 'present')
+                    .map(r => r.date)
+            ).size;
+            
+            if (totalDays === 0) {
+                return { percentage: 100 };
+            }
+
+            const attendancePercentage = Math.round((presentAndOnLeaveDays / totalDays) * 100);
+
+            return { 
+                percentage: attendancePercentage > 100 ? 100 : attendancePercentage, 
+            };
+        }, [studentOverallRecords, allDepartmentRecords, student.createdAt]);
+
+        const getIndicatorColor = (p: number) => {
+            if (p >= 75) return 'bg-green-500';
+            if (p >= 45) return 'bg-orange-500';
+            return 'bg-red-500';
+        };
+
         return (
           <div key={student.registerNumber} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
             <div className="flex items-center gap-4">
@@ -115,6 +158,10 @@ export function MarkAttendanceStudentList({ students, attendanceRecords, onMarkA
               <div>
                 <p className="font-semibold">{student.name}</p>
                 <p className="text-sm text-muted-foreground">{student.registerNumber}</p>
+                <div className="flex items-center gap-2 mt-2">
+                    <Progress value={percentage} className="h-2 w-20" indicatorClassName={getIndicatorColor(percentage)} />
+                    <span className="text-xs font-medium text-muted-foreground">{percentage}%</span>
+                </div>
               </div>
             </div>
             

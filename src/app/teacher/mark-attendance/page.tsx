@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -144,7 +143,8 @@ export default function MarkAttendancePage() {
                 <CardContent>
                   <MarkAttendanceStudentList 
                     students={semesterStudents}
-                    attendanceRecords={todaysAttendanceRecords}
+                    todaysAttendanceRecords={todaysAttendanceRecords}
+                    allDepartmentRecords={attendanceRecords}
                     onMarkAttendance={handleMarkAttendance}
                   />
                 </CardContent>
