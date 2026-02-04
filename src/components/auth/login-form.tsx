@@ -29,6 +29,8 @@ export function LoginForm() {
   const { login, loading } = useAuth();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = React.useState(false);
+  const pathname = usePathname();
+  const isAdminLogin = pathname.includes('/admin-login');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -77,9 +79,16 @@ export function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-               <FormLabel className="flex items-center gap-2 text-card-foreground/80">
-                <Lock className="h-4 w-4" />
-                Password
+               <FormLabel className="flex items-center justify-between">
+                 <span className="flex items-center gap-2 text-card-foreground/80">
+                    <Lock className="h-4 w-4" />
+                    Password
+                 </span>
+                 {!isAdminLogin && (
+                    <Link href="/reset-password" className="text-sm font-medium text-muted-foreground hover:text-primary">
+                        Forgot Password?
+                    </Link>
+                 )}
               </FormLabel>
               <FormControl>
                 <div className="relative">
