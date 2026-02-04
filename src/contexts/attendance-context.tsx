@@ -8,7 +8,7 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, query, where, deleteField } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import type { AttendanceRecord } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
@@ -123,12 +123,13 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       timestamp: serverTimestamp(),
     };
     
-    // Firestore does not allow `undefined` field values.
-    // If the reason is undefined (e.g., for 'present' or 'absent' without leave),
-    // we must remove it from the object before saving.
-    if (recordToSave.reason === undefined) {
-      delete recordToSave.reason;
+    // If there is no reason (for 'present' or 'absent'), ensure the field is removed.
+    if (record.reason) {
+      recordToSave.reason = record.reason;
+    } else {
+      recordToSave.reason = deleteField();
     }
+
 
     const handleFirestoreError = (error: any, path: string, operation: 'write' | 'update' | 'create', data: any) => {
       if (error.code === 'permission-denied') {
