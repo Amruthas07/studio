@@ -99,7 +99,7 @@ const MarkLeaveButton = ({ student, onMarkAttendance }: { student: Student; onMa
 export function MarkAttendanceStudentList({ students, today, getTodaysRecordForStudent, onMarkAttendance }: MarkAttendanceStudentListProps) {
   
   if (students.length === 0) {
-    return <div className="text-center text-muted-foreground p-8">No students found in this department.</div>;
+    return <div className="text-center text-muted-foreground p-8">No students found for this semester.</div>;
   }
 
   return (
@@ -124,11 +124,11 @@ export function MarkAttendanceStudentList({ students, today, getTodaysRecordForS
               {record ? (
                 record.status === 'present' ? (
                   record.reason ? (
-                     <Badge variant="secondary" className="text-base">
+                     <Badge className="text-base bg-amber-500 text-primary-foreground hover:bg-amber-500/90">
                         <LogOut className="mr-2 h-4 w-4"/> On Leave
                      </Badge>
                   ) : (
-                     <Badge variant="default" className="text-base bg-green-500 hover:bg-green-600">
+                     <Badge className="text-base bg-green-600 text-primary-foreground hover:bg-green-600/90">
                         <Check className="mr-2 h-4 w-4"/> Present
                      </Badge>
                   )
@@ -155,3 +155,4 @@ export function MarkAttendanceStudentList({ students, today, getTodaysRecordForS
     </div>
   );
 }
+
