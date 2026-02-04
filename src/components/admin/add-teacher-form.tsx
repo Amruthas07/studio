@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -31,6 +32,7 @@ const formSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6, "Password must be at least 6 characters."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
+  position: z.enum(["Professor", "Associate Professor", "Assistant Professor", "HOD"]),
 })
 
 type AddTeacherFormProps = {
@@ -133,7 +135,30 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                     <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
                     <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
                     <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
-                    <SelectItem value="ec">Electronics &amp; Comm. (EC)</SelectItem>
+                    <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
+        />
+         <FormField
+            control={form.control}
+            name="position"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Position</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select a position" />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        <SelectItem value="Professor">Professor</SelectItem>
+                        <SelectItem value="Associate Professor">Associate Professor</SelectItem>
+                        <SelectItem value="Assistant Professor">Assistant Professor</SelectItem>
+                        <SelectItem value="HOD">Head of Department (HOD)</SelectItem>
                     </SelectContent>
                 </Select>
                 <FormMessage />

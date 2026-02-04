@@ -1,7 +1,8 @@
+
 'use client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Mail, Briefcase } from 'lucide-react';
+import { Mail, Briefcase, Award } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { Teacher } from '@/lib/types';
 
@@ -23,6 +24,7 @@ export function TeacherProfileCard({ teacher }: TeacherProfileCardProps) {
     const profileDetails = [
         { icon: Mail, label: 'Email', value: teacher.email },
         { icon: Briefcase, label: 'Department', value: <Badge variant="secondary" className="uppercase">{teacher.department}</Badge> },
+        ...(teacher.position ? [{ icon: Award, label: 'Position', value: teacher.position }] : [])
     ];
 
     return (
@@ -36,7 +38,7 @@ export function TeacherProfileCard({ teacher }: TeacherProfileCardProps) {
                     <div>
                         <CardTitle className="font-headline text-3xl">{teacher.name}</CardTitle>
                         <CardDescription className="mt-1">
-                            Joined on {new Date(teacher.createdAt).toLocaleDateString()}
+                            {teacher.position || 'Teacher'}, Joined on {new Date(teacher.createdAt).toLocaleDateString()}
                         </CardDescription>
                     </div>
                 </div>

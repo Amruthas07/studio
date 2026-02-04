@@ -3,7 +3,7 @@
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, User, Mail, Briefcase } from 'lucide-react';
+import { Loader2, User, Mail, Briefcase, Award } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function TeacherProfilePage() {
@@ -28,6 +28,7 @@ export default function TeacherProfilePage() {
   const profileDetails = [
     { icon: Mail, label: 'Email', value: user.email },
     { icon: Briefcase, label: 'Department', value: <Badge variant="secondary" className="uppercase">{user.department}</Badge> },
+    ...(user.position ? [{ icon: Award, label: 'Position', value: user.position }] : [])
   ];
 
   return (
@@ -47,7 +48,7 @@ export default function TeacherProfilePage() {
             <div>
               <CardTitle className="font-headline text-3xl">{user.name}</CardTitle>
               <CardDescription className="mt-1">
-                Teacher, {user.department.toUpperCase()} Department
+                {user.position || 'Teacher'}, {user.department.toUpperCase()} Department
               </CardDescription>
             </div>
           </div>

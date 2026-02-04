@@ -48,6 +48,7 @@ export function TeachersTable({ teachers, onViewTeacher, onEditTeacher, onDelete
                         <TableRow>
                             <TableHead className="w-[64px]">Photo</TableHead>
                             <TableHead>Name</TableHead>
+                            <TableHead>Position</TableHead>
                             <TableHead>Department</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -67,6 +68,7 @@ export function TeachersTable({ teachers, onViewTeacher, onEditTeacher, onDelete
                                     <div className="text-xs text-muted-foreground">{teacher.email}</div>
                                 </div>
                             </TableCell>
+                            <TableCell>{teacher.position || 'N/A'}</TableCell>
                             <TableCell>
                                 <Badge variant="secondary" className="uppercase">{teacher.department}</Badge>
                             </TableCell>

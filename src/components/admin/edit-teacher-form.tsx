@@ -33,6 +33,7 @@ import { useTeachers } from "@/hooks/use-teachers"
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
+  position: z.enum(["Professor", "Associate Professor", "Assistant Professor", "HOD"]),
   photo: z.instanceof(File).optional()
     .refine(file => !file || file.size < 5 * 1024 * 1024, "Photo must be less than 5MB."),
 })
@@ -54,6 +55,7 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
     defaultValues: {
       name: teacher.name,
       department: teacher.department,
+      position: teacher.position,
     },
   })
   
@@ -163,6 +165,30 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                     </FormItem>
                 )}
             />
+
+            <FormField
+              control={form.control}
+              name="position"
+              render={({ field }) => (
+                  <FormItem>
+                  <FormLabel>Position</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                      <SelectTrigger>
+                          <SelectValue placeholder="Select a position" />
+                      </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                          <SelectItem value="Professor">Professor</SelectItem>
+                          <SelectItem value="Associate Professor">Associate Professor</SelectItem>
+                          <SelectItem value="Assistant Professor">Assistant Professor</SelectItem>
+                          <SelectItem value="HOD">Head of Department (HOD)</SelectItem>
+                      </SelectContent>
+                  </Select>
+                  <FormMessage />
+                  </FormItem>
+              )}
+          />
             
         <div className="flex justify-end pt-4">
             <Button type="submit" disabled={isSubmitting}>

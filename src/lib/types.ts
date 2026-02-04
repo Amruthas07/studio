@@ -34,6 +34,7 @@ export interface Teacher {
   teacherId: string;
   name: string;
   department: 'cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec';
+  position?: 'Professor' | 'Associate Professor' | 'Assistant Professor' | 'HOD';
   profilePhotoUrl: string;
   email: string;
   createdAt: Date;

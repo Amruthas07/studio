@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -28,6 +29,7 @@ export interface AuthUser extends Omit<Student, 'department' | 'semester'> {
   role: Role;
   department: Student['department'] | 'all';
   semester?: number;
+  position?: Teacher['position'];
 }
 
 interface AuthContextType {
@@ -98,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     email: foundTeacher.email,
                     role: 'teacher',
                     department: foundTeacher.department,
+                    position: foundTeacher.position,
                     registerNumber: foundTeacher.teacherId || foundTeacher.email,
                     fatherName: 'N/A',
                     motherName: 'N/A',
