@@ -38,10 +38,11 @@ const getInitials = (name: string) => {
     return name.substring(0, 2).toUpperCase();
 };
 
-const MarkLeaveButton = ({ student, onMarkAttendance, disabled, isOnLeave }: { student: Student & { todaysRecord?: AttendanceRecord }; onMarkAttendance: MarkAttendanceStudentListProps['onMarkAttendance'], disabled: boolean, isOnLeave: boolean }) => {
+const LeaveReasonButton = ({ student, onMarkAttendance, disabled }: { student: Student & { todaysRecord?: AttendanceRecord }; onMarkAttendance: MarkAttendanceStudentListProps['onMarkAttendance'], disabled: boolean }) => {
   const { toast } = useToast();
-  const [reason, setReason] = React.useState('');
+  const [reason, setReason] = React.useState(student.todaysRecord?.reason || '');
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const hasReason = !!student.todaysRecord?.reason;
 
   const handleLeaveSubmit = () => {
     if (!reason.trim()) {
@@ -52,14 +53,21 @@ const MarkLeaveButton = ({ student, onMarkAttendance, disabled, isOnLeave }: { s
       });
       return;
     }
+    // Always marks as present with a reason
     onMarkAttendance(student.registerNumber, 'present', reason);
+    setIsDialogOpen(false);
+  }
+  
+  const handleRemoveLeave = () => {
+    // Marks as present without a reason
+    onMarkAttendance(student.registerNumber, 'present');
     setReason('');
     setIsDialogOpen(false);
   }
 
   const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      setReason('');
+    if (open) {
+        setReason(student.todaysRecord?.reason || '');
     }
     setIsDialogOpen(open);
   }
@@ -71,26 +79,18 @@ const MarkLeaveButton = ({ student, onMarkAttendance, disabled, isOnLeave }: { s
             size="sm" 
             variant="outline"
             className={cn(
-                "w-[110px]",
-                isOnLeave 
-                    ? 'bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-600'
-                    : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300 dark:bg-yellow-900/50 dark:text-yellow-300 dark:hover:bg-yellow-900 dark:border-yellow-700'
-                )} 
+                "w-auto px-3",
+                hasReason && 'bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-600'
+            )} 
             disabled={disabled}>
-            <FileClock className="mr-2 h-4 w-4" /> On Leave
+            <FileClock className="mr-2 h-4 w-4" /> {hasReason ? "On Leave" : "Add Leave"}
          </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
           <AlertDialogHeader>
-              <AlertDialogTitle>Mark Leave for {student.name}</AlertDialogTitle>
+              <AlertDialogTitle>Manage Leave Reason for {student.name}</AlertDialogTitle>
               <AlertDialogDescription>
-                  This will mark the student as present but on leave. Please provide a reason below.
-                   {isOnLeave && student.todaysRecord?.reason && (
-                    <div className="mt-4 rounded-md border border-yellow-200 bg-yellow-50 p-3 text-yellow-900 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-200">
-                        <p className="font-bold text-sm">Current reason:</p>
-                        <p className="text-sm">{student.todaysRecord.reason}</p>
-                    </div>
-                  )}
+                  Providing a reason will mark the student as "On Leave". They will still be counted as present for attendance calculation purposes.
               </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="grid gap-2">
@@ -104,12 +104,14 @@ const MarkLeaveButton = ({ student, onMarkAttendance, disabled, isOnLeave }: { s
           </div>
           <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleLeaveSubmit}>Submit</AlertDialogAction>
+              {hasReason && <Button variant="outline" onClick={handleRemoveLeave}>Remove Leave</Button>}
+              <AlertDialogAction onClick={handleLeaveSubmit}>Save Reason</AlertDialogAction>
           </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 };
+
 
 export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMarkAttendance }: MarkAttendanceStudentListProps) {
   const { user } = useAuth();
@@ -128,10 +130,9 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
           .filter(r => r.date === today && r.studentRegister === student.registerNumber)
           .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
 
-        const isPresent = todaysRecord?.status === 'present' && !todaysRecord.reason;
+        const isPresent = todaysRecord?.status === 'present';
         const isAbsent = todaysRecord?.status === 'absent';
-        const isOnLeave = todaysRecord?.status === 'present' && !!todaysRecord.reason;
-
+        
         const studentWithRecord = {...student, todaysRecord};
 
         const studentOverallRecords = allDepartmentRecords.filter(r => r.studentRegister === student.registerNumber);
@@ -195,7 +196,7 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
               >
                   <XCircle className="mr-2 h-4 w-4" /> Absent
               </Button>
-              <MarkLeaveButton student={studentWithRecord} onMarkAttendance={onMarkAttendance} disabled={!isTeacher} isOnLeave={isOnLeave} />
+              <LeaveReasonButton student={studentWithRecord} onMarkAttendance={onMarkAttendance} disabled={!isTeacher || !isPresent} />
             </div>
           </div>
         );
