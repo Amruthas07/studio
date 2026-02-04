@@ -171,7 +171,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                             <Image src={previewUrl} alt="Student preview" layout="fill" objectFit="cover" />
                         ) : (
                             <div className="text-center text-muted-foreground p-4">
-                                <p className="text-xs">Photo preview</p>
+                                
                             </div>
                         )}
                     </div>
