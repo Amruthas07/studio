@@ -13,6 +13,7 @@ import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { resizeAndCompressImage } from '@/lib/utils';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const ADMIN_EMAIL = "apdd46@gmail.com";
 
@@ -72,13 +73,13 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
   }, [firestore, user, authLoading]);
 
   const addTeacher = useCallback(async (
-    teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string, photoFile: File }
+    teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }
   ): Promise<{ success: boolean; error?: string }> => {
-    if (!firestore || !firebaseApp) {
+    if (!firestore) {
         return { success: false, error: 'Database not initialized.' };
     }
 
-    const { email, password, photoFile, ...details } = teacherData;
+    const { email, password, ...details } = teacherData;
     const teacherDocRef = doc(firestore, 'teachers', email);
     const tempAppName = `create-user-teacher-${Date.now()}`;
     const tempApp = initializeApp(firebaseConfig, tempAppName);
@@ -95,12 +96,8 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             throw new Error(`A teacher with email ${email} already exists.`);
         }
         
-        const storage = getStorage(firebaseApp);
-        const photoRef = ref(storage, `teachers/${email}/profile.jpg`);
-        const processedPhoto = await resizeAndCompressImage(photoFile);
-        
-        await uploadBytes(photoRef, processedPhoto);
-        const downloadURL = await getDownloadURL(photoRef);
+        const avatarPlaceholder = PlaceHolderImages.find((img) => img.id === 'avatar-placeholder');
+        const downloadURL = avatarPlaceholder?.imageUrl.replace('avatar', email) || `https://picsum.photos/seed/${email}/100/100`;
         
         userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
         
@@ -126,7 +123,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     } finally {
         await deleteApp(tempApp);
     }
-  }, [firestore, firebaseApp]);
+  }, [firestore]);
   
   const updateTeacher = useCallback(async (
     teacherId: string, 
