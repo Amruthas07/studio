@@ -4,7 +4,7 @@ import React from 'react';
 import type { Student, AttendanceRecord } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { UserCheck, UserX, CalendarClock } from 'lucide-react';
+import { CheckCircle, XCircle, FileClock } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,7 +67,7 @@ const MarkLeaveButton = ({ student, onMarkAttendance }: { student: Student; onMa
     <AlertDialog open={isDialogOpen} onOpenChange={handleOpenChange}>
       <AlertDialogTrigger asChild>
          <Button size="sm" variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300 dark:bg-yellow-900/50 dark:text-yellow-300 dark:hover:bg-yellow-900 dark:border-yellow-700">
-            <CalendarClock className="mr-2 h-4 w-4" /> On Leave
+            <FileClock className="mr-2 h-4 w-4" /> On Leave
          </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -139,9 +139,9 @@ const StudentAttendanceRow = ({
               'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300': todaysRecord.status === 'present' && !todaysRecord.reason,
             }
           )}>
-            {todaysRecord.status === 'absent' && <UserX className="h-4 w-4 flex-shrink-0" />}
-            {todaysRecord.status === 'present' && !!todaysRecord.reason && <CalendarClock className="h-4 w-4 flex-shrink-0" />}
-            {todaysRecord.status === 'present' && !todaysRecord.reason && <UserCheck className="h-4 w-4 flex-shrink-0" />}
+            {todaysRecord.status === 'absent' && <XCircle className="h-4 w-4 flex-shrink-0" />}
+            {todaysRecord.status === 'present' && !!todaysRecord.reason && <FileClock className="h-4 w-4 flex-shrink-0" />}
+            {todaysRecord.status === 'present' && !todaysRecord.reason && <CheckCircle className="h-4 w-4 flex-shrink-0" />}
 
             <div className="flex flex-col items-center justify-center">
               <span className="-mb-0.5">
@@ -155,10 +155,10 @@ const StudentAttendanceRow = ({
         ) : (
           <div className="flex items-center gap-2">
              <Button size="sm" variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-700" onClick={() => onMarkAttendance(student.registerNumber, 'absent')}>
-                <UserX className="mr-2 h-4 w-4" /> Absent
+                <XCircle className="mr-2 h-4 w-4" /> Absent
             </Button>
              <Button size="sm" variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 dark:border-green-700" onClick={() => onMarkAttendance(student.registerNumber, 'present')}>
-                <UserCheck className="mr-2 h-4 w-4" /> Present
+                <CheckCircle className="mr-2 h-4 w-4" /> Present
             </Button>
             <MarkLeaveButton student={student} onMarkAttendance={onMarkAttendance} />
           </div>
