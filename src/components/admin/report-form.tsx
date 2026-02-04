@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from "react"
@@ -26,9 +25,9 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { generateReport } from "@/app/actions"
 import type { RecentExport } from "@/lib/types"
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarIcon, Loader2 } from "lucide-react"
-import { Calendar } from "../ui/calendar"
+import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useStudents } from "@/hooks/use-students"
 import { useAttendance } from "@/hooks/use-attendance"

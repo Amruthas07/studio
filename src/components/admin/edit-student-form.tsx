@@ -28,8 +28,8 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import type { Student } from "@/lib/types"
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
-import { Calendar } from "../ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useStudents } from "@/hooks/use-students"
 
