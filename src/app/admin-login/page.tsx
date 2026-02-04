@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { BrainCircuit } from 'lucide-react';
 import Link from 'next/link';
 
-export default function TeacherLoginPage() {
+export default function AdminLoginPage() {
   
   return (
     <main className="relative min-h-screen bg-background p-4 lg:p-8 flex flex-col items-center justify-center">
@@ -24,10 +24,10 @@ export default function TeacherLoginPage() {
         <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm z-10">
             <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold">
-                Teacher Login
+                Admin Login
             </CardTitle>
             <CardDescription>
-                Enter your credentials to access your portal.
+                Enter your credentials to access the system.
             </CardDescription>
             </CardHeader>
             <CardContent>

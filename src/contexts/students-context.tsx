@@ -9,7 +9,9 @@ import React, {
 } from 'react';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'firebase/storage';
-import { useFirestore, useFirebaseApp, useAuth as useFirebaseAuthHook, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useFirestore, useFirebaseApp, useAuth as useFirebaseAuthHook } from '@/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';

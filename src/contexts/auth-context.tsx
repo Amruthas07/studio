@@ -17,7 +17,9 @@ import {
   signOut,
   User as FirebaseUser,
 } from 'firebase/auth';
-import { useFirestore, useAuth as useFirebaseAuth, useUser, FirestorePermissionError, errorEmitter } from '@/firebase';
+import { useFirestore, useAuth as useFirebaseAuth, useUser } from '@/firebase';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 import type { Student, Teacher } from '@/lib/types';
 
 type Role = 'admin' | 'student' | 'teacher';

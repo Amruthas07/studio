@@ -35,7 +35,7 @@ export default function StudentLoginPage() {
             </CardContent>
             <CardFooter className="justify-center pt-4">
                 <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary">
-                    Not a student? Click here
+                    Back to Portal
                 </Link>
             </CardFooter>
         </Card>
