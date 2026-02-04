@@ -16,6 +16,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { useAuth as useFirebaseAuth } from '@/firebase/provider';
+import { confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
   newPassword: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
@@ -25,9 +28,14 @@ const formSchema = z.object({
     path: ["confirmPassword"],
 });
 
+type ResetPasswordFormProps = {
+    oobCode: string;
+};
 
-export function ResetPasswordForm() {
+export function ResetPasswordForm({ oobCode }: ResetPasswordFormProps) {
   const { toast } = useToast();
+  const auth = useFirebaseAuth();
+  const router = useRouter();
   const [loading, setLoading] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -38,20 +46,44 @@ export function ResetPasswordForm() {
     },
   });
 
+  // Optional: Verify the code on component mount to give early feedback.
+  React.useEffect(() => {
+    const verifyCode = async () => {
+        setLoading(true);
+        try {
+            await verifyPasswordResetCode(auth, oobCode);
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Invalid Link',
+                description: 'This password reset link is invalid or has expired. Please request a new one.',
+            });
+            router.push('/forgot-password');
+        } finally {
+            setLoading(false);
+        }
+    };
+    verifyCode();
+  }, [auth, oobCode, router, toast]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-    // In a real application, you would need to handle the password update securely.
-    // This typically involves a verification token sent via email.
-    // Since this is a demonstration, we will simulate a successful update.
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-        title: 'Password Updated',
-        description: 'Your password has been changed successfully.',
-    });
-    
-    setLoading(false);
-    form.reset();
+    try {
+        await confirmPasswordReset(auth, oobCode, values.newPassword);
+        toast({
+            title: 'Password Reset Successful',
+            description: 'Your password has been changed. You can now log in with your new password.',
+        });
+        // Redirect to login page after a short delay
+        setTimeout(() => router.push('/'), 2000);
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Error Resetting Password',
+            description: 'This link may have expired. Please try again.',
+        });
+        setLoading(false);
+    }
   }
 
   return (

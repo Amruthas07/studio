@@ -85,7 +85,7 @@ export function LoginForm() {
                   Password
                 </span>
                  {!isAdminLogin && (
-                    <Link href="/reset-password" tabIndex={-1} className="text-xs hover:underline">
+                    <Link href="/forgot-password" tabIndex={-1} className="text-xs hover:underline">
                         Forgot Password?
                     </Link>
                  )}
