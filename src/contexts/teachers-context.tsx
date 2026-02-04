@@ -5,7 +5,7 @@ import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, get
 import { useFirestore } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import type { Teacher, TeachersContextType } from '@/lib/types';
@@ -91,18 +91,8 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             throw new Error(`A teacher with email ${email} already exists.`);
         }
 
-        try {
-            await createUserWithEmailAndPassword(tempAuth, email, password);
-        } catch (authError: any) {
-            let message = authError.message;
-            if (authError.code === 'auth/email-already-in-use') {
-                message = 'This email is already in use by another account.';
-            } else if (authError.code === 'auth/weak-password') {
-                message = 'Password must be at least 6 characters.';
-            }
-            throw new Error(message);
-        }
-
+        await createUserWithEmailAndPassword(tempAuth, email, password);
+        
         const newTeacherData = {
             ...details,
             email,
@@ -111,11 +101,22 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
+
         await setDoc(teacherDocRef, newTeacherData);
         
         return { success: true };
 
     } catch (error: any) {
+        console.error("Add teacher failed:", error);
+        // Attempt to clean up the created auth user, but don't let it hide the original error.
+        try {
+             const userCredential = await signInWithEmailAndPassword(tempAuth, email, password);
+             if (userCredential.user) {
+                await userCredential.user.delete();
+             }
+        } catch (cleanupError) {
+            console.warn("Auth user cleanup failed or was not necessary.", cleanupError);
+        }
         return { success: false, error: error.message };
     } finally {
         await deleteApp(tempApp);

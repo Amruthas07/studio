@@ -12,7 +12,7 @@ import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'fire
 import { useFirestore, useFirebaseApp } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import type { Student, StudentsContextType } from '@/lib/types';
@@ -144,17 +144,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             throw new Error(`A student with email ${details.email} already exists.`);
         }
 
-        try {
-            await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
-        } catch (authError: any) {
-            if (authError.code === 'auth/email-already-in-use') {
-                throw new Error('This email is already in use by another account.');
-            }
-            if (authError.code === 'auth/weak-password') {
-                throw new Error('Password is too weak. It must be at least 6 characters.');
-            }
-            throw new Error(`Authentication error: ${authError.message}`);
-        }
+        await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
 
         const initialStudentData = {
             ...details,
@@ -206,6 +196,16 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         return { success: true };
 
     } catch (error: any) {
+        console.error("Add student failed:", error);
+        // Attempt to clean up the created auth user, but don't let it hide the original error.
+        try {
+            const userCredential = await signInWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
+            if (userCredential.user) {
+              await userCredential.user.delete();
+            }
+        } catch (cleanupError) {
+             console.warn("Auth user cleanup failed or was not necessary. This can happen if the initial user creation failed.", cleanupError);
+        }
         return { success: false, error: error.message };
     } finally {
         await deleteApp(tempApp);
