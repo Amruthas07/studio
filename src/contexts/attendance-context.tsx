@@ -123,6 +123,13 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       timestamp: serverTimestamp(),
     };
     
+    // Firestore does not allow `undefined` field values.
+    // If the reason is undefined (e.g., for 'present' or 'absent' without leave),
+    // we must remove it from the object before saving.
+    if (recordToSave.reason === undefined) {
+      delete recordToSave.reason;
+    }
+
     const handleFirestoreError = (error: any, path: string, operation: 'write' | 'update' | 'create', data: any) => {
       if (error.code === 'permission-denied') {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path, operation, requestResourceData: data }));
