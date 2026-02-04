@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -5,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2, UserScan } from "lucide-react"
+import { CalendarIcon, Loader2, ScanFace } from "lucide-react"
 import Image from 'next/image';
 
 import { Button } from "@/components/ui/button"
@@ -168,7 +169,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                             <Image src={previewUrl} alt="Student preview" layout="fill" objectFit="cover" />
                         ) : (
                             <div className="text-center text-muted-foreground p-4">
-                                <UserScan className="mx-auto h-12 w-12" />
+                                <ScanFace className="mx-auto h-12 w-12" />
                                 <p className="mt-2 text-xs">Photo preview</p>
                             </div>
                         )}
@@ -193,7 +194,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                         )}
                     />
                     <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
-                        <UserScan className="mr-2 h-4 w-4" /> Upload Photo
+                        <ScanFace className="mr-2 h-4 w-4" /> Upload Photo
                     </Button>
                 </div>
             </div>
