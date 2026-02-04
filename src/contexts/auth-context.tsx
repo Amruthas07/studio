@@ -113,12 +113,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                 if (!studentQuerySnap.empty) {
                     const studentDoc = studentQuerySnap.docs[0];
-                    const foundStudent = studentDoc.data() as any;
-                     profile = { 
-                        ...foundStudent,
-                        createdAt: foundStudent.createdAt.toDate(),
-                        dateOfBirth: foundStudent.dateOfBirth.toDate(), 
+                    const foundStudent = studentDoc.data();
+                    profile = {
+                        name: foundStudent.name,
+                        email: foundStudent.email,
                         role: 'student',
+                        department: foundStudent.department,
+                        registerNumber: foundStudent.registerNumber,
+                        fatherName: foundStudent.fatherName,
+                        motherName: foundStudent.motherName,
+                        profilePhotoUrl: foundStudent.profilePhotoUrl || '',
+                        contact: foundStudent.contact,
+                        photoHash: foundStudent.photoHash,
+                        uid: foundStudent.uid,
+                        createdAt: foundStudent.createdAt?.toDate ? foundStudent.createdAt.toDate() : new Date(),
+                        dateOfBirth: foundStudent.dateOfBirth?.toDate ? foundStudent.dateOfBirth.toDate() : new Date(),
+                        updatedAt: foundStudent.updatedAt?.toDate ? foundStudent.updatedAt.toDate() : undefined,
                     };
                 }
             }
