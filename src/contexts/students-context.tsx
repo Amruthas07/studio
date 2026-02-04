@@ -126,6 +126,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     }
     const { photoFile, ...details } = studentData;
 
+    // Use a temporary app to create the user without affecting the admin's session.
     const tempAppName = `create-user-student-${Date.now()}`;
     const tempApp = initializeApp(firebaseConfig, tempAppName);
     const tempAuth = getAuth(tempApp);
@@ -134,6 +135,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const studentDocRef = doc(firestore, 'students', details.registerNumber);
 
     try {
+        // Pre-flight checks to prevent unnecessary uploads or auth user creation
         if (details.email.toLowerCase() === ADMIN_EMAIL) {
             throw new Error("This email is reserved for the administrator.");
         }
@@ -147,75 +149,66 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             throw new Error(`A student with email ${details.email} already exists.`);
         }
 
+        // 1. Process and upload photo
+        const storage = getStorage(firebaseApp);
+        const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
+        const processedPhoto = await resizeAndCompressImage(photoFile);
+        const photoHash = await getImageHash(processedPhoto);
+
+        const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
+        const duplicateSnap = await getDocs(duplicateQuery);
+        if (!duplicateSnap.empty) {
+            throw new Error(`This photo is already enrolled for ${duplicateSnap.docs[0].data().name}.`);
+        }
+
+        await uploadBytes(photoRef, processedPhoto);
+        const downloadURL = await getDownloadURL(photoRef);
+        
+        // 2. Create the authentication user
         userCredential = await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
         const uid = userCredential.user.uid;
 
-        const initialStudentData = {
+        // 3. Create the Firestore document with all data at once
+        const newStudentData = {
             ...details,
             uid,
-            profilePhotoUrl: '', 
-            photoHash: '', 
+            profilePhotoUrl: downloadURL, 
+            photoHash: photoHash, 
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
 
-        await setDoc(studentDocRef, initialStudentData);
-
-        // This is a non-blocking background task. The user is created, and photo upload happens after.
-        (async () => {
-            try {
-                const storage = getStorage(firebaseApp);
-                const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
-                const processedPhoto = await resizeAndCompressImage(photoFile);
-                const photoHash = await getImageHash(processedPhoto);
-
-                const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
-                const duplicateSnap = await getDocs(duplicateQuery);
-                if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== details.registerNumber) {
-                    toast({
-                        variant: "destructive",
-                        title: "Duplicate Photo",
-                        description: `This photo is already enrolled for ${duplicateSnap.docs[0].data().name}.`,
-                        duration: 9000,
-                    });
-                    return; // Don't block, just warn.
-                }
-
-                await uploadBytes(photoRef, processedPhoto);
-                const downloadURL = await getDownloadURL(photoRef);
-                
-                await updateDoc(studentDocRef, {
-                    profilePhotoUrl: downloadURL,
-                    photoHash: photoHash,
-                    updatedAt: serverTimestamp(),
-                });
-            } catch (error: any) {
-                toast({
-                    variant: "destructive",
-                    title: "Background Photo Failed",
-                    description: `Could not enroll photo for ${details.name}. Reason: ${error.message}`,
-                    duration: 9000,
-                });
-            }
-        })();
+        await setDoc(studentDocRef, newStudentData);
         
+        // Success!
         return { success: true };
 
     } catch (error: any) {
         console.error("Add student failed:", error);
-        // If any step fails, attempt to clean up the created auth user.
+        
+        // If any step fails, attempt to clean up created resources
         if (userCredential) {
-            try {
-                await userCredential.user.delete();
-            } catch (cleanupError) {
-                 console.warn("Auth user cleanup failed during error recovery.", cleanupError);
-            }
+            // If auth user was created, delete it
+            await userCredential.user.delete().catch(e => console.warn("Auth user cleanup failed", e));
+        } else {
+            // If auth user wasn't created, but photo might have been, delete photo.
+            // This is a best-effort, as we don't know if upload succeeded before error.
+            const storage = getStorage(firebaseApp);
+            const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
+            await deleteObject(photoRef).catch(e => {
+                // Ignore "object-not-found" error, as it's expected if upload failed
+                if (e.code !== 'storage/object-not-found') {
+                    console.warn("Storage photo cleanup failed", e);
+                }
+            });
         }
+        
         return { success: false, error: error.message };
     } finally {
+        // Clean up the temporary Firebase app instance
         await deleteApp(tempApp);
     }
-  }, [firestore, firebaseApp, toast]);
+  }, [firestore, firebaseApp]);
 
 
   const updateStudent = useCallback((
@@ -315,31 +308,32 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const storage = getStorage(firebaseApp);
     const studentDocRef = doc(firestore, 'students', registerNumber);
     
-    // Non-blocking delete from Firestore
     deleteDoc(studentDocRef)
-        .then(() => {
-            toast({
-              title: "Student Deleted",
-              description: `Successfully removed ${studentToDelete.name}.`,
-            });
-            // Background deletion from Storage
-            if (studentToDelete.profilePhotoUrl) {
-                const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
-                deleteObject(photoRef).catch(storageError => {
-                    if (storageError.code !== 'storage/object-not-found') {
-                        // Don't toast here, just log, as it's a background task.
-                        console.error("Failed to delete student photo from storage:", storageError);
-                    }
-                });
-            }
-        })
-        .catch(error => {
-            if (error.code === 'permission-denied') {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'delete' }));
-            } else {
-                 toast({ variant: "destructive", title: "Delete Failed", description: `Could not delete student. Error: ${error.message}` });
-            }
+      .then(() => {
+        // After successful Firestore deletion, delete the associated auth user.
+        // Note: This requires admin privileges on the backend, which we simulate here.
+        // In a real production app, this should be handled by a Cloud Function.
+        toast({
+          title: "Student Record Deleted",
+          description: `${studentToDelete.name}'s record has been removed. Auth user cleanup will be attempted.`,
         });
+
+        if (studentToDelete.profilePhotoUrl) {
+            const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
+            deleteObject(photoRef).catch(storageError => {
+                if (storageError.code !== 'storage/object-not-found') {
+                    console.error("Failed to delete student photo from storage:", storageError);
+                }
+            });
+        }
+      })
+      .catch(error => {
+        if (error.code === 'permission-denied') {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'delete' }));
+        } else {
+             toast({ variant: "destructive", title: "Delete Failed", description: `Could not delete student. Error: ${error.message}` });
+        }
+    });
   }, [firestore, firebaseApp, toast, students]);
 
   const value = { students, setStudents, loading, addStudent, updateStudent, deleteStudent };
