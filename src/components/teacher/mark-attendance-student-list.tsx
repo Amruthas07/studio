@@ -4,7 +4,7 @@ import React from 'react';
 import type { Student, AttendanceRecord } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Check, X, LogOut, Loader2 } from 'lucide-react';
+import { Check, X, LogOut } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,12 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
-import { useFirestore, useMemoFirebase } from '@/firebase/provider';
-import { useDoc } from '@/firebase/firestore/use-doc';
-import { doc } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { Skeleton } from '../ui/skeleton';
-
 
 interface MarkAttendanceStudentListProps {
   students: Student[];
@@ -109,15 +104,12 @@ const StudentAttendanceRow = ({
   allDepartmentRecords: AttendanceRecord[];
   onMarkAttendance: MarkAttendanceStudentListProps['onMarkAttendance'];
 }) => {
-  const firestore = useFirestore();
   const today = React.useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
   
-  const attendanceDocRef = useMemoFirebase(() => {
-      if (!firestore) return null;
-      return doc(firestore, 'attendance', `${today}_${student.registerNumber}`);
-  }, [firestore, student.registerNumber, today]);
-
-  const { data: record, isLoading: isRecordLoading } = useDoc<AttendanceRecord>(attendanceDocRef);
+  const record = React.useMemo(
+    () => allDepartmentRecords.find(r => r.date === today && r.studentRegister === student.registerNumber),
+    [allDepartmentRecords, student.registerNumber, today]
+  );
 
   const { percentage } = React.useMemo(() => {
     const studentOverallRecords = allDepartmentRecords.filter(r => r.studentRegister === student.registerNumber);
@@ -154,26 +146,6 @@ const StudentAttendanceRow = ({
     if (p >= 45) return 'bg-orange-500';
     return 'bg-red-500';
   };
-
-  if (isRecordLoading) {
-    return (
-        <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 h-[88px]">
-            <div className="flex items-center gap-4">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className='space-y-2'>
-                    <Skeleton className="h-4 w-[150px]" />
-                    <Skeleton className="h-3 w-[100px]" />
-                    <Skeleton className="h-2 w-20" />
-                </div>
-            </div>
-            <div className='flex items-center gap-2'>
-                <Skeleton className="h-9 w-24 rounded-md" />
-                <Skeleton className="h-9 w-24 rounded-md" />
-                <Skeleton className="h-9 w-24 rounded-md" />
-            </div>
-        </div>
-    )
-  }
 
   return (
     <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
