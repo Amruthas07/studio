@@ -39,7 +39,7 @@ export interface Teacher {
   email: string;
   createdAt: Date;
   updatedAt?: Date;
-  subjects?: { [key: number]: string };
+  subjects?: { [key: number]: string[] };
 }
 
 export interface RecentExport {

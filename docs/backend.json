@@ -151,9 +151,12 @@
         },
         "subjects": {
           "type": "object",
-          "description": "Mapping of semester number to assigned subject.",
+          "description": "Mapping of semester number to a list of assigned subjects.",
           "additionalProperties": {
-            "type": "string"
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

@@ -14,8 +14,7 @@ import { MarkAttendanceStudentList } from '@/components/teacher/mark-attendance-
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Student } from '@/lib/types';
-import { getSubjects } from '@/lib/subjects';
-import type { Department, Semester } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 export default function MarkAttendancePage() {
@@ -117,7 +116,14 @@ export default function MarkAttendancePage() {
 
         {semesters.map(sem => {
           const semesterStudents = departmentStudents.filter(s => s.semester === sem);
-          const subject = user.subjects?.[sem];
+          const subjectsForSemester = user.subjects?.[sem] || [];
+          const [selectedSubject, setSelectedSubject] = React.useState(subjectsForSemester[0] || '');
+
+          React.useEffect(() => {
+            if (subjectsForSemester.length > 0 && !subjectsForSemester.includes(selectedSubject)) {
+                setSelectedSubject(subjectsForSemester[0]);
+            }
+          }, [subjectsForSemester, selectedSubject]);
           
           return (
             <TabsContent key={sem} value={String(sem)} className="mt-4">
@@ -125,8 +131,26 @@ export default function MarkAttendancePage() {
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                         <CardTitle>Semester {sem} Students</CardTitle>
-                        <CardDescription>
-                            {subject ? `Subject: ${subject}` : 'No subject assigned for this semester.'}
+                        <CardDescription className="flex items-center gap-2 mt-1">
+                          {subjectsForSemester.length > 0 ? (
+                            <>
+                              <span>Subject:</span>
+                              {subjectsForSemester.length === 1 ? (
+                                <span className="font-semibold">{subjectsForSemester[0]}</span>
+                              ) : (
+                                <Select onValueChange={setSelectedSubject} value={selectedSubject}>
+                                  <SelectTrigger className="w-[250px] h-8">
+                                      <SelectValue placeholder="Select a subject" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                      {subjectsForSemester.map(subj => (
+                                          <SelectItem key={subj} value={subj}>{subj}</SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </>
+                          ) : 'No subject assigned for this semester.'}
                         </CardDescription>
                     </div>
                       <Button 

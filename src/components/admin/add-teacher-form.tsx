@@ -5,7 +5,7 @@ import React, { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Loader2 } from "lucide-react"
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -26,8 +26,11 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { useTeachers } from "@/hooks/use-teachers"
-import { getSubjects, type Department, type Semester } from "@/lib/subjects"
+import { getSubjects, type Semester } from "@/lib/subjects"
 import { Separator } from "../ui/separator"
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "../ui/command"
+import { cn } from "@/lib/utils"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -36,14 +39,14 @@ const formSchema = z.object({
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   position: z.enum(["Professor", "Associate Professor", "Assistant Professor", "HOD"]),
   subjects: z.object({
-      '1': z.string().optional(),
-      '2': z.string().optional(),
-      '3': z.string().optional(),
-      '4': z.string().optional(),
-      '5': z.string().optional(),
-      '6': z.string().optional(),
-      '7': z.string().optional(),
-      '8': z.string().optional(),
+      '1': z.array(z.string()).optional(),
+      '2': z.array(z.string()).optional(),
+      '3': z.array(z.string()).optional(),
+      '4': z.array(z.string()).optional(),
+      '5': z.array(z.string()).optional(),
+      '6': z.array(z.string()).optional(),
+      '7': z.array(z.string()).optional(),
+      '8': z.array(z.string()).optional(),
   }).optional(),
 })
 
@@ -193,35 +196,77 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
         <Separator />
         <div className="space-y-2">
             <h3 className="text-lg font-medium">Subject Assignments</h3>
-            <p className="text-sm text-muted-foreground">Assign one subject per semester. This is based on the selected department.</p>
+            <p className="text-sm text-muted-foreground">Assign subjects for each semester based on the selected department.</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {semesters.map(sem => (
-                <FormField
-                    key={sem}
-                    control={form.control}
-                    name={`subjects.${sem}`}
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Semester {sem}</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!department}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={!department ? "Select dept first" : "Select subject"} />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="">None</SelectItem>
-                                    {department && getSubjects(department, sem as Semester).map(subject => (
-                                        <SelectItem key={subject} value={subject}>{subject}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            ))}
+            {semesters.map(sem => {
+                const subjectsForSemester = department ? getSubjects(department, sem as Semester) : [];
+                return (
+                    <FormField
+                        key={sem}
+                        control={form.control}
+                        name={`subjects.${sem}`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Semester {sem}</FormLabel>
+                                 <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                className={cn(
+                                                    "w-full justify-between",
+                                                    !field.value?.length && "text-muted-foreground"
+                                                )}
+                                                disabled={!department}
+                                            >
+                                                <span className="truncate">
+                                                    {field.value?.length
+                                                        ? `${field.value.length} selected`
+                                                        : "Select subjects"}
+                                                </span>
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Search subjects..." />
+                                            <CommandEmpty>No subjects found for this department.</CommandEmpty>
+                                            <CommandGroup>
+                                                {subjectsForSemester.map((subject) => (
+                                                    <CommandItem
+                                                        value={subject}
+                                                        key={subject}
+                                                        onSelect={() => {
+                                                            const selected = field.value || [];
+                                                            const isSelected = selected.includes(subject);
+                                                            const newValue = isSelected
+                                                                ? selected.filter((s) => s !== subject)
+                                                                : [...selected, subject];
+                                                            field.onChange(newValue);
+                                                        }}
+                                                    >
+                                                        <Check
+                                                            className={cn(
+                                                                "mr-2 h-4 w-4",
+                                                                field.value?.includes(subject) ? "opacity-100" : "opacity-0"
+                                                            )}
+                                                        />
+                                                        {subject}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )
+            })}
         </div>
             
         <div className="flex justify-end pt-4">
