@@ -113,8 +113,9 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const docId = `${record.date}_${record.studentRegister}`;
     const recordDocRef = doc(firestore, 'attendance', docId);
 
-    // Manually construct the object to prevent issues with undefined fields during merge
-    const recordToSave: { [key: string]: any } = {
+    // Create a clean object to save, ensuring `reason` is explicitly handled.
+    // Using `null` instead of `deleteField()` can be more robust with optimistic UI updates.
+    const dataToSave = {
       studentRegister: record.studentRegister,
       date: record.date,
       status: record.status,
@@ -123,17 +124,8 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       department: student.department,
       studentUid: student.uid,
       timestamp: serverTimestamp(),
+      reason: record.reason || null, // Set reason to the value or null if undefined/falsy
     };
-    
-    // Explicitly handle the 'reason' field.
-    if (record.reason) {
-      // Only add the reason if it's provided (for 'On Leave' status).
-      recordToSave.reason = record.reason;
-    } else {
-      // For 'absent' or simple 'present', ensure the reason field is explicitly removed.
-      recordToSave.reason = deleteField();
-    }
-
 
     const handleFirestoreError = (error: any, path: string, operation: 'write' | 'update' | 'create', data: any) => {
       if (error.code === 'permission-denied') {
@@ -143,8 +135,10 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       }
     };
     
-    setDoc(recordDocRef, recordToSave, { merge: true })
-        .catch(err => handleFirestoreError(err, recordDocRef.path, 'write', recordToSave));
+    // Using setDoc with merge will create or update the document.
+    // Explicitly setting `reason: null` will overwrite any previous reason.
+    setDoc(recordDocRef, dataToSave, { merge: true })
+        .catch(err => handleFirestoreError(err, recordDocRef.path, 'write', dataToSave));
   }, [firestore, toast, students]);
   
 
