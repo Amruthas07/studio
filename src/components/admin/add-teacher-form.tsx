@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from "react"
@@ -57,23 +56,29 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     },
   })
   
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    const { photo, ...teacherDetails } = values;
-    const result = await addTeacher({ ...teacherDetails, photoFile: photo });
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    onTeacherAdded();
+    toast({
+        title: "Registering Teacher...",
+        description: `Your request to register ${values.name} is being processed.`,
+    });
 
-    if (result.success) {
-      toast({ title: 'Teacher Registered', description: `${values.name} can now log in.` });
-      onTeacherAdded();
-      form.reset();
-      setPreviewUrl(null);
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Registration Failed",
-            description: result.error || "An unexpected error occurred.",
-            duration: 9000,
-        });
-    }
+    const { photo, ...teacherDetails } = values;
+    addTeacher({ ...teacherDetails, photoFile: photo }).then((result) => {
+      if (result.success) {
+        toast({ title: 'Teacher Registered', description: `${values.name} can now log in.` });
+      } else {
+          toast({
+              variant: "destructive",
+              title: "Registration Failed",
+              description: result.error || "An unexpected error occurred.",
+              duration: 9000,
+          });
+      }
+    });
+    
+    form.reset();
+    setPreviewUrl(null);
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {

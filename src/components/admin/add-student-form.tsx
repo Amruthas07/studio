@@ -74,7 +74,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     },
   })
   
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: z.infer<typeof formSchema>) {
     const departmentStudentsCount = students.filter(
         (student) => student.department === values.department
     ).length;
@@ -87,30 +87,37 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       });
       return;
     }
+
+    onStudentAdded();
+    toast({
+        title: "Enrolling Student...",
+        description: `Your request to enroll ${values.name} is being processed.`,
+    });
     
     const { photo, ...studentDetails } = values;
-    const result = await addStudent({
+    
+    addStudent({
         ...studentDetails,
         dateOfBirth: values.dateOfBirth,
         photoFile: photo,
+    }).then((result) => {
+      if (result.success) {
+          toast({
+              title: "Enrollment Successful",
+              description: `${values.name} has been added to the system.`,
+          });
+      } else {
+          toast({
+              variant: "destructive",
+              title: "Enrollment Failed",
+              description: result.error || "An unexpected error occurred.",
+              duration: 9000,
+          });
+      }
     });
 
-    if (result.success) {
-        toast({
-            title: "Enrollment Successful",
-            description: `${values.name} has been added to the system.`,
-        });
-        onStudentAdded();
-        form.reset();
-        setPreviewUrl(null);
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Enrollment Failed",
-            description: result.error || "An unexpected error occurred.",
-            duration: 9000,
-        });
-    }
+    form.reset();
+    setPreviewUrl(null);
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
