@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -23,8 +22,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Progress } from '../ui/progress';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
 
 interface MarkAttendanceStudentListProps {
   students: Student[];
@@ -154,32 +151,12 @@ const StudentAttendanceRow = ({
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <RadioGroup
-              onValueChange={(value) => {
-                onMarkAttendance(student.registerNumber, value as 'present' | 'absent');
-              }}
-              className="flex items-center rounded-md border bg-muted p-1"
-            >
-              <div>
-                <RadioGroupItem value="absent" id={`r-absent-${student.registerNumber}`} className="peer sr-only" />
-                <Label
-                  htmlFor={`r-absent-${student.registerNumber}`}
-                  className="flex items-center gap-1.5 cursor-pointer rounded-sm px-2 py-1.5 text-sm font-semibold transition-colors hover:bg-background/80 peer-data-[state=checked]:bg-destructive peer-data-[state=checked]:text-destructive-foreground"
-                >
-                  <X className="h-4 w-4" /> Absent
-                </Label>
-              </div>
-
-              <div>
-                <RadioGroupItem value="present" id={`r-present-${student.registerNumber}`} className="peer sr-only" />
-                <Label
-                  htmlFor={`r-present-${student.registerNumber}`}
-                  className="flex items-center gap-1.5 cursor-pointer rounded-sm px-2 py-1.5 text-sm font-semibold transition-colors hover:bg-background/80 peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
-                >
-                  <Check className="h-4 w-4" /> Present
-                </Label>
-              </div>
-            </RadioGroup>
+             <Button size="sm" variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-700" onClick={() => onMarkAttendance(student.registerNumber, 'absent')}>
+                <X className="mr-2 h-4 w-4" /> Absent
+            </Button>
+             <Button size="sm" variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 dark:border-green-700" onClick={() => onMarkAttendance(student.registerNumber, 'present')}>
+                <Check className="mr-2 h-4 w-4" /> Present
+            </Button>
             <MarkLeaveButton student={student} onMarkAttendance={onMarkAttendance} />
           </div>
         )}
