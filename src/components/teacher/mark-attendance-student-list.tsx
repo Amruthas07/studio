@@ -123,11 +123,11 @@ export function MarkAttendanceStudentList({ students, today, getTodaysRecordForS
               {record ? (
                 record.status === 'present' ? (
                   record.reason ? (
-                     <Badge className="text-base bg-amber-500 text-primary-foreground hover:bg-amber-500/90">
+                     <Badge variant="secondary" className="text-base">
                         <LogOut className="mr-2 h-4 w-4"/> Status: On Leave
                      </Badge>
                   ) : (
-                     <Badge className="text-base bg-green-600 text-primary-foreground hover:bg-green-600/90">
+                     <Badge variant="default" className="text-base">
                         <Check className="mr-2 h-4 w-4"/> Status: Present
                      </Badge>
                   )
