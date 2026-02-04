@@ -134,7 +134,7 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                         )}
                     />
                     <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
-                        <ScanFace className="mr-2 h-4 w-4" /> Change Photo
+                        Change Photo
                     </Button>
                 </div>
             </div>

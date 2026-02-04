@@ -194,7 +194,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                         )}
                     />
                     <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
-                        <ScanFace className="mr-2 h-4 w-4" /> Upload Photo
+                        Upload Photo
                     </Button>
                 </div>
             </div>
