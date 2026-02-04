@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -98,8 +99,8 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   const saveAttendanceRecord = useCallback((
     record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl' | 'department' | 'studentUid'>
   ) => {
-    if (!firestore) {
-      toast({ variant: "destructive", title: "Update Failed", description: "Database not available." });
+    if (!firestore || !user || user.role !== 'teacher') {
+      toast({ variant: "destructive", title: "Permission Denied", description: "You are not authorized to mark attendance." });
       return;
     }
     
@@ -117,22 +118,25 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       date: record.date,
       status: record.status,
       method: record.method,
-      markedBy: record.markedBy,
+      markedBy: user.uid, // Save teacher UID
       department: student.department,
       studentUid: student.uid,
       timestamp: serverTimestamp(),
     };
     
-    // Explicitly handle the 'reason' field. This is critical for the UI to update correctly.
-    // When marking 'Present' or 'Absent', we MUST remove the 'reason' field if it exists.
+    // This is the critical part:
+    // If a reason is provided, we are marking as 'On Leave'.
+    // If no reason is provided (i.e., marking 'Present' or 'Absent'),
+    // we must explicitly delete the 'reason' field from the document.
     if (record.reason) {
       dataToSave.reason = record.reason;
     } else {
-      dataToSave.reason = deleteField(); // This sentinel value removes the field from the document.
+      // This sentinel value ensures the 'reason' field is removed if it exists.
+      dataToSave.reason = deleteField(); 
     }
 
     const handleFirestoreError = (error: any, path: string, operation: 'write' | 'update' | 'create', data: any) => {
-      console.error(`Firestore Error (${operation}) on path '${path}':`, { error, data });
+      console.error(`Firestore Error (${operation}) on path '${path}':`, { error, data, userRole: user.role });
       if (error.code === 'permission-denied') {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path, operation, requestResourceData: data }));
       } else {
@@ -140,11 +144,12 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       }
     };
     
-    // Use setDoc with merge: true to create or update. 
-    // This correctly handles the "upsert" logic and applies field deletions.
+    // Use setDoc with merge: true. This acts as an "upsert":
+    // it will create the document if it doesn't exist, or
+    // update it if it does, applying field deletions correctly.
     setDoc(recordDocRef, dataToSave, { merge: true })
         .catch(err => handleFirestoreError(err, recordDocRef.path, 'write', dataToSave));
-  }, [firestore, toast, students]);
+  }, [firestore, toast, students, user]);
   
 
   const deleteAttendanceRecord = useCallback((studentRegister: string, date: string) => {
