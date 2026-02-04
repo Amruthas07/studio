@@ -9,10 +9,9 @@ import React, {
   useCallback,
 } from 'react';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, query, where, deleteField } from 'firebase/firestore';
-import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import type { AttendanceRecord } from '@/lib/types';
 import { useStudents } from '@/hooks/use-students';
-import { useFirestore, useFirebaseApp } from '@/firebase/provider';
+import { useFirestore } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -20,7 +19,7 @@ import { useAuth } from '@/hooks/use-auth';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
-  saveAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl' | 'department' | 'studentUid'>, photoDataUrl?: string) => void;
+  saveAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl' | 'department' | 'studentUid'>) => void;
   deleteAttendanceRecord: (studentRegister: string, date: string) => void;
   getTodaysRecordForStudent: (studentRegister: string, date: string) => AttendanceRecord | undefined;
   loading: boolean;
@@ -36,7 +35,6 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   const { students, loading: studentsLoading } = useStudents();
   const { user, loading: authLoading } = useAuth();
   const firestore = useFirestore();
-  const firebaseApp = useFirebaseApp();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -99,10 +97,9 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   }, [firestore, students, studentsLoading, user, authLoading]);
 
   const saveAttendanceRecord = useCallback((
-    record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl' | 'department' | 'studentUid'>,
-    photoDataUrl?: string
+    record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl' | 'department' | 'studentUid'>
   ) => {
-    if (!firestore || !firebaseApp) {
+    if (!firestore) {
       toast({ variant: "destructive", title: "Update Failed", description: "Database not available." });
       return;
     }
@@ -147,29 +144,9 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       }
     };
     
-    if (photoDataUrl) {
-      (async () => {
-        try {
-          const storage = getStorage(firebaseApp);
-          const filePath = `students/${record.studentRegister}/attendance_${record.date}_${Date.now()}.jpg`;
-          const storageRef = ref(storage, filePath);
-          const snapshot = await uploadString(storageRef, photoDataUrl, 'data_url');
-          const photoUrl = await getDownloadURL(snapshot.ref);
-
-          const finalRecord = { ...recordToSave, photoUrl };
-          setDoc(recordDocRef, finalRecord, { merge: true })
-            .catch(err => handleFirestoreError(err, recordDocRef.path, 'write', finalRecord));
-            
-        } catch (uploadError: any) {
-          console.error("Firebase Storage upload failed:", uploadError);
-          toast({ variant: "destructive", title: "Photo Upload Failed", description: `Could not save attendance photo. Reason: ${uploadError.message}` });
-        }
-      })();
-    } else {
-      setDoc(recordDocRef, recordToSave, { merge: true })
+    setDoc(recordDocRef, recordToSave, { merge: true })
         .catch(err => handleFirestoreError(err, recordDocRef.path, 'write', recordToSave));
-    }
-  }, [firestore, firebaseApp, toast, students]);
+  }, [firestore, toast, students]);
   
 
   const deleteAttendanceRecord = useCallback((studentRegister: string, date: string) => {

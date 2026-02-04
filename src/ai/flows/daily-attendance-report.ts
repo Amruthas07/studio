@@ -36,7 +36,7 @@ const AttendanceRecordSchema = z.object({
   status: z.enum(['present', 'absent']),
   timestamp: z.string(),
   reason: z.string().optional(),
-  method: z.enum(["face-scan", "manual", "live-photo"]),
+  method: z.enum(["face-scan", "manual"]),
   photoUrl: z.string().optional(),
 });
 

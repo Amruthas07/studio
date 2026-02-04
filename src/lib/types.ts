@@ -25,7 +25,7 @@ export interface AttendanceRecord {
   department: 'cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec';
   status: 'present' | 'absent';
   timestamp: string; // Storing as ISO string for localStorage compatibility
-  method: 'face-scan' | 'manual' | 'live-photo';
+  method: 'face-scan' | 'manual';
   photoUrl?: string;
   reason?: string;
 }
@@ -69,16 +69,6 @@ export interface TeachersContextType {
   deleteTeacher: (teacherId: string) => void;
 }
 
-
-export interface LiveCaptureRecord {
-  id: string;
-  photoUrl: string;
-  result: 'matched' | 'unmatched' | 'multiple';
-  confidence?: number;
-  matchedStudentId?: string;
-  matchedStudentName?: string;
-  timestamp: Date;
-}
 
 export interface InstitutionProfile {
   id: string;

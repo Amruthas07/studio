@@ -34,7 +34,6 @@ const teacherNavItems = [
     { href: '/teacher/profile', icon: User, label: 'My Profile' },
     { href: '/teacher/students', icon: Users, label: 'Students' },
     { href: '/teacher/mark-attendance', icon: UserCheck, label: 'Mark Attendance' },
-    { href: '/teacher/live-attendance', icon: Camera, label: 'Live Attendance' },
 ];
 
 function getNavItems(role?: 'admin' | 'student' | 'teacher') {
