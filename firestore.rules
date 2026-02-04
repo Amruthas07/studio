@@ -61,8 +61,15 @@ service cloud.firestore {
                    (isTeacher() && resource.data.department == getTeacherDepartment()) ||
                    (isSignedIn() && resource.data.studentUid == request.auth.uid);
 
-      // Only admins can manually create/edit attendance.
-      allow write: if isAdmin();
+      // Admins can create/update. Teachers can only do so for their department.
+      allow create: if isAdmin() || 
+                       (isTeacher() && request.resource.data.department == getTeacherDepartment());
+
+      allow update: if isAdmin() ||
+                       (isTeacher() && resource.data.department == getTeacherDepartment());
+      
+      // Only admins can delete.
+      allow delete: if isAdmin();
     }
     
     // Default deny all other paths.
