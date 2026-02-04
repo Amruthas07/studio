@@ -19,7 +19,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from '@/hooks/use-toast';
-import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
