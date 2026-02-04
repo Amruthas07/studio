@@ -8,6 +8,7 @@ import { Loader2, CheckCircle, LogOut, XCircle } from "lucide-react";
 import React from "react";
 import { useAttendance } from "@/hooks/use-attendance";
 import { StudentAttendanceAnalysis } from "@/components/student/student-attendance-analysis";
+import { SubjectAbsenceChart } from "@/components/student/subject-absence-chart";
 
 export default function StudentAttendancePage() {
     const { user, loading } = useAuth();
@@ -38,6 +39,11 @@ export default function StudentAttendancePage() {
                 studentRecords={studentAttendanceRecords} 
                 allRecords={attendanceRecords} 
                 enrollmentDate={user.createdAt}
+            />
+
+            <SubjectAbsenceChart 
+                student={user}
+                studentRecords={studentAttendanceRecords}
             />
 
             <Card>
