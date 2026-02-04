@@ -39,7 +39,7 @@ export interface AuthUser extends Omit<Student, 'department' | 'semester' | 'uid
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (identifier: string, pass: string) => Promise<void>;
   logout: () => void;
   changePassword: (currentPass: string, newPass: string) => Promise<{ success: boolean; error?: string }>;
 }
@@ -177,16 +177,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [firebaseUser, isUserLoading, firestore, auth, router]);
 
 
-  const login = useCallback(async (email: string, pass: string) => {
+  const login = useCallback(async (identifier: string, pass: string) => {
+    let emailToLogin = identifier;
+
+    // If identifier doesn't look like an email, assume it's a register number.
+    if (!identifier.includes('@') && !identifier.includes('.')) {
+        if (!firestore) throw new Error("Database not available.");
+        
+        // Try finding a student by register number to get their email
+        const studentQuery = query(collection(firestore, 'students'), where('registerNumber', '==', identifier), limit(1));
+        const studentSnap = await getDocs(studentQuery);
+
+        if (!studentSnap.empty) {
+            emailToLogin = studentSnap.docs[0].data().email;
+        }
+        // If not found, let signInWithEmailAndPassword handle the failure.
+    }
+    
     try {
-      await signInWithEmailAndPassword(auth, email, pass);
+      await signInWithEmailAndPassword(auth, emailToLogin, pass);
       // On successful sign-in, the onAuthStateChanged listener in useEffect will
       // fetch the profile and trigger the appropriate redirect.
     } catch (error: any) {
       // If the user is not found and it's the admin email, attempt to create the admin user.
-      if (error.code === 'auth/user-not-found' && email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      if (error.code === 'auth/user-not-found' && emailToLogin.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
         try {
-          await createUserWithEmailAndPassword(auth, email, "apdd46@");
+          await createUserWithEmailAndPassword(auth, emailToLogin, "apdd46@");
           // On successful creation, the onAuthStateChanged listener will fire,
           // fetch the profile, and handle the redirect.
         } catch (creationError: any) {
@@ -196,16 +212,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           throw new Error('Failed to create administrator account.');
         }
-      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        // For existing users with wrong password.
-        throw new Error('Invalid email or password.');
+      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+        // For existing users with wrong password or if user does not exist.
+        throw new Error('Invalid credentials provided.');
       } else {
         // Handle other login errors.
         console.error("Login error:", error.code, error.message);
         throw new Error('An unexpected error occurred during login.');
       }
     }
-  }, [auth]);
+  }, [auth, firestore]);
 
   const changePassword = useCallback(async (currentPass: string, newPass: string): Promise<{ success: boolean; error?: string }> => {
     const user = auth.currentUser;

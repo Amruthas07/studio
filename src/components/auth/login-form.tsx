@@ -16,12 +16,12 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
+  identifier: z.string().min(1, { message: 'This field is required.' }),
   password: z.string().min(1, { message: 'Password is required.' }),
 });
 
@@ -31,18 +31,19 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = React.useState(false);
   const pathname = usePathname();
   const isAdminLogin = pathname.includes('/admin-login');
+  const isStudentLogin = pathname.includes('/student-login');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: '',
+      identifier: '',
       password: '',
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-        await login(values.email, values.password);
+        await login(values.identifier, values.password);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -52,21 +53,33 @@ export function LoginForm() {
     }
   }
 
+  const getIdentifierLabel = () => {
+    if (isStudentLogin) return "Email or Register Number";
+    return "Email Address";
+  }
+
+  const getIdentifierPlaceholder = () => {
+      if (isStudentLogin) return "Enter your email or register number";
+      return "Enter your email address";
+  }
+
+  const IdentifierIcon = isStudentLogin ? User : Mail;
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
-          name="email"
+          name="identifier"
           render={({ field }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-2 text-card-foreground/80">
-                <Mail className="h-4 w-4" />
-                Email Address
+                <IdentifierIcon className="h-4 w-4" />
+                {getIdentifierLabel()}
               </FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Enter your email address"
+                  placeholder={getIdentifierPlaceholder()}
                   {...field}
                 />
               </FormControl>
