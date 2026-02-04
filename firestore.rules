@@ -32,38 +32,37 @@ service cloud.firestore {
 
     // Teachers collection
     match /teachers/{email} {
-      // Any signed in user can read teacher data (for role checks)
-      allow read: if isSignedIn();
-      // Only admins can create, update, or delete teachers.
+      // Admins can read/write. A teacher can read their own profile.
+      allow read: if isAdmin() || (isSignedIn() && request.auth.token.email == email);
       allow write: if isAdmin();
+    }
+    match /teachers {
+        // Only admins can list all teachers.
+        allow list: if isAdmin();
     }
 
     // --- Students ---
     match /students/{studentId} {
-      // Only Admins can get a single document directly by its ID.
-      // Students and Teachers use queries (list), which are handled on the collection.
-      allow get: if isAdmin();
+      // Define who can read student data (get and list).
+      // A query will succeed only if every document in its potential result set is readable by the user.
+      allow read: if isAdmin() || 
+                   (isTeacher() && resource.data.department == getTeacherDepartment()) ||
+                   (isSignedIn() && resource.data.uid == request.auth.uid);
+
+      // Only admins can create, update, or delete students.
       allow write: if isAdmin();
-    }
-    match /students {
-      // Rules for querying the students collection.
-      allow list: if isAdmin() || 
-                    (isTeacher() && request.query.where.department == getTeacherDepartment()) ||
-                    (isSignedIn() && request.query.where.uid == request.auth.uid);
     }
 
 
     // --- Attendance ---
     match /attendance/{attendanceId} {
+      // Define who can read attendance data (get and list)
+      allow read: if isAdmin() ||
+                   (isTeacher() && resource.data.department == getTeacherDepartment()) ||
+                   (isSignedIn() && resource.data.studentUid == request.auth.uid);
+
+      // Only admins can manually create/edit attendance.
       allow write: if isAdmin();
-      // Admin can get any record. Student can get their own.
-      allow get: if isAdmin() || (resource.data.studentUid == request.auth.uid);
-    }
-    match /attendance {
-        // Define who can query the attendance collection.
-        allow list: if isAdmin() ||
-                      (isTeacher() && request.query.where.department == getTeacherDepartment()) ||
-                      (isSignedIn() && request.query.where.studentUid == request.auth.uid);
     }
     
     // Default deny all other paths.
