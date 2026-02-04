@@ -1,38 +1,10 @@
-
 'use client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, MapPin, Phone, Info, Loader2 } from 'lucide-react';
+import { Mail, MapPin, Phone, Info, Loader2, University } from 'lucide-react';
 import Image from 'next/image';
 import { useInstitutionProfile } from '@/hooks/use-institution-profile';
 import { Separator } from '@/components/ui/separator';
-
-const departmentInfo = {
-    cs: {
-        name: "Computer Science & Engineering",
-        about: "The Department of Computer Science is committed to excellence in teaching, research, and service. We offer a variety of programs to prepare students for successful careers in the ever-evolving field of technology."
-    },
-    ce: {
-        name: "Civil Engineering",
-        about: "The Department of Civil Engineering focuses on designing, constructing, and maintaining the physical and naturally built environment. Our curriculum prepares students for major infrastructure projects."
-    },
-    me: {
-        name: "Mechanical Engineering",
-        about: "The Department of Mechanical Engineering provides a broad scientific and technical background required to solve challenging problems in one of the most diverse fields of engineering."
-    },
-    ee: {
-        name: "Electrical Engineering",
-        about: "The Department of Electrical Engineering is dedicated to innovation in areas ranging from electronics to power systems, preparing students for the high-tech industry."
-    },
-    mce: {
-        name: "Mechatronics",
-        about: "The Mechatronics department integrates mechanical engineering with electronics and intelligent computer control to create smarter systems. Our students learn to design and build automated processes."
-    },
-    ec: {
-        name: "Electronics & Communication",
-        about: "The Department of Electronics & Communication Engineering covers the underlying principles of electronic devices and communication technologies, fostering innovation in a rapidly advancing field."
-    }
-};
 
 export default function AdminProfilePage() {
     const { user, loading: authLoading } = useAuth();
@@ -46,6 +18,8 @@ export default function AdminProfilePage() {
         coverImageUrl: "https://picsum.photos/seed/college-campus/1920/1080"
     };
 
+    const aboutInstitution = "At Smart Institute, we are dedicated to fostering an environment of academic excellence and innovation. Our mission is to empower students with the knowledge, skills, and values needed to thrive in a rapidly changing world. We offer a diverse range of programs supported by a world-class faculty and state-of-the-art facilities. Our commitment to research, hands-on learning, and community engagement prepares our graduates to become leaders and problem-solvers in their chosen fields, making a positive impact on society.";
+
   const loading = authLoading || profileLoading;
 
   if (loading || !user) {
@@ -56,16 +30,11 @@ export default function AdminProfilePage() {
     );
   }
 
-  const currentDepartment = departmentInfo[user.department as keyof typeof departmentInfo] || {
-      name: "Department",
-      about: "Information about this department is not yet available."
-  };
-
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline">Institution Profile</h1>
-        <p className="text-muted-foreground">Information about the college and your assigned department.</p>
+        <p className="text-muted-foreground">General information about the college.</p>
       </div>
 
       <Card className='overflow-hidden shadow-lg'>
@@ -83,7 +52,7 @@ export default function AdminProfilePage() {
         <CardHeader className="relative -mt-16 z-10 border-b-0 pb-4 px-6">
             <CardTitle className="font-headline text-3xl text-white">{collegeDetails.name}</CardTitle>
             <CardDescription className="text-white/90">
-                {currentDepartment.name}
+                A Hub of Innovation and Academic Excellence
             </CardDescription>
         </CardHeader>
         <CardContent className='pt-8 space-y-8 px-6 pb-8'>
@@ -117,12 +86,12 @@ export default function AdminProfilePage() {
 
             <Separator />
 
-            {/* Section 2: About Department */}
+            {/* Section 2: About Institution */}
             <div className='space-y-4'>
-                <h3 className="text-lg font-semibold tracking-tight text-primary border-b pb-2">About the Department</h3>
+                <h3 className="text-lg font-semibold tracking-tight text-primary border-b pb-2">About the Institution</h3>
                 <div className="flex items-start gap-4 pt-2">
-                    <Info className="h-5 w-5 mt-1 text-primary flex-shrink-0" />
-                    <p className="text-justify">{currentDepartment.about}</p>
+                    <University className="h-5 w-5 mt-1 text-primary flex-shrink-0" />
+                    <p className="text-justify">{aboutInstitution}</p>
                 </div>
             </div>
         </CardContent>
