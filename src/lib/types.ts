@@ -9,6 +9,7 @@ export interface Student {
   email: string;
   contact: string;
   photoHash?: string;
+  uid?: string;
   createdAt: Date;
   dateOfBirth: Date;
   updatedAt?: Date;
@@ -49,7 +50,7 @@ export interface StudentsContextType {
   students: Student[];
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   loading: boolean;
-  addStudent: (studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt'> & { photoFile: File }) => Promise<void>;
+  addStudent: (studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt' | 'uid'> & { photoFile: File }) => Promise<{ success: boolean; error?: string; }>;
   updateStudent: (
     registerNumber: string,
     studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'profilePhotoUrl' | 'photoHash' | 'updatedAt'>> & { newPhotoFile?: File }
@@ -60,7 +61,7 @@ export interface StudentsContextType {
 export interface TeachersContextType {
   teachers: Teacher[];
   loading: boolean;
-  addTeacher: (teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }) => Promise<void>;
+  addTeacher: (teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }) => Promise<{ success: boolean; error?: string; }>;
   updateTeacher: (teacherId: string, teacherUpdate: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => void;
   deleteTeacher: (teacherId: string) => void;
 }

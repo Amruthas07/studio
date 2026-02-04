@@ -43,18 +43,17 @@ service cloud.firestore {
 
     // --- Students ---
     match /students/{studentId} {
-      // Allow getting a single document for profile lookups and functions.
-      allow get: if isSignedIn();
-      // Only admins can modify student documents.
+      // read: Combines get and list.
+      // - Admins can read all student docs.
+      // - Teachers can read student docs within their own department.
+      // - A student can read their own document.
+      allow read: if isAdmin() || 
+                    (isTeacher() && resource.data.department == getTeacherDepartment()) ||
+                    (isSignedIn() && resource.data.uid == request.auth.uid);
+                    
+      // write: Combines create, update, delete.
+      // - Only admins can create, update, or delete student documents.
       allow write: if isAdmin();
-    }
-    match /students {
-      // Admins can list all students.
-      // Teachers can list students from their department.
-      // A user can query for their own profile by email during login.
-      allow list: if isAdmin() ||
-                    (isTeacher() && request.query.where.department == getTeacherDepartment()) ||
-                    (isSignedIn() && request.query.where.email == request.auth.token.email);
     }
 
 

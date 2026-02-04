@@ -106,9 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     dateOfBirth: new Date(),
                 };
             } else {
-                // Check if the user is a student
+                // Check if the user is a student by their UID
                 const studentsRef = collection(firestore, 'students');
-                const q = query(studentsRef, where('email', '==', user.email!), limit(1));
+                const q = query(studentsRef, where('uid', '==', user.uid), limit(1));
                 const studentQuerySnap = await getDocs(q);
 
                 if (!studentQuerySnap.empty) {

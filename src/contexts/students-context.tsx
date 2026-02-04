@@ -12,7 +12,7 @@ import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'fire
 import { useFirestore, useFirebaseApp } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, UserCredential } from 'firebase/auth';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import type { Student, StudentsContextType } from '@/lib/types';
@@ -117,7 +117,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   }, [firestore, user, authLoading]);
 
   const addStudent = useCallback(async (
-    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt'> & { photoFile: File }
+    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt' | 'uid'> & { photoFile: File }
   ): Promise<{ success: boolean; error?: string }> => {
     if (!firestore || !firebaseApp) {
         return { success: false, error: 'Firebase services not initialized.' };
@@ -127,6 +127,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const tempAppName = `create-user-student-${Date.now()}`;
     const tempApp = initializeApp(firebaseConfig, tempAppName);
     const tempAuth = getAuth(tempApp);
+    let userCredential: UserCredential | undefined;
 
     const studentDocRef = doc(firestore, 'students', details.registerNumber);
 
@@ -144,10 +145,12 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             throw new Error(`A student with email ${details.email} already exists.`);
         }
 
-        await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
+        userCredential = await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
+        const uid = userCredential.user.uid;
 
         const initialStudentData = {
             ...details,
+            uid,
             profilePhotoUrl: '', 
             photoHash: '', 
             createdAt: serverTimestamp(),
@@ -199,12 +202,12 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
         console.error("Add student failed:", error);
         // If any step fails, attempt to clean up the created auth user.
-        try {
-            if (tempAuth.currentUser) {
-              await tempAuth.currentUser.delete();
+        if (userCredential) {
+            try {
+                await userCredential.user.delete();
+            } catch (cleanupError) {
+                 console.warn("Auth user cleanup failed during error recovery.", cleanupError);
             }
-        } catch (cleanupError) {
-             console.warn("Auth user cleanup failed. This can happen if the initial user creation also failed.", cleanupError);
         }
         return { success: false, error: error.message };
     } finally {

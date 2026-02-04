@@ -46,6 +46,10 @@
           "type": "string",
           "description": "Optional ID for matching with OpenCV backend.  References the embeddings stored elsewhere."
         },
+        "uid": {
+          "type": "string",
+          "description": "The Firebase Authentication user ID."
+        },
         "createdAt": {
           "type": "string",
           "description": "Timestamp of when the student record was created.",
