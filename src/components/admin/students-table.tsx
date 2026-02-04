@@ -19,13 +19,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/
 
 interface StudentsTableProps {
     students: Student[];
+    title: string;
+    description: string;
     onViewStudent: (student: Student) => void;
     onEditStudent?: (student: Student) => void;
     onDeleteStudent?: (student: Student) => void;
     readOnly?: boolean;
 }
 
-export function StudentsTable({ students, onViewStudent, onEditStudent, onDeleteStudent, readOnly = false }: StudentsTableProps) {
+export function StudentsTable({ students, title, description, onViewStudent, onEditStudent, onDeleteStudent, readOnly = false }: StudentsTableProps) {
     
     const getInitials = (name: string) => {
         const names = name.split(' ');
@@ -38,8 +40,8 @@ export function StudentsTable({ students, onViewStudent, onEditStudent, onDelete
     return (
         <Card>
             <CardHeader>
-                <CardTitle>All Students</CardTitle>
-                <CardDescription>A list of all registered students.</CardDescription>
+                <CardTitle>{title}</CardTitle>
+                <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent>
                 <TooltipProvider>

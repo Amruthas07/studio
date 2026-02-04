@@ -1,4 +1,3 @@
-
 'use client';
 import React from 'react';
 import { Loader2, PlusCircle, Search } from "lucide-react";
@@ -29,6 +28,17 @@ import { StudentsTable } from "@/components/admin/students-table";
 import { StudentProfileCard } from '@/components/shared/student-profile-card';
 import type { Student } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+const departments = [
+    { value: 'all', label: 'All Students' },
+    { value: 'cs', label: 'Computer Science' },
+    { value: 'ce', label: 'Civil Eng.' },
+    { value: 'me', label: 'Mechanical Eng.' },
+    { value: 'ee', label: 'Electrical Eng.' },
+    { value: 'mce', label: 'Mechatronics' },
+    { value: 'ec', label: 'Electronics & Comm.' },
+];
 
 export default function AdminStudentsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -66,13 +76,6 @@ export default function AdminStudentsPage() {
     setStudentToDelete(student);
     setIsDeleteDialogOpen(true);
   };
-  const filteredStudents = React.useMemo(() => {
-    if (!searchTerm) return students;
-    return students.filter(s => 
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.registerNumber.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [students, searchTerm]);
 
   if (loading) {
     return (
@@ -122,12 +125,41 @@ export default function AdminStudentsPage() {
         </Dialog>
       </div>
 
-      <StudentsTable 
-        students={filteredStudents} 
-        onViewStudent={openViewDialog}
-        onEditStudent={openEditDialog}
-        onDeleteStudent={openDeleteDialog}
-      />
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
+          {departments.map(dept => (
+            <TabsTrigger key={dept.value} value={dept.value}>{dept.label}</TabsTrigger>
+          ))}
+        </TabsList>
+        {departments.map(dept => {
+          const getDepartmentStudents = () => {
+            const departmentStudents = dept.value === 'all' 
+              ? students 
+              : students.filter(s => s.department === dept.value);
+            
+            if (!searchTerm) return departmentStudents;
+
+            return departmentStudents.filter(s => 
+              s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              s.registerNumber.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+          };
+          const departmentStudents = getDepartmentStudents();
+
+          return (
+            <TabsContent key={dept.value} value={dept.value} className="mt-4">
+              <StudentsTable 
+                students={departmentStudents} 
+                title={dept.label}
+                description={`A list of students in the ${dept.label} department.`}
+                onViewStudent={openViewDialog}
+                onEditStudent={openEditDialog}
+                onDeleteStudent={openDeleteDialog}
+              />
+            </TabsContent>
+          )
+        })}
+      </Tabs>
 
       {/* Dialogs */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
