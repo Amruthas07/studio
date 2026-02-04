@@ -9,8 +9,7 @@ import React, {
 } from 'react';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'firebase/storage';
-import { useFirestore, useFirebaseApp } from '@/firebase/provider';
-import { useAuth as useFirebaseAuthHook } from '@/firebase/provider';
+import { useFirestore, useFirebaseApp, useAuth as useFirebaseAuthHook } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -19,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getImageHash, resizeAndCompressImage } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 
-const ADMIN_EMAIL = "smart46@gmail.com";
+const ADMIN_EMAIL = "apdd46@gmail.com";
 
 export const StudentsContext = createContext<StudentsContextType | undefined>(
   undefined

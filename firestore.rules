@@ -9,7 +9,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && request.auth.token.email == "smart46@gmail.com";
+      return isSignedIn() && request.auth.token.email == "apdd46@gmail.com";
     }
 
     function isTeacher() {
@@ -39,8 +39,8 @@ service cloud.firestore {
       allow list: if isAdmin();
       
       // An admin can get any teacher's document.
-      // A teacher can get their OWN document (e.g., for login role check).
-      allow get: if isAdmin() || (isTeacher() && request.auth.token.email == email);
+      // A user can get their OWN document to check for their role.
+      allow get: if isAdmin() || request.auth.token.email == email;
 
       // Only admins can create, update, or delete teachers.
       allow write: if isAdmin();
