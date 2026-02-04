@@ -10,7 +10,7 @@ import { initializeApp, deleteApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from './auth-context';
+import { useAuth } from '@/hooks/use-auth';
 
 const ADMIN_EMAIL = "apdd46@gmail.com";
 
