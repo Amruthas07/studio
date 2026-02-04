@@ -47,7 +47,8 @@ export function StudentsTable({ students, onViewStudent, onEditStudent, onDelete
                     {students.length === 0 && <TableCaption>No students found.</TableCaption>}
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Student</TableHead>
+                            <TableHead className="w-[64px]">Photo</TableHead>
+                            <TableHead>Name</TableHead>
                             <TableHead>Register No.</TableHead>
                             <TableHead>Department</TableHead>
                             <TableHead>Contact</TableHead>
@@ -58,15 +59,15 @@ export function StudentsTable({ students, onViewStudent, onEditStudent, onDelete
                         {students.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((student) => (
                         <TableRow key={student.registerNumber}>
                             <TableCell>
-                                <div className="flex items-center gap-3">
-                                    <Avatar className="h-10 w-10">
-                                        <AvatarImage src={student.profilePhotoUrl} alt={student.name} />
-                                        <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="grid gap-0.5">
-                                        <div className="font-medium">{student.name}</div>
-                                        <div className="text-xs text-muted-foreground">{student.email}</div>
-                                    </div>
+                                <Avatar className="h-10 w-10">
+                                    <AvatarImage src={student.profilePhotoUrl} alt={student.name} />
+                                    <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+                                </Avatar>
+                            </TableCell>
+                            <TableCell>
+                                <div className="grid gap-0.5">
+                                    <div className="font-medium">{student.name}</div>
+                                    <div className="text-xs text-muted-foreground">{student.email}</div>
                                 </div>
                             </TableCell>
                             <TableCell>{student.registerNumber}</TableCell>

@@ -46,7 +46,8 @@ export function TeachersTable({ teachers, onViewTeacher, onEditTeacher, onDelete
                     {teachers.length === 0 && <TableCaption>No teachers found.</TableCaption>}
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Teacher</TableHead>
+                            <TableHead className="w-[64px]">Photo</TableHead>
+                            <TableHead>Name</TableHead>
                             <TableHead>Department</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -55,15 +56,15 @@ export function TeachersTable({ teachers, onViewTeacher, onEditTeacher, onDelete
                         {teachers.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((teacher) => (
                         <TableRow key={teacher.teacherId}>
                             <TableCell>
-                                <div className="flex items-center gap-3">
-                                    <Avatar className="h-10 w-10">
-                                        <AvatarImage src={teacher.profilePhotoUrl} alt={teacher.name} />
-                                        <AvatarFallback>{getInitials(teacher.name)}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="grid gap-0.5">
-                                        <div className="font-medium">{teacher.name}</div>
-                                        <div className="text-xs text-muted-foreground">{teacher.email}</div>
-                                    </div>
+                                <Avatar className="h-10 w-10">
+                                    <AvatarImage src={teacher.profilePhotoUrl} alt={teacher.name} />
+                                    <AvatarFallback>{getInitials(teacher.name)}</AvatarFallback>
+                                </Avatar>
+                            </TableCell>
+                            <TableCell>
+                                <div className="grid gap-0.5">
+                                    <div className="font-medium">{teacher.name}</div>
+                                    <div className="text-xs text-muted-foreground">{teacher.email}</div>
                                 </div>
                             </TableCell>
                             <TableCell>
