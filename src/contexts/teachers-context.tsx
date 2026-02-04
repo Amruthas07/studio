@@ -25,9 +25,6 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
 
 
   useEffect(() => {
-    setLoading(true);
-    setTeachers([]);
-
     if (authLoading || !firestore) {
       if (!authLoading) {
         setLoading(false);
@@ -36,10 +33,12 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     }
     
     if (user?.role !== 'admin') {
+      setTeachers([]);
       setLoading(false);
       return;
     }
-
+    
+    setLoading(true);
     const teachersCollection = collection(firestore, 'teachers');
     const unsubscribe = onSnapshot(
       teachersCollection,
@@ -69,9 +68,11 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [firestore, user, authLoading]);
 
-  const addTeacher = useCallback(async (teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }) => {
+  const addTeacher = useCallback(async (
+    teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }
+  ): Promise<{ success: boolean; error?: string }> => {
     if (!firestore) {
-        throw new Error('Database not initialized.');
+        return { success: false, error: 'Database not initialized.' };
     }
 
     const { email, password, ...details } = teacherData;
@@ -81,7 +82,6 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     const tempAuth = getAuth(tempApp);
 
     try {
-        // Step 1: Check for duplicates
         if (email.toLowerCase() === ADMIN_EMAIL) {
             throw new Error("This email is reserved for the administrator.");
         }
@@ -91,21 +91,18 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             throw new Error(`A teacher with email ${email} already exists.`);
         }
 
-        // Step 2: Create Auth user
         try {
             await createUserWithEmailAndPassword(tempAuth, email, password);
         } catch (authError: any) {
             let message = authError.message;
             if (authError.code === 'auth/email-already-in-use') {
                 message = 'This email is already in use by another account.';
-            }
-            if (authError.code === 'auth/weak-password') {
+            } else if (authError.code === 'auth/weak-password') {
                 message = 'Password must be at least 6 characters.';
             }
             throw new Error(message);
         }
 
-        // Step 3: Create Firestore document
         const newTeacherData = {
             ...details,
             email,
@@ -115,16 +112,15 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             updatedAt: serverTimestamp(),
         };
         await setDoc(teacherDocRef, newTeacherData);
+        
+        return { success: true };
 
-        toast({ title: 'Teacher Registered', description: `${details.name} can now log in.` });
-
-    } catch (error) {
-        // Re-throw to be caught by the form's onSubmit handler
-        throw error;
+    } catch (error: any) {
+        return { success: false, error: error.message };
     } finally {
         await deleteApp(tempApp);
     }
-  }, [firestore, toast]);
+  }, [firestore]);
   
   const updateTeacher = useCallback((teacherId: string, updates: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => {
     if (!firestore) {

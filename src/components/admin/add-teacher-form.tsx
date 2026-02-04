@@ -51,15 +51,18 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   })
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      await addTeacher(values);
+    const result = await addTeacher(values);
+
+    if (result.success) {
+      toast({ title: 'Teacher Registered', description: `${values.name} can now log in.` });
       onTeacherAdded();
       form.reset();
-    } catch (error: any) {
+    } else {
         toast({
             variant: "destructive",
             title: "Registration Failed",
-            description: error.message || "An unexpected error occurred.",
+            description: result.error || "An unexpected error occurred.",
+            duration: 9000,
         });
     }
   }

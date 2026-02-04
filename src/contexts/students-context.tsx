@@ -118,9 +118,9 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
   const addStudent = useCallback(async (
     studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt'> & { photoFile: File }
-  ) => {
+  ): Promise<{ success: boolean; error?: string }> => {
     if (!firestore || !firebaseApp) {
-        throw new Error('Firebase services not initialized.');
+        return { success: false, error: 'Firebase services not initialized.' };
     }
     const { photoFile, ...details } = studentData;
 
@@ -131,7 +131,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const studentDocRef = doc(firestore, 'students', details.registerNumber);
 
     try {
-        // Step 1: Check for duplicates
         if (details.email.toLowerCase() === ADMIN_EMAIL) {
             throw new Error("This email is reserved for the administrator.");
         }
@@ -145,7 +144,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             throw new Error(`A student with email ${details.email} already exists.`);
         }
 
-        // Step 2: Create Auth user
         try {
             await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
         } catch (authError: any) {
@@ -158,7 +156,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             throw new Error(`Authentication error: ${authError.message}`);
         }
 
-        // Step 3: Create Firestore document
         const initialStudentData = {
             ...details,
             profilePhotoUrl: '', 
@@ -167,27 +164,22 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             updatedAt: serverTimestamp(),
         };
 
-        // Await the database write and handle errors directly
         await setDoc(studentDocRef, initialStudentData);
 
-        // Step 4: Handle photo upload in the background (fire-and-forget is ok here)
         (async () => {
             try {
                 const storage = getStorage(firebaseApp);
                 const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
-
                 const processedPhoto = await resizeAndCompressImage(photoFile);
                 const photoHash = await getImageHash(processedPhoto);
 
                 const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
                 const duplicateSnap = await getDocs(duplicateQuery);
-
                 if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== details.registerNumber) {
-                    const duplicateStudent = duplicateSnap.docs[0].data();
                     toast({
                         variant: "destructive",
                         title: "Duplicate Photo",
-                        description: `This photo is already enrolled for ${duplicateStudent.name}. Please use a different photo.`,
+                        description: `This photo is already enrolled for ${duplicateSnap.docs[0].data().name}.`,
                         duration: 9000,
                     });
                     return;
@@ -196,27 +188,25 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                 await uploadBytes(photoRef, processedPhoto);
                 const downloadURL = await getDownloadURL(photoRef);
                 
-                const photoData = {
+                await updateDoc(studentDocRef, {
                     profilePhotoUrl: downloadURL,
                     photoHash: photoHash,
                     updatedAt: serverTimestamp(),
-                };
-
-                await updateDoc(studentDocRef, photoData);
-
+                });
             } catch (error: any) {
                 toast({
                     variant: "destructive",
-                    title: "Background Enrollment Failed",
-                    description: `Could not enroll photo for ${details.name}. Please try again from the student list. Reason: ${error.message}`,
+                    title: "Background Photo Failed",
+                    description: `Could not enroll photo for ${details.name}. Reason: ${error.message}`,
                     duration: 9000,
                 });
             }
         })();
+        
+        return { success: true };
 
-    } catch (error) {
-        // Re-throw the error to be caught by the form handler
-        throw error;
+    } catch (error: any) {
+        return { success: false, error: error.message };
     } finally {
         await deleteApp(tempApp);
     }

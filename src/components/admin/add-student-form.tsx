@@ -88,29 +88,28 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       return;
     }
     
-    try {
-      const { photo, ...studentDetails } = values;
-      await addStudent({
+    const { photo, ...studentDetails } = values;
+    const result = await addStudent({
         ...studentDetails,
         dateOfBirth: values.dateOfBirth,
         photoFile: photo,
-      });
+    });
 
-      toast({
-        title: "Enrollment Successful",
-        description: `${values.name} has been added to the system.`,
-      });
-
-      onStudentAdded();
-      form.reset();
-      setPreviewUrl(null);
-
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Enrollment Failed",
-        description: error.message || "An unexpected error occurred.",
-      });
+    if (result.success) {
+        toast({
+            title: "Enrollment Successful",
+            description: `${values.name} has been added to the system.`,
+        });
+        onStudentAdded();
+        form.reset();
+        setPreviewUrl(null);
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Enrollment Failed",
+            description: result.error || "An unexpected error occurred.",
+            duration: 9000,
+        });
     }
   }
 
