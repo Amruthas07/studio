@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from "react"
@@ -115,7 +114,6 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          <div className="md:col-span-2">
             <FormField
               control={form.control}
               name="name"
@@ -129,8 +127,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                 </FormItem>
               )}
             />
-          </div>
-          <div className="md:col-span-2">
+          
             <FormField
               control={form.control}
               name="registerNumber"
@@ -144,7 +141,6 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                 </FormItem>
               )}
             />
-          </div>
           
           <FormField
             control={form.control}
@@ -250,12 +246,11 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
             )}
           />
 
-          <div className="md:col-span-2">
             <FormField
               control={form.control}
               name="dateOfBirth"
               render={({ field }) => (
-                <FormItem className="flex flex-col pt-2">
+                <FormItem className="flex flex-col pt-2 md:col-span-2">
                   <FormLabel>Date of birth</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -295,7 +290,6 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                 </FormItem>
               )}
             />
-          </div>
         </div>
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={form.formState.isSubmitting}>

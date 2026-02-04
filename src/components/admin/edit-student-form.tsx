@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from "react"
@@ -100,63 +99,29 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-4">
-                <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Student Name</FormLabel>
-                    <FormControl>
-                        <Input placeholder="John Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormItem>
-                    <FormLabel>Register Number</FormLabel>
-                    <FormControl>
-                    <Input value={student.registerNumber} disabled />
-                    </FormControl>
-                    <FormDescription>Register number cannot be changed.</FormDescription>
-                </FormItem>
-            </div>
-             <div className="space-y-2">
-                <FormLabel>Profile Photo</FormLabel>
-                <div className="w-full aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
-                    {previewUrl ? (
-                        <Image src={previewUrl} alt="Student preview" layout="fill" objectFit="cover" />
-                    ) : (
-                        <div className="text-center text-muted-foreground p-4">
-                           <p className="text-xs">Upload new photo (optional)</p>
-                        </div>
-                    )}
-                </div>
-                 <FormField
-                    control={form.control}
-                    name="photo"
-                    render={() => (
-                       <FormItem>
-                            <FormControl>
-                                <Input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/png, image/jpeg"
-                                    onChange={handlePhotoChange}
-                                    className="hidden"
-                                />
-                            </FormControl>
-                            <FormMessage />
-                       </FormItem>
-                    )}
-                />
-                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
-                    Change Photo
-                </Button>
-            </div>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                  <FormItem>
+                  <FormLabel>Student Name</FormLabel>
+                  <FormControl>
+                      <Input placeholder="John Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                  </FormItem>
+              )}
+            />
+            <FormItem>
+                <FormLabel>Register Number</FormLabel>
+                <FormControl>
+                <Input value={student.registerNumber} disabled />
+                </FormControl>
+                <FormDescription>Register number cannot be changed.</FormDescription>
+            </FormItem>
+
              <FormField
               control={form.control}
               name="fatherName"
@@ -214,7 +179,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Current Semester</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                  <Select onValueChange={(v) => field.onChange(Number(v))} defaultValue={String(field.value)}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a semester" />
@@ -259,11 +224,11 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                 </FormItem>
               )}
             />
-             <FormField
+            <FormField
                 control={form.control}
                 name="dateOfBirth"
                 render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem className="flex flex-col pt-2">
                     <FormLabel>Date of birth</FormLabel>
                     <Popover>
                         <PopoverTrigger asChild>
@@ -303,6 +268,39 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                     </FormItem>
                 )}
             />
+            <div className="space-y-2">
+                <FormLabel>Profile Photo</FormLabel>
+                <div className="w-full aspect-square rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
+                    {previewUrl ? (
+                        <Image src={previewUrl} alt="Student preview" layout="fill" objectFit="cover" />
+                    ) : (
+                        <div className="text-center text-muted-foreground p-4">
+                           <p className="text-xs">Upload new photo (optional)</p>
+                        </div>
+                    )}
+                </div>
+                 <FormField
+                    control={form.control}
+                    name="photo"
+                    render={() => (
+                       <FormItem>
+                            <FormControl>
+                                <Input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/png, image/jpeg"
+                                    onChange={handlePhotoChange}
+                                    className="hidden"
+                                />
+                            </FormControl>
+                            <FormMessage />
+                       </FormItem>
+                    )}
+                />
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
+                    Change Photo
+                </Button>
+            </div>
         </div>
         <div className="flex justify-end pt-4">
             <Button type="submit" disabled={isPending}>
