@@ -20,8 +20,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Loader2, Mail } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Loader2, Mail, Send } from 'lucide-react';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -30,7 +29,6 @@ const formSchema = z.object({
 export default function ForgotPasswordPage() {
     const auth = useFirebaseAuth();
     const { toast } = useToast();
-    const router = useRouter();
     const [loading, setLoading] = React.useState(false);
     const [emailSent, setEmailSent] = React.useState(false);
 
@@ -42,17 +40,12 @@ export default function ForgotPasswordPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setLoading(true);
         try {
-            // The actionCodeSettings are important to redirect the user back to the app.
             const actionCodeSettings = {
                 url: `${window.location.origin}/reset-password`,
                 handleCodeInApp: true,
             };
             await sendPasswordResetEmail(auth, values.email, actionCodeSettings);
             setEmailSent(true);
-            toast({
-                title: 'Check Your Email',
-                description: `A password reset link has been sent to ${values.email}.`,
-            });
         } catch (error: any) {
             console.error("Password reset error:", error);
             toast({
@@ -73,15 +66,19 @@ export default function ForgotPasswordPage() {
                     <CardTitle className="font-headline text-3xl text-card-foreground">Forgot Password</CardTitle>
                     <CardDescription className="text-card-foreground/80">
                         {emailSent
-                            ? "Check your inbox for the reset link."
+                            ? "A password reset link has been sent."
                             : "Enter your email to receive a password reset link."
                         }
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {emailSent ? (
-                        <div className="text-center p-4 rounded-md bg-muted">
-                            <p>An email is on its way. If you don't see it, please check your spam folder.</p>
+                        <div className="text-center p-6 rounded-lg bg-muted border border-border">
+                            <Send className="h-12 w-12 mx-auto text-primary" />
+                            <h3 className="mt-4 text-lg font-semibold">Check Your Email</h3>
+                            <p className="mt-2 text-muted-foreground">
+                                An email is on its way to <span className="font-bold">{form.getValues('email')}</span>. If you don't see it, please check your spam folder.
+                            </p>
                         </div>
                     ) : (
                         <Form {...form}>
