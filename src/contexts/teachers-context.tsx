@@ -79,7 +79,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         return { success: false, error: 'Database not initialized.' };
     }
 
-    const { email, password, ...details } = teacherData;
+    const { email, password, subjects, ...details } = teacherData;
     const teacherDocRef = doc(firestore, 'teachers', email);
     const tempAppName = `create-user-teacher-${Date.now()}`;
     const tempApp = initializeApp(firebaseConfig, tempAppName);
@@ -115,6 +115,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             email,
             teacherId: email,
             profilePhotoUrl: downloadURL,
+            subjects: subjects || {},
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
@@ -147,10 +148,10 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
       toast({ variant: 'destructive', title: 'Update Failed', description: 'Database not available.' });
       return;
     }
-    const { newPhotoFile, ...otherUpdates } = updates;
+    const { newPhotoFile, subjects, ...otherUpdates } = updates;
     const teacherDocRef = doc(firestore, 'teachers', teacherId);
 
-    const updatesToApply: { [key: string]: any } = { ...otherUpdates, updatedAt: serverTimestamp() };
+    const updatesToApply: { [key: string]: any } = { ...otherUpdates, subjects, updatedAt: serverTimestamp() };
 
     try {
         if (newPhotoFile) {

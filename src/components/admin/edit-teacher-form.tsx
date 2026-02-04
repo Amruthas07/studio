@@ -1,7 +1,7 @@
 
 "use client"
 
-import React from "react"
+import React, { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -26,9 +26,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
 import type { Teacher } from "@/lib/types"
 import { useTeachers } from "@/hooks/use-teachers"
+import { getSubjects, type Department, type Semester } from "@/lib/subjects"
+import { Separator } from "../ui/separator"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -36,6 +37,16 @@ const formSchema = z.object({
   position: z.enum(["Professor", "Associate Professor", "Assistant Professor", "HOD"]),
   photo: z.instanceof(File).optional()
     .refine(file => !file || file.size < 5 * 1024 * 1024, "Photo must be less than 5MB."),
+  subjects: z.object({
+    '1': z.string().optional(),
+    '2': z.string().optional(),
+    '3': z.string().optional(),
+    '4': z.string().optional(),
+    '5': z.string().optional(),
+    '6': z.string().optional(),
+    '7': z.string().optional(),
+    '8': z.string().optional(),
+  }).optional(),
 })
 
 type EditTeacherFormProps = {
@@ -43,8 +54,9 @@ type EditTeacherFormProps = {
     onTeacherUpdated: () => void;
 }
 
+const semesters = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+
 export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormProps) {
-  const { toast } = useToast()
   const { updateTeacher } = useTeachers();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(teacher.profilePhotoUrl);
@@ -56,9 +68,19 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
       name: teacher.name,
       department: teacher.department,
       position: teacher.position,
+      subjects: teacher.subjects || {},
     },
   })
   
+  const department = form.watch('department');
+
+  useEffect(() => {
+    // Reset subject selections if department changes from original
+    if (department !== teacher.department) {
+      form.resetField("subjects");
+    }
+  }, [department, form, teacher.department]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     const { photo, ...teacherDetails } = values;
@@ -188,7 +210,41 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                   <FormMessage />
                   </FormItem>
               )}
-          />
+            />
+
+            <Separator />
+            <div className="space-y-2">
+                <h3 className="text-lg font-medium">Subject Assignments</h3>
+                <p className="text-sm text-muted-foreground">Assign one subject per semester. This is based on the selected department.</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {semesters.map(sem => (
+                    <FormField
+                        key={sem}
+                        control={form.control}
+                        name={`subjects.${sem}`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Semester {sem}</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || ''} disabled={!department}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={!department ? "Select dept first" : "Select subject"} />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="">None</SelectItem>
+                                        {department && getSubjects(department, sem as Semester).map(subject => (
+                                            <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                ))}
+            </div>
             
         <div className="flex justify-end pt-4">
             <Button type="submit" disabled={isSubmitting}>

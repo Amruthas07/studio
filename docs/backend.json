@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Student": {
@@ -114,6 +115,69 @@
         "method",
         "timestamp"
       ]
+    },
+    "Teacher": {
+      "title": "Teacher",
+      "description": "Represents a teacher in the system.",
+      "type": "object",
+      "properties": {
+        "teacherId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "department": {
+          "type": "string"
+        },
+        "position": {
+          "type": "string"
+        },
+        "profilePhotoUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "subjects": {
+          "type": "object",
+          "description": "Mapping of semester number to assigned subject.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "teacherId",
+        "name",
+        "email",
+        "department",
+        "createdAt"
+      ]
+    },
+    "AdminRole": {
+      "title": "Admin Role",
+      "description": "A document indicating a user has admin privileges.",
+      "type": "object",
+      "properties": {
+        "isAdmin": {
+          "type": "boolean",
+          "description": "Should always be true."
+        }
+      },
+      "required": [
+        "isAdmin"
+      ]
     }
   },
   "auth": {
@@ -168,6 +232,22 @@
             {
               "name": "uid",
               "description": "The Firebase Auth UID of the admin user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teachers/{email}",
+        "definition": {
+          "entityName": "Teacher",
+          "schema": {
+            "$ref": "#/backend/entities/Teacher"
+          },
+          "description": "Stores teacher profile information. Document ID is the teacher's email.",
+          "params": [
+            {
+              "name": "email",
+              "description": "The unique email of the teacher. Serves as the document ID."
             }
           ]
         }

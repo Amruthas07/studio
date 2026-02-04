@@ -30,6 +30,7 @@ export interface AuthUser extends Omit<Student, 'department' | 'semester' | 'uid
   department: Student['department'] | 'all';
   semester?: number;
   position?: Teacher['position'];
+  subjects?: Teacher['subjects'];
 }
 
 interface AuthContextType {
@@ -103,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     role: 'teacher',
                     department: foundTeacher.department,
                     position: foundTeacher.position,
+                    subjects: foundTeacher.subjects,
                     registerNumber: foundTeacher.teacherId || foundTeacher.email,
                     fatherName: 'N/A',
                     motherName: 'N/A',

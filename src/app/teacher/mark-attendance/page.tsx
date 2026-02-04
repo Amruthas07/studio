@@ -117,9 +117,7 @@ export default function MarkAttendancePage() {
 
         {semesters.map(sem => {
           const semesterStudents = departmentStudents.filter(s => s.semester === sem);
-          const subjects = user.department !== 'all' 
-              ? getSubjects(user.department as Department, sem as Semester)
-              : [];
+          const subject = user.subjects?.[sem];
           
           return (
             <TabsContent key={sem} value={String(sem)} className="mt-4">
@@ -128,7 +126,7 @@ export default function MarkAttendancePage() {
                     <div>
                         <CardTitle>Semester {sem} Students</CardTitle>
                         <CardDescription>
-                            {subjects.length > 0 ? `Subjects: ${subjects.join(', ')}` : 'A list of students in this semester.'}
+                            {subject ? `Subject: ${subject}` : 'No subject assigned for this semester.'}
                         </CardDescription>
                     </div>
                       <Button 
