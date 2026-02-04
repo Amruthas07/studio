@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -140,25 +139,64 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     }
   }, [firestore, firebaseApp]);
   
-  const updateTeacher = useCallback((teacherId: string, updates: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => {
-    if (!firestore) {
+  const updateTeacher = useCallback((
+    teacherId: string, 
+    updates: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>> & { newPhotoFile?: File }
+    ) => {
+    if (!firestore || !firebaseApp) {
       toast({ variant: 'destructive', title: 'Update Failed', description: 'Database not available.' });
       return;
     }
+    const { newPhotoFile, ...otherUpdates } = updates;
     const teacherDocRef = doc(firestore, 'teachers', teacherId);
-    const dataToUpdate = { ...updates, updatedAt: serverTimestamp() };
-    updateDoc(teacherDocRef, dataToUpdate)
-      .then(() => {
-        toast({ title: 'Teacher Updated', description: `Details for ${updates.name || teacherId} have been saved.` });
-      })
-      .catch((error: any) => {
-        if (error.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'update', requestResourceData: dataToUpdate }));
-        } else {
-            toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
-        }
-    });
-  }, [firestore, toast]);
+
+    if (Object.keys(otherUpdates).length > 0) {
+        const dataToUpdate = { ...otherUpdates, updatedAt: serverTimestamp() };
+        updateDoc(teacherDocRef, dataToUpdate)
+        .then(() => {
+            toast({ title: 'Teacher Updated', description: `Details for ${otherUpdates.name || teacherId} have been saved.` });
+        })
+        .catch((error: any) => {
+            if (error.code === 'permission-denied') {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'update', requestResourceData: dataToUpdate }));
+            } else {
+                toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
+            }
+        });
+    }
+
+    if (newPhotoFile) {
+        (async () => {
+            try {
+                const storage = getStorage(firebaseApp);
+                const photoRef = ref(storage, `teachers/${teacherId}/profile.jpg`);
+
+                const processedPhoto = await resizeAndCompressImage(newPhotoFile);
+                
+                await uploadBytes(photoRef, processedPhoto);
+                const downloadURL = await getDownloadURL(photoRef);
+                
+                const photoData = {
+                    profilePhotoUrl: downloadURL,
+                    updatedAt: serverTimestamp(),
+                };
+                
+                await updateDoc(teacherDocRef, photoData);
+                toast({
+                    title: "Photo Updated",
+                    description: `The new photo for ${otherUpdates.name || teacherId} has been saved.`,
+                });
+            } catch (error: any) {
+                 toast({
+                    variant: "destructive",
+                    title: "Photo Update Failed",
+                    description: error.message || "Could not save the new photo.",
+                    duration: 9000,
+                });
+            }
+        })();
+    }
+  }, [firestore, firebaseApp, toast]);
   
   const deleteTeacher = useCallback((teacherId: string) => {
     if (!firestore || !firebaseApp) {

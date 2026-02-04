@@ -137,7 +137,7 @@ export default function AdminTeachersPage() {
           </DialogContent>
       </Dialog>
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[525px]">
+          <DialogContent className="sm:max-w-[625px]">
               <DialogHeader>
                   <DialogTitle className="font-headline text-2xl">Edit Teacher Details</DialogTitle>
                   <DialogDescription>Update the information for {teacherToEdit?.name}.</DialogDescription>

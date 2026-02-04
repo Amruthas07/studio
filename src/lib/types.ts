@@ -63,7 +63,7 @@ export interface TeachersContextType {
   teachers: Teacher[];
   loading: boolean;
   addTeacher: (teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string, photoFile: File }) => Promise<{ success: boolean; error?: string; }>;
-  updateTeacher: (teacherId: string, teacherUpdate: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => void;
+  updateTeacher: (teacherId: string, teacherUpdate: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>> & { newPhotoFile?: File }) => void;
   deleteTeacher: (teacherId: string) => void;
 }
 
