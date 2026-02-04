@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -25,7 +24,8 @@ import type { Student, Teacher } from '@/lib/types';
 
 type Role = 'admin' | 'student' | 'teacher';
 
-export interface AuthUser extends Omit<Student, 'department' | 'semester'> {
+export interface AuthUser extends Omit<Student, 'department' | 'semester' | 'uid'> {
+  uid: string;
   role: Role;
   department: Student['department'] | 'all';
   semester?: number;

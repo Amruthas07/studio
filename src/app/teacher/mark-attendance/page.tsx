@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -14,6 +13,9 @@ import { MarkAttendanceStudentList } from '@/components/teacher/mark-attendance-
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Student } from '@/lib/types';
+import { getSubjects } from '@/lib/subjects';
+import type { Department, Semester } from '@/lib/types';
+
 
 export default function MarkAttendancePage() {
   const { user, loading: authLoading } = useAuth();
@@ -41,13 +43,14 @@ export default function MarkAttendancePage() {
   }, [students, user, searchTerm]);
 
   const handleMarkAttendance = (studentRegister: string, status: 'present' | 'absent', reason?: string) => {
+    if (!user?.uid) return;
     saveAttendanceRecord({
         studentRegister,
         date: today,
         status,
         reason,
         method: 'manual',
-        markedBy: user!.email,
+        markedBy: user.uid,
     });
   };
   
@@ -79,7 +82,7 @@ export default function MarkAttendancePage() {
     );
   }
 
-  const semesters = [1, 2, 3, 4, 5, 6];
+  const semesters = [1, 2, 3, 4, 5, 6, 7, 8];
 
   return (
     <div className="flex flex-col gap-6">
@@ -105,7 +108,7 @@ export default function MarkAttendancePage() {
       </div>
 
       <Tabs defaultValue="1" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
+        <TabsList className="grid w-full grid-cols-4 md:grid-cols-8">
           {semesters.map(sem => (
             <TabsTrigger key={sem} value={String(sem)}>Sem {sem}</TabsTrigger>
           ))}
@@ -113,6 +116,9 @@ export default function MarkAttendancePage() {
 
         {semesters.map(sem => {
           const semesterStudents = departmentStudents.filter(s => s.semester === sem);
+          const subjects = user.department !== 'all' 
+              ? getSubjects(user.department as Department, sem as Semester)
+              : [];
           
           return (
             <TabsContent key={sem} value={String(sem)} className="mt-4">
@@ -121,7 +127,7 @@ export default function MarkAttendancePage() {
                     <div>
                         <CardTitle>Semester {sem} Students</CardTitle>
                         <CardDescription>
-                            A list of students in this semester.
+                            {subjects.length > 0 ? `Subjects: ${subjects.join(', ')}` : 'A list of students in this semester.'}
                         </CardDescription>
                     </div>
                       <Button 
