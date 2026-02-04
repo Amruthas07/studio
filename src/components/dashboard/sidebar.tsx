@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, FileClock, User, ShieldCheck, Building, BrainCircuit, UserCheck, FileText, UserCog } from 'lucide-react';
+import { LayoutDashboard, Users, FileClock, User, ShieldCheck, Building, BrainCircuit, UserCheck, FileText, UserCog, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -34,6 +34,7 @@ const teacherNavItems = [
     { href: '/teacher/profile', icon: User, label: 'My Profile' },
     { href: '/teacher/students', icon: Users, label: 'Students' },
     { href: '/teacher/mark-attendance', icon: UserCheck, label: 'Mark Attendance' },
+    { href: '/teacher/live-attendance', icon: Camera, label: 'Live Attendance' },
 ];
 
 function getNavItems(role?: 'admin' | 'student' | 'teacher') {
