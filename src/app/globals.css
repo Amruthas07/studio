@@ -91,6 +91,18 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  .day-present {
+    @apply bg-green-500/80 text-white rounded-full hover:bg-green-500;
+  }
+  .day-absent {
+    @apply bg-destructive/80 text-white rounded-full hover:bg-destructive;
+  }
+  .day-on-leave {
+      @apply bg-yellow-500/80 text-white rounded-full hover:bg-yellow-500;
+  }
+  .day-present:hover, .day-absent:hover, .day-on-leave:hover {
+      @apply text-white;
+  }
 }
 
 @layer components {

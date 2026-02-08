@@ -1,107 +1,106 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { AttendanceRecord } from '@/lib/types';
-import type { AuthUser } from '@/contexts/auth-context';
-import { getSubjects, Department, Semester } from '@/lib/subjects';
+import * as React from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { DayPicker, useDayPicker, useNavigation } from "react-day-picker"
 
-interface SubjectAttendanceChartProps {
-  student: AuthUser;
-  studentRecords: AttendanceRecord[];
-  allRecords: AttendanceRecord[];
+import { cn } from "@/lib/utils"
+import { buttonVariants } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+export type CalendarProps = React.ComponentProps<typeof DayPicker>
+
+function Calendar({
+  className,
+  classNames,
+  showOutsideDays = true,
+  ...props
+}: CalendarProps) {
+  return (
+    <DayPicker
+      showOutsideDays={showOutsideDays}
+      className={cn("p-3", className)}
+      classNames={{
+        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+        month: "space-y-4",
+        caption: "flex justify-center pt-1 relative items-center",
+        caption_label: "text-sm font-medium hidden",
+        caption_dropdowns: "flex justify-center gap-2",
+        nav: "space-x-1 flex items-center",
+        nav_button: cn(
+          buttonVariants({ variant: "outline" }),
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+        ),
+        nav_button_previous: "absolute left-1",
+        nav_button_next: "absolute right-1",
+        table: "w-full border-collapse space-y-1",
+        head_row: "flex",
+        head_cell:
+          "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+        row: "flex w-full mt-2",
+        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+        day: cn(
+          buttonVariants({ variant: "ghost" }),
+          "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
+        ),
+        day_range_end: "day-range-end",
+        day_selected:
+          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+        day_today: "bg-accent text-accent-foreground",
+        day_outside:
+          "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+        day_disabled: "text-muted-foreground opacity-50",
+        day_range_middle:
+          "aria-selected:bg-accent aria-selected:text-accent-foreground",
+        day_hidden: "invisible",
+        ...classNames,
+      }}
+      components={{
+        Dropdown: ({ value, onChange, children, ...props }) => {
+          const options = React.Children.toArray(
+            children
+          ) as React.ReactElement<React.HTMLProps<HTMLOptionElement>>[]
+          const selected = options.find((child) => child.props.value === value)
+          const handleChange = (value: string) => {
+            const changeEvent = {
+              target: { value },
+            } as React.ChangeEvent<HTMLSelectElement>
+            onChange?.(changeEvent)
+          }
+          return (
+            <Select
+              value={value?.toString()}
+              onValueChange={(value) => {
+                handleChange(value)
+              }}
+            >
+              <SelectTrigger className="w-[120px]">
+                <SelectValue>{selected?.props?.children}</SelectValue>
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {options.map((option, id: number) => (
+                  <SelectItem
+                    key={`${option.props.value}-${id}`}
+                    value={option.props.value?.toString() ?? ""}
+                  >
+                    {option.props.children}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )
+        },
+        IconLeft: ({ className, ...props }) => (
+          <ChevronLeft className={cn("h-4 w-4", className)} {...props} />
+        ),
+        IconRight: ({ className, ...props }) => (
+          <ChevronRight className={cn("h-4 w-4", className)} {...props} />
+        ),
+      }}
+      {...props}
+    />
+  )
 }
+Calendar.displayName = "Calendar"
 
-export function SubjectAttendanceChart({ student, studentRecords, allRecords }: SubjectAttendanceChartProps) {
-    const attendanceData = React.useMemo(() => {
-        if (!student.department || !student.semester || student.department === 'all' || !allRecords) {
-            return [];
-        }
-        
-        const subjects = getSubjects(student.department as Department, student.semester as Semester);
-        
-        // 1. Get all unique days where attendance was taken.
-        const allWorkingDayStrings = new Set(allRecords.map(r => r.date));
-
-        // 2. Filter these working days to only include those since the student's enrollment.
-        const enrollmentDayStart = new Date(student.createdAt);
-        enrollmentDayStart.setHours(0, 0, 0, 0);
-
-        const studentWorkingDays = Array.from(allWorkingDayStrings).filter(dateStr => {
-            const recordDate = new Date(`${dateStr}T00:00:00`);
-            return recordDate >= enrollmentDayStart;
-        });
-
-        const totalWorkingDays = studentWorkingDays.length;
-
-        // 3. Find all unique days THIS student was present (including on leave).
-        const presentAndOnLeaveDays = new Set(
-            studentRecords
-                .filter(r => r.status === 'present')
-                .map(r => r.date)
-        ).size;
-        
-        const absentDays = totalWorkingDays > presentAndOnLeaveDays ? totalWorkingDays - presentAndOnLeaveDays : 0;
-
-        if (totalWorkingDays === 0) return [];
-        
-        // Since attendance is daily, days present/absent apply to all subjects for that day.
-        return subjects.map(subject => ({
-            subject,
-            Present: presentAndOnLeaveDays,
-            Absent: absentDays,
-        }));
-
-    }, [student, studentRecords, allRecords]);
-
-    if (attendanceData.length === 0) {
-        return null; // Don't render the chart if there's no data or config
-    }
-
-    const totalDaysRecorded = attendanceData.length > 0 ? attendanceData[0].Present + attendanceData[0].Absent : 0;
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">Subject-wise Attendance</CardTitle>
-                <CardDescription>
-                    Breakdown of present vs. absent days for each subject this semester.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                {totalDaysRecorded > 0 ? (
-                    <div className='h-[300px] w-full'>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                                data={attendanceData}
-                                layout="vertical"
-                                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                                barCategoryGap="20%"
-                            >
-                                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                                <XAxis type="number" allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                                <YAxis type="category" dataKey="subject" stroke="hsl(var(--muted-foreground))" fontSize={12} width={100} tickLine={false} axisLine={false}/>
-                                <Tooltip
-                                    cursor={{ fill: 'hsl(var(--muted))' }}
-                                    contentStyle={{
-                                        backgroundColor: 'hsl(var(--background))',
-                                        borderColor: 'hsl(var(--border))',
-                                        borderRadius: 'var(--radius)',
-                                    }}
-                                />
-                                <Legend wrapperStyle={{fontSize: "14px"}} />
-                                <Bar dataKey="Present" name="Days Present" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} />
-                                <Bar dataKey="Absent" name="Days Absent" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                ) : (
-                    <div className="text-center text-muted-foreground py-10">
-                        <p>No attendance has been recorded for this semester yet.</p>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
+export { Calendar }
