@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, {
@@ -20,7 +19,6 @@ import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getImageHash, resizeAndCompressImage } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const ADMIN_EMAIL = "apdd46@gmail.com";
 
@@ -148,16 +146,13 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             throw new Error(`A student with email ${details.email} already exists.`);
         }
 
-        const avatarPlaceholder = PlaceHolderImages.find((img) => img.id === 'avatar-placeholder');
-        const downloadURL = avatarPlaceholder?.imageUrl || `https://picsum.photos/seed/${details.registerNumber}/100/100`;
-
         userCredential = await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
         const uid = userCredential.user.uid;
 
         const newStudentData = {
             ...details,
             uid,
-            profilePhotoUrl: downloadURL,
+            profilePhotoUrl: '',
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
