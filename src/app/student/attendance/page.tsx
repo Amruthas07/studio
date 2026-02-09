@@ -8,6 +8,7 @@ import React from "react";
 import { useAttendance } from "@/hooks/use-attendance";
 import { StudentAttendanceAnalysis } from "@/components/student/student-attendance-analysis";
 import { StudentAttendanceTrendChart } from "@/components/student/student-attendance-trend-chart";
+import { SubjectAttendanceChart } from "@/components/student/subject-attendance-chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AttendanceCalendarView } from "@/components/student/attendance-calendar-view";
 
@@ -46,6 +47,11 @@ export default function StudentAttendancePage() {
                 studentRecords={studentAttendanceRecords}
                 allRecords={attendanceRecords}
                 enrollmentDate={user.createdAt}
+            />
+
+            <SubjectAttendanceChart
+                studentRecords={studentAttendanceRecords}
+                currentUser={user}
             />
 
             <Tabs defaultValue="list-view" className="w-full">
