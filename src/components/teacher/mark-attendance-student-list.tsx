@@ -27,7 +27,8 @@ import { useAuth } from '@/hooks/use-auth';
 interface MarkAttendanceStudentListProps {
   students: Student[];
   allDepartmentRecords: AttendanceRecord[];
-  onMarkAttendance: (studentRegister: string, status: 'present' | 'absent', reason?: string) => void;
+  onMarkAttendance: (studentRegister: string, status: 'present' | 'absent', subject: string, reason?: string) => void;
+  subject: string;
 }
 
 const getInitials = (name: string) => {
@@ -38,7 +39,7 @@ const getInitials = (name: string) => {
     return name.substring(0, 2).toUpperCase();
 };
 
-const LeaveReasonButton = ({ student, onMarkAttendance, disabled }: { student: Student & { todaysRecord?: AttendanceRecord }; onMarkAttendance: MarkAttendanceStudentListProps['onMarkAttendance'], disabled: boolean }) => {
+const LeaveReasonButton = ({ student, onMarkAttendance, subject, disabled }: { student: Student & { todaysRecord?: AttendanceRecord }; onMarkAttendance: MarkAttendanceStudentListProps['onMarkAttendance'], subject: string, disabled: boolean }) => {
   const { toast } = useToast();
   const [reason, setReason] = React.useState(student.todaysRecord?.reason || '');
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -54,13 +55,13 @@ const LeaveReasonButton = ({ student, onMarkAttendance, disabled }: { student: S
       return;
     }
     // Always marks as present with a reason
-    onMarkAttendance(student.registerNumber, 'present', reason);
+    onMarkAttendance(student.registerNumber, 'present', subject, reason);
     setIsDialogOpen(false);
   }
   
   const handleRemoveLeave = () => {
     // Marks as present without a reason
-    onMarkAttendance(student.registerNumber, 'present');
+    onMarkAttendance(student.registerNumber, 'present', subject);
     setReason('');
     setIsDialogOpen(false);
   }
@@ -113,7 +114,7 @@ const LeaveReasonButton = ({ student, onMarkAttendance, disabled }: { student: S
 };
 
 
-export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMarkAttendance }: MarkAttendanceStudentListProps) {
+export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMarkAttendance, subject }: MarkAttendanceStudentListProps) {
   const { user } = useAuth();
   const today = React.useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
   const isTeacher = user?.role === 'teacher';
@@ -127,7 +128,7 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
       {students.sort((a, b) => a.name.localeCompare(b.name)).map(student => {
         
         const todaysRecord = allDepartmentRecords
-          .filter(r => r.date === today && r.studentRegister === student.registerNumber)
+          .filter(r => r.date === today && r.studentRegister === student.registerNumber && r.subject === subject)
           .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
 
         const isPresent = todaysRecord?.status === 'present';
@@ -178,8 +179,8 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
                     isPresent && 'bg-green-600 text-white hover:bg-green-700 border-green-700',
                     !isPresent && 'bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 dark:border-green-700'
                 )} 
-                onClick={() => onMarkAttendance(student.registerNumber, 'present')} 
-                disabled={!isTeacher}
+                onClick={() => onMarkAttendance(student.registerNumber, 'present', subject)} 
+                disabled={!isTeacher || !subject}
               >
                   <CheckCircle className="mr-2 h-4 w-4" /> Present
               </Button>
@@ -191,12 +192,12 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
                     isAbsent && 'bg-red-600 text-white hover:bg-red-700 border-red-700',
                     !isAbsent && 'bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-700'
                 )}
-                onClick={() => onMarkAttendance(student.registerNumber, 'absent')} 
-                disabled={!isTeacher}
+                onClick={() => onMarkAttendance(student.registerNumber, 'absent', subject)} 
+                disabled={!isTeacher || !subject}
               >
                   <XCircle className="mr-2 h-4 w-4" /> Absent
               </Button>
-              <LeaveReasonButton student={studentWithRecord} onMarkAttendance={onMarkAttendance} disabled={!isTeacher || !isPresent} />
+              <LeaveReasonButton student={studentWithRecord} onMarkAttendance={onMarkAttendance} subject={subject} disabled={!isTeacher || !isPresent || !subject} />
             </div>
           </div>
         );

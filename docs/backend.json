@@ -99,7 +99,11 @@
         },
         "method": {
           "type": "string",
-          "description": "Method used to mark attendance (face-scan, manual)."
+          "description": "Method used to mark attendance (face-scan, manual, live-photo)."
+        },
+        "subject": {
+            "type": "string",
+            "description": "The subject for which attendance was marked."
         },
         "timestamp": {
           "type": "string",

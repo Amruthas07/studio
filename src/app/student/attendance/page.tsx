@@ -64,6 +64,7 @@ export default function StudentAttendancePage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Date</TableHead>
+                                        <TableHead>Subject</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Timestamp</TableHead>
                                     </TableRow>
@@ -72,6 +73,7 @@ export default function StudentAttendancePage() {
                                     {studentAttendanceRecords.length > 0 ? studentAttendanceRecords.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((record) => (
                                         <TableRow key={record.id}>
                                             <TableCell>{record.date}</TableCell>
+                                            <TableCell>{record.subject || 'N/A'}</TableCell>
                                             <TableCell>
                                                 <Badge variant={record.reason ? 'secondary' : record.status === 'present' ? 'default' : 'destructive'} className="capitalize">
                                                     {record.status === 'present' && !record.reason && <CheckCircle className='mr-2 h-4 w-4' />}
@@ -84,7 +86,7 @@ export default function StudentAttendancePage() {
                                         </TableRow>
                                     )) : (
                                         <TableRow>
-                                            <TableCell colSpan={3} className="h-24 text-center">
+                                            <TableCell colSpan={4} className="h-24 text-center">
                                                 No attendance records found.
                                             </TableCell>
                                         </TableRow>

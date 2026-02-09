@@ -25,9 +25,10 @@ export interface AttendanceRecord {
   department: 'cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec';
   status: 'present' | 'absent';
   timestamp: string; // Storing as ISO string for localStorage compatibility
-  method: 'face-scan' | 'manual';
+  method: 'face-scan' | 'manual' | 'live-photo';
   photoUrl?: string;
   reason?: string;
+  subject?: string;
 }
 
 export interface Teacher {

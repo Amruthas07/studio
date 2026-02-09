@@ -21,8 +21,8 @@ const SemesterTabContent = ({ sem, students, allRecords, user, onMarkAttendance,
     students: Student[];
     allRecords: any[];
     user: any;
-    onMarkAttendance: (studentRegister: string, status: 'present' | 'absent', reason?: string) => void;
-    onMarkAllPresent: (studentsInSemester: Student[]) => void;
+    onMarkAttendance: (studentRegister: string, status: 'present' | 'absent', subject: string, reason?: string) => void;
+    onMarkAllPresent: (studentsInSemester: Student[], subject: string) => void;
 }) => {
     const subjectsForSemester = user.subjects?.[sem] || [];
     const [selectedSubject, setSelectedSubject] = React.useState(subjectsForSemester[0] || '');
@@ -62,8 +62,8 @@ const SemesterTabContent = ({ sem, students, allRecords, user, onMarkAttendance,
                         </CardDescription>
                     </div>
                     <Button
-                        onClick={() => onMarkAllPresent(students)}
-                        disabled={students.length === 0}
+                        onClick={() => onMarkAllPresent(students, selectedSubject)}
+                        disabled={students.length === 0 || !selectedSubject}
                     >
                         <CheckCheck className="mr-2 h-4 w-4" />
                         Mark All Present
@@ -74,6 +74,7 @@ const SemesterTabContent = ({ sem, students, allRecords, user, onMarkAttendance,
                         students={students}
                         allDepartmentRecords={allRecords}
                         onMarkAttendance={onMarkAttendance}
+                        subject={selectedSubject}
                     />
                 </CardContent>
             </Card>
@@ -107,7 +108,7 @@ export default function MarkAttendancePage() {
     );
   }, [students, user, searchTerm]);
 
-  const handleMarkAttendance = (studentRegister: string, status: 'present' | 'absent', reason?: string) => {
+  const handleMarkAttendance = (studentRegister: string, status: 'present' | 'absent', subject: string, reason?: string) => {
     if (!user?.uid) return;
     saveAttendanceRecord({
         studentRegister,
@@ -116,10 +117,10 @@ export default function MarkAttendancePage() {
         reason,
         method: 'manual',
         markedBy: user.uid,
-    });
+    }, subject);
   };
   
-  const handleMarkAllPresentForSemester = (studentsInSemester: Student[]) => {
+  const handleMarkAllPresentForSemester = (studentsInSemester: Student[], subject: string) => {
     if (studentsInSemester.length === 0) {
         toast({
             title: "No Students to Mark",
@@ -128,13 +129,22 @@ export default function MarkAttendancePage() {
         return;
     }
 
+    if (!subject) {
+        toast({
+            variant: "destructive",
+            title: "No Subject Selected",
+            description: "Please select a subject before marking all as present.",
+        });
+        return;
+    }
+
     studentsInSemester.forEach(student => {
-      handleMarkAttendance(student.registerNumber, 'present');
+      handleMarkAttendance(student.registerNumber, 'present', subject);
     });
 
     toast({
         title: `Attendance Marked`,
-        description: `A "Present" status has been sent for all ${studentsInSemester.length} student(s) in this view.`,
+        description: `A "Present" status has been sent for all ${studentsInSemester.length} student(s) for the subject ${subject}.`,
     });
   };
 

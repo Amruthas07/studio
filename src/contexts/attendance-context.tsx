@@ -19,7 +19,7 @@ import { useAuth } from '@/hooks/use-auth';
 
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
-  saveAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl' | 'department' | 'studentUid'>) => void;
+  saveAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl' | 'department' | 'studentUid' | 'subject'>, subject: string) => void;
   deleteAttendanceRecord: (studentRegister: string, date: string) => void;
   getTodaysRecordForStudent: (studentRegister: string, date: string) => AttendanceRecord | undefined;
   loading: boolean;
@@ -97,9 +97,10 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   }, [firestore, students, studentsLoading, user, authLoading]);
 
   const saveAttendanceRecord = useCallback((
-    record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl' | 'department' | 'studentUid'>
+    record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl' | 'department' | 'studentUid' | 'subject'>,
+    subject: string
   ) => {
-    if (!firestore || !user || user.role !== 'teacher') {
+    if (!firestore || !user || (user.role !== 'teacher' && user.role !== 'admin')) {
       toast({ variant: "destructive", title: "Permission Denied", description: "You are not authorized to mark attendance." });
       return;
     }
@@ -110,7 +111,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         return;
     }
 
-    const docId = `${record.date}_${record.studentRegister}`;
+    const docId = `${record.date}_${record.studentRegister}_${subject}`;
     const recordDocRef = doc(firestore, 'attendance', docId);
 
     const dataToSave: { [key: string]: any } = {
@@ -121,6 +122,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       markedBy: user.uid, // Save teacher UID
       department: student.department,
       studentUid: student.uid,
+      subject: subject,
       timestamp: serverTimestamp(),
     };
     
