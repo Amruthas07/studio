@@ -30,6 +30,7 @@ import { useTeachers } from "@/hooks/use-teachers"
 import { getSubjects, type Semester } from "@/lib/subjects"
 import { Separator } from "../ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -103,7 +104,9 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
   
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[70vh]">
+        <ScrollArea className="flex-1 pr-6">
+          <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-4">
                     <FormField
@@ -271,8 +274,9 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                     )
                 })}
             </div>
-            
-        <div className="flex justify-end pt-4">
+          </div>
+        </ScrollArea>
+        <div className="flex justify-end pt-4 mt-4 border-t">
             <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes

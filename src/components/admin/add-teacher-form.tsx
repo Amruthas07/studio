@@ -28,6 +28,7 @@ import { useTeachers } from "@/hooks/use-teachers"
 import { getSubjects, type Semester } from "@/lib/subjects"
 import { Separator } from "../ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -99,158 +100,161 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Teacher Name</FormLabel>
-                    <FormControl>
-                        <Input placeholder="Jane Smith" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                        <Input type="email" placeholder="teacher@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                        <Input type="password" placeholder="Set initial password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="department"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Department</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[70vh]">
+        <ScrollArea className="flex-1 pr-6">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Teacher Name</FormLabel>
                         <FormControl>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a department" />
-                        </SelectTrigger>
+                            <Input placeholder="Jane Smith" {...field} />
                         </FormControl>
-                        <SelectContent>
-                        <SelectItem value="cs">Computer Science (CS)</SelectItem>
-                        <SelectItem value="ce">Civil Engineering (CE)</SelectItem>
-                        <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
-                        <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
-                        <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
-                        <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="position"
-                render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                    <FormLabel>Position</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Email</FormLabel>
                         <FormControl>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a position" />
-                        </SelectTrigger>
+                            <Input type="email" placeholder="teacher@example.com" {...field} />
                         </FormControl>
-                        <SelectContent>
-                            <SelectItem value="Professor">Professor</SelectItem>
-                            <SelectItem value="Associate Professor">Associate Professor</SelectItem>
-                            <SelectItem value="Assistant Professor">Assistant Professor</SelectItem>
-                            <SelectItem value="HOD">Head of Department (HOD)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-        </div>
-        
-        <Separator />
-        <div className="space-y-2">
-            <h3 className="text-lg font-medium">Subject Assignments</h3>
-            <p className="text-sm text-muted-foreground">Assign subjects for each semester based on the selected department.</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {semesters.map(sem => {
-                const subjectsForSemester = department ? getSubjects(department, sem as Semester) : [];
-                return (
-                    <FormField
-                        key={sem}
-                        control={form.control}
-                        name={`subjects.${sem}`}
-                        render={() => (
-                            <FormItem className="flex flex-col p-4 border rounded-lg bg-muted/50">
-                                <FormLabel className="font-semibold mb-2">Semester {sem}</FormLabel>
-                                <div className="space-y-2">
-                                {subjectsForSemester.length > 0 ? (
-                                    subjectsForSemester.map((subject) => (
-                                        <FormField
-                                            key={subject}
-                                            control={form.control}
-                                            name={`subjects.${sem}`}
-                                            render={({ field }) => {
-                                                return (
-                                                    <FormItem key={subject} className="flex flex-row items-start space-x-3 space-y-0">
-                                                        <FormControl>
-                                                            <Checkbox
-                                                                checked={field.value?.includes(subject)}
-                                                                onCheckedChange={(checked) => {
-                                                                    const currentSubjects = field.value || [];
-                                                                    const newSubjects = checked
-                                                                        ? [...currentSubjects, subject]
-                                                                        : currentSubjects.filter((value) => value !== subject);
-                                                                    field.onChange(newSubjects);
-                                                                }}
-                                                            />
-                                                        </FormControl>
-                                                        <FormLabel className="text-sm font-normal">
-                                                            {subject}
-                                                        </FormLabel>
-                                                    </FormItem>
-                                                )
-                                            }}
-                                        />
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-muted-foreground italic">
-                                        {department ? 'No subjects' : 'Select a department'}
-                                    </p>
-                                )}
-                                </div>
-                                <FormMessage className="!mt-2" />
-                            </FormItem>
-                        )}
-                    />
-                )
-            })}
-        </div>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                            <Input type="password" placeholder="Set initial password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="department"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Department</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a department" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="cs">Computer Science (CS)</SelectItem>
+                            <SelectItem value="ce">Civil Engineering (CE)</SelectItem>
+                            <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
+                            <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
+                            <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
+                            <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="position"
+                    render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                        <FormLabel>Position</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a position" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="Professor">Professor</SelectItem>
+                                <SelectItem value="Associate Professor">Associate Professor</SelectItem>
+                                <SelectItem value="Assistant Professor">Assistant Professor</SelectItem>
+                                <SelectItem value="HOD">Head of Department (HOD)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
             
-        <div className="flex justify-end pt-4">
+            <Separator />
+            <div className="space-y-2">
+                <h3 className="text-lg font-medium">Subject Assignments</h3>
+                <p className="text-sm text-muted-foreground">Assign subjects for each semester based on the selected department.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {semesters.map(sem => {
+                    const subjectsForSemester = department ? getSubjects(department, sem as Semester) : [];
+                    return (
+                        <FormField
+                            key={sem}
+                            control={form.control}
+                            name={`subjects.${sem}`}
+                            render={() => (
+                                <FormItem className="flex flex-col p-4 border rounded-lg bg-muted/50">
+                                    <FormLabel className="font-semibold mb-2">Semester {sem}</FormLabel>
+                                    <div className="space-y-2">
+                                    {subjectsForSemester.length > 0 ? (
+                                        subjectsForSemester.map((subject) => (
+                                            <FormField
+                                                key={subject}
+                                                control={form.control}
+                                                name={`subjects.${sem}`}
+                                                render={({ field }) => {
+                                                    return (
+                                                        <FormItem key={subject} className="flex flex-row items-start space-x-3 space-y-0">
+                                                            <FormControl>
+                                                                <Checkbox
+                                                                    checked={field.value?.includes(subject)}
+                                                                    onCheckedChange={(checked) => {
+                                                                        const currentSubjects = field.value || [];
+                                                                        const newSubjects = checked
+                                                                            ? [...currentSubjects, subject]
+                                                                            : currentSubjects.filter((value) => value !== subject);
+                                                                        field.onChange(newSubjects);
+                                                                    }}
+                                                                />
+                                                            </FormControl>
+                                                            <FormLabel className="text-sm font-normal">
+                                                                {subject}
+                                                            </FormLabel>
+                                                        </FormItem>
+                                                    )
+                                                }}
+                                            />
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground italic">
+                                            {department ? 'No subjects' : 'Select a department'}
+                                        </p>
+                                    )}
+                                    </div>
+                                    <FormMessage className="!mt-2" />
+                                </FormItem>
+                            )}
+                        />
+                    )
+                })}
+            </div>
+          </div>
+        </ScrollArea>
+        <div className="flex justify-end pt-4 mt-4 border-t">
             <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Add Teacher
