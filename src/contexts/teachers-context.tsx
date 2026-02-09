@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -104,9 +105,6 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         if (!studentSnap.empty) {
             throw new Error(`This email is already in use by a student account.`);
         }
-
-        const avatarPlaceholder = PlaceHolderImages.find((img) => img.id === 'avatar-placeholder');
-        const downloadURL = avatarPlaceholder?.imageUrl.replace('avatar', email) || `https://picsum.photos/seed/${email}/100/100`;
         
         userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
         
@@ -114,7 +112,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             ...details,
             email,
             teacherId: email,
-            profilePhotoUrl: downloadURL,
+            profilePhotoUrl: '',
             subjects: subjects || {},
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
