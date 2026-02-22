@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from "react"
@@ -91,16 +90,15 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
 
     setIsSubmitting(true);
     
-    // Immediate feedback steps
     const { update } = toast({
         title: "Enrolling Student",
-        description: "Optimizing profile photo...",
+        description: "Step 1: Optimizing profile photo...",
     });
 
-    const { photo, ...details } = values;
-
     try {
-        update({ id: "enrollment", title: "Enrolling Student", description: "Creating secure account..." });
+        const { photo, ...details } = values;
+        update({ title: "Enrolling Student", description: "Step 2: Creating secure account..." });
+        
         const result = await addStudent(details, photo);
         
         if (result.success) {
@@ -133,11 +131,11 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > 10 * 1024 * 1024) { // Increased limit for source, but we optimize it
           toast({
               variant: 'destructive',
               title: 'File Too Large',
-              description: 'Please select an image smaller than 5MB.',
+              description: 'Please select an image smaller than 10MB.',
           });
           return;
       }
@@ -188,8 +186,8 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                     )}
                 />
                 <div className="text-center">
-                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Photo Size: Square, 200x200px or larger</p>
-                    <p className="text-[10px] text-muted-foreground leading-tight italic">Large photos are automatically compressed<br/>locally for near-instant enrollment.</p>
+                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Recommended: Square, 400x400px</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight italic">Photos are auto-compressed to ~150KB for<br/>instant enrollment and high-quality display.</p>
                 </div>
             </div>
 

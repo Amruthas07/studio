@@ -127,16 +127,17 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const details = studentData;
 
     try {
-        // PIPELINE OPTIMIZATION: Start optimization and Auth parallelly
+        // Step 1: Optimize image immediately (using 400px @ 0.7 quality)
         const optimizationPromise = photoFile 
-            ? resizeAndCompressImage(photoFile, 200, 0.6)
+            ? resizeAndCompressImage(photoFile, 400, 0.7)
             : Promise.resolve(null);
 
+        // Step 2: Initialize secondary app for user creation
         const tempAppName = `enroll-${Date.now()}`;
         tempApp = initializeApp(firebaseConfig, tempAppName);
         const tAuth = getAuth(tempApp);
         
-        // Wait for both user account and image processing simultaneously
+        // Step 3: Create Auth Account and Finish Optimization in Parallel
         const [userCredential, processedImage] = await Promise.all([
             createUserWithEmailAndPassword(tAuth, details.email, details.registerNumber),
             optimizationPromise
@@ -144,7 +145,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
         const uid = userCredential.user.uid;
 
-        // UPLOAD PIPELINE: Storage then Firestore
+        // Step 4: Upload optimized small image to Storage
         let photoUrl = '';
         if (processedImage) {
             const storage = getStorage(firebaseApp);
@@ -153,6 +154,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             photoUrl = await getDownloadURL(photoRef);
         }
 
+        // Step 5: Save to Firestore
         const studentDocRef = doc(firestore, 'students', details.registerNumber);
         const newStudentData = {
             ...details,
@@ -195,7 +197,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     
     try {
         if (newPhotoFile) {
-            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 200, 0.6);
+            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 400, 0.7);
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
             await uploadBytes(photoRef, processedPhoto);

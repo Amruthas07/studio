@@ -27,9 +27,9 @@ export async function getImageHash(file: File): Promise<string> {
 
 /**
  * Resizes and compresses an image file on the client-side.
- * Optimized to use createObjectURL for faster processing and small output for fast uploads.
+ * Updated to 400x400px at 70% quality for optimal speed/quality balance.
  */
-export function resizeAndCompressImage(file: File, maxSize: number = 200, quality: number = 0.6): Promise<File> {
+export function resizeAndCompressImage(file: File, maxSize: number = 400, quality: number = 0.7): Promise<File> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
@@ -37,32 +37,29 @@ export function resizeAndCompressImage(file: File, maxSize: number = 200, qualit
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
       const canvas = document.createElement('canvas');
-      let { width, height } = img;
-
-      if (width > height) {
-        if (width > maxSize) {
-          height = Math.round(height * (maxSize / width));
-          width = maxSize;
-        }
-      } else {
-        if (height > maxSize) {
-          width = Math.round(width * (maxSize / height));
-          height = maxSize;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
+      
+      // Force square aspect ratio for avatars
+      canvas.width = maxSize;
+      canvas.height = maxSize;
+      
       const ctx = canvas.getContext('2d');
       if (!ctx) return reject(new Error('Could not get canvas context'));
       
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, 0, 0, width, height);
+
+      // Calculate source crop to center the square
+      const sourceWidth = img.width;
+      const sourceHeight = img.height;
+      const minDim = Math.min(sourceWidth, sourceHeight);
+      const sx = (sourceWidth - minDim) / 2;
+      const sy = (sourceHeight - minDim) / 2;
+
+      ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, maxSize, maxSize);
       
       canvas.toBlob((blob) => {
         if (!blob) return reject(new Error('Canvas to Blob conversion failed'));
-        const processedFile = new File([blob], file.name, {
+        const processedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
           type: 'image/jpeg',
           lastModified: Date.now(),
         });

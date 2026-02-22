@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useEffect } from "react"
@@ -32,13 +31,14 @@ import { getSubjects, type Semester } from "@/lib/subjects"
 import { Separator } from "../ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useToast } from "@/hooks/use-toast"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   position: z.enum(["Professor", "Associate Professor", "Assistant Professor", "HOD"]),
   photo: z.instanceof(File).optional()
-    .refine(file => !file || file.size < 5 * 1024 * 1024, "Photo must be less than 5MB."),
+    .refine(file => !file || file.size < 10 * 1024 * 1024, "Photo must be less than 10MB."),
   subjects: z.object({
     '1': z.array(z.string()).optional(),
     '2': z.array(z.string()).optional(),
@@ -60,6 +60,7 @@ const semesters = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 
 export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormProps) {
   const { updateTeacher } = useTeachers();
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(teacher.profilePhotoUrl);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -85,13 +86,23 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    const { photo, ...teacherDetails } = values;
-    await updateTeacher(teacher.teacherId, {
-        ...teacherDetails,
-        newPhotoFile: photo,
-    });
-    onTeacherUpdated();
-    setIsSubmitting(false);
+    try {
+        const { photo, ...teacherDetails } = values;
+        await updateTeacher(teacher.teacherId, {
+            ...teacherDetails,
+            newPhotoFile: photo,
+        });
+        onTeacherUpdated();
+    } catch (error: any) {
+        console.error(error);
+        toast({
+            variant: "destructive",
+            title: "Update Failed",
+            description: error.message || "Could not save teacher details.",
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   }
 
    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,8 +155,8 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                     )}
                 />
                 <div className="text-center">
-                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Square, 200x200px Recommended</p>
-                    <p className="text-[10px] text-muted-foreground italic">Optimized automatically for fast loading.</p>
+                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Recommended: 400x400px Square</p>
+                    <p className="text-[10px] text-muted-foreground italic">Photos are optimized locally for fast loading.</p>
                 </div>
             </div>
 
@@ -285,7 +296,7 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
         <div className="flex justify-end pt-4 mt-4 border-t">
             <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
+                {isSubmitting ? "Saving..." : "Save Changes"}
             </Button>
         </div>
       </form>
