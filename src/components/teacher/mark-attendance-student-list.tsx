@@ -1,10 +1,11 @@
+
 'use client';
 
 import React from 'react';
 import type { Student, AttendanceRecord } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle, FileClock } from 'lucide-react';
+import { CheckCircle, XCircle, FileClock, Info } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,13 +55,11 @@ const LeaveReasonButton = ({ student, onMarkAttendance, subject, disabled }: { s
       });
       return;
     }
-    // Always marks as present with a reason
     onMarkAttendance(student.registerNumber, 'present', subject, reason);
     setIsDialogOpen(false);
   }
   
   const handleRemoveLeave = () => {
-    // Marks as present without a reason
     onMarkAttendance(student.registerNumber, 'present', subject);
     setReason('');
     setIsDialogOpen(false);
@@ -78,13 +77,14 @@ const LeaveReasonButton = ({ student, onMarkAttendance, subject, disabled }: { s
       <AlertDialogTrigger asChild>
          <Button 
             size="sm" 
-            variant="outline"
+            variant="ghost"
             className={cn(
-                "w-auto px-3",
-                hasReason && 'bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-600'
+                "h-8 w-8 p-0 rounded-full",
+                hasReason ? 'bg-yellow-500 text-white hover:bg-yellow-600' : 'text-muted-foreground hover:bg-muted'
             )} 
             disabled={disabled}>
-            <FileClock className="mr-2 h-4 w-4" /> {hasReason ? "On Leave" : "Add Leave"}
+            <FileClock className="h-4 w-4" />
+            <span className="sr-only">{hasReason ? "On Leave" : "Add Leave"}</span>
          </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -120,11 +120,16 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
   const isTeacher = user?.role === 'teacher';
 
   if (students.length === 0) {
-    return <div className="text-center text-muted-foreground p-8">No students found for this semester.</div>;
+    return (
+        <div className="text-center py-16 bg-muted/20 rounded-xl border-2 border-dashed">
+            <Info className="mx-auto h-10 w-10 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground font-medium">No students found for this semester.</p>
+        </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="grid gap-3">
       {students.sort((a, b) => a.name.localeCompare(b.name)).map(student => {
         
         const todaysRecord = allDepartmentRecords
@@ -154,48 +159,47 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
         };
 
         return (
-          <div key={student.registerNumber} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={student.profilePhotoUrl} alt={student.name} />
-                <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
-              </Avatar>
-              <div className='flex-1 truncate'>
-                <p className="font-semibold truncate">{student.name}</p>
-                <p className="text-sm text-muted-foreground">{student.registerNumber}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <Progress value={overallAttendancePercentage} className="h-2 w-20" indicatorClassName={getIndicatorColor(overallAttendancePercentage)} />
-                  <span className="text-xs font-medium text-muted-foreground">{overallAttendancePercentage}%</span>
+          <div key={student.registerNumber} className="flex items-center gap-4 p-3 rounded-xl bg-card border shadow-sm hover:shadow-md transition-all group">
+            <Avatar className="h-14 w-14 border-2 border-muted shadow-sm flex-shrink-0">
+                <AvatarImage src={student.profilePhotoUrl} alt={student.name} className="object-cover" />
+                <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">{getInitials(student.name)}</AvatarFallback>
+            </Avatar>
+            
+            <div className='flex-1 min-w-0'>
+                <p className="font-bold text-foreground truncate group-hover:text-primary transition-colors">{student.name}</p>
+                <p className="text-[10px] font-code text-muted-foreground uppercase tracking-wider">{student.registerNumber}</p>
+                <div className="flex items-center gap-2 mt-1.5">
+                    <Progress value={overallAttendancePercentage} className="h-1.5 w-16" indicatorClassName={getIndicatorColor(overallAttendancePercentage)} />
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">{overallAttendancePercentage}% Rate</span>
                 </div>
-              </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               <Button 
                 size="sm" 
                 variant="outline" 
                 className={cn(
-                    "w-[110px]",
-                    isPresent && 'bg-green-600 text-white hover:bg-green-700 border-green-700',
-                    !isPresent && 'bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 dark:border-green-700'
+                    "h-9 px-3 rounded-lg border-2 transition-all font-bold text-xs uppercase tracking-tight",
+                    isPresent && 'bg-green-600 text-white border-green-600 hover:bg-green-700 hover:border-green-700',
+                    !isPresent && 'border-green-100 text-green-700 hover:bg-green-50 hover:border-green-200 dark:border-green-900/30'
                 )} 
                 onClick={() => onMarkAttendance(student.registerNumber, 'present', subject)} 
                 disabled={!isTeacher || !subject}
               >
-                  <CheckCircle className="mr-2 h-4 w-4" /> Present
+                  <CheckCircle className="mr-1.5 h-3.5 w-3.5" /> P
               </Button>
               <Button 
                 size="sm" 
                 variant="outline" 
                 className={cn(
-                    "w-[110px]",
-                    isAbsent && 'bg-red-600 text-white hover:bg-red-700 border-red-700',
-                    !isAbsent && 'bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-700'
+                    "h-9 px-3 rounded-lg border-2 transition-all font-bold text-xs uppercase tracking-tight",
+                    isAbsent && 'bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700',
+                    !isAbsent && 'border-red-100 text-red-700 hover:bg-red-50 hover:border-red-200 dark:border-red-900/30'
                 )}
                 onClick={() => onMarkAttendance(student.registerNumber, 'absent', subject)} 
                 disabled={!isTeacher || !subject}
               >
-                  <XCircle className="mr-2 h-4 w-4" /> Absent
+                  <XCircle className="mr-1.5 h-3.5 w-3.5" /> A
               </Button>
               <LeaveReasonButton student={studentWithRecord} onMarkAttendance={onMarkAttendance} subject={subject} disabled={!isTeacher || !isPresent || !subject} />
             </div>

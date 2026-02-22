@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -118,9 +119,10 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   }, [firestore, user, authLoading]);
 
   const addStudent = useCallback(async (
-    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt' | 'uid'>
+    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt' | 'uid'>,
+    photoFile?: File
   ): Promise<{ success: boolean; error?: string }> => {
-    if (!firestore) {
+    if (!firestore || !firebaseApp) {
         return { success: false, error: 'Firebase services not initialized.' };
     }
     const details = studentData;
@@ -149,10 +151,24 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         userCredential = await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
         const uid = userCredential.user.uid;
 
+        let profilePhotoUrl = '';
+        let photoHash = '';
+
+        if (photoFile) {
+            const storage = getStorage(firebaseApp);
+            const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
+            const processedPhoto = await resizeAndCompressImage(photoFile);
+            photoHash = await getImageHash(processedPhoto);
+            
+            await uploadBytes(photoRef, processedPhoto);
+            profilePhotoUrl = await getDownloadURL(photoRef);
+        }
+
         const newStudentData = {
             ...details,
             uid,
-            profilePhotoUrl: '',
+            profilePhotoUrl,
+            photoHash,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
@@ -172,7 +188,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     } finally {
         await deleteApp(tempApp);
     }
-  }, [firestore]);
+  }, [firestore, firebaseApp]);
 
 
   const updateStudent = useCallback(async (

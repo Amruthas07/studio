@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -5,7 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2 } from "lucide-react"
+import { CalendarIcon, Loader2, Camera } from "lucide-react"
+import Image from 'next/image'
 
 import { Button } from "@/components/ui/button"
 import {
@@ -30,6 +32,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useStudents } from "@/hooks/use-students"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -43,6 +46,8 @@ const formSchema = z.object({
   dateOfBirth: z.date({
     required_error: "A date of birth is required.",
   }),
+  photo: z.instanceof(File).optional()
+    .refine(file => !file || file.size < 5 * 1024 * 1024, "Photo must be less than 5MB."),
 })
 
 type AddStudentFormProps = {
@@ -54,6 +59,9 @@ const DEPARTMENT_LIMIT = 700;
 export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const { toast } = useToast()
   const { addStudent, students } = useStudents();
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -68,7 +76,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     },
   })
   
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     const departmentStudentsCount = students.filter(
         (student) => student.department === values.department
     ).length;
@@ -82,219 +90,264 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       return;
     }
 
-    onStudentAdded();
-    toast({
-        title: "Enrolling Student...",
-        description: `Your request to enroll ${values.name} is being processed.`,
-    });
-    
-    addStudent({
-        ...values,
-        dateOfBirth: values.dateOfBirth,
-    }).then((result) => {
-      if (result.success) {
-          toast({
-              title: "Enrollment Successful",
-              description: `${values.name} has been added to the system.`,
-          });
-      } else {
-          toast({
-              variant: "destructive",
-              title: "Enrollment Failed",
-              description: result.error || "An unexpected error occurred.",
-              duration: 9000,
-          });
-      }
-    });
+    setIsSubmitting(true);
+    const { photo, ...details } = values;
 
-    form.reset();
+    const result = await addStudent(details, photo);
+    
+    setIsSubmitting(false);
+
+    if (result.success) {
+        toast({
+            title: "Enrollment Successful",
+            description: `${values.name} has been added to the system.`,
+        });
+        onStudentAdded();
+        form.reset();
+        setPreviewUrl(null);
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Enrollment Failed",
+            description: result.error || "An unexpected error occurred.",
+            duration: 9000,
+        });
+    }
+  }
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      form.setValue('photo', file, { shouldValidate: true });
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
+    }
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Student Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          
-            <FormField
-              control={form.control}
-              name="registerNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Register Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Unique ID" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          
-          <FormField
-            control={form.control}
-            name="fatherName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Father's Name</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="motherName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Mother's Name</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="department"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Department</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a department" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="cs">Computer Science (CS)</SelectItem>
-                    <SelectItem value="ce">Civil Engineering (CE)</SelectItem>
-                    <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
-                    <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
-                    <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
-                    <SelectItem value="ec">Electronics &amp; Comm. (EC)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="semester"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Current Semester</FormLabel>
-                <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a semester" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {[1,2,3,4,5,6,7,8].map(sem => (
-                        <SelectItem key={sem} value={String(sem)}>{sem}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  The student will be automatically promoted after each semester.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input type="email" placeholder="student@example.com" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="contact"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contact Number</FormLabel>
-                <FormControl>
-                  <Input type="tel" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[75vh]">
+        <ScrollArea className="flex-1 pr-6">
+          <div className="space-y-6">
+            <div className="flex flex-col items-center gap-4 py-4">
+                <div 
+                    className="relative h-32 w-32 rounded-full overflow-hidden bg-secondary border-4 border-muted cursor-pointer group"
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    {previewUrl ? (
+                        <Image src={previewUrl} alt="Preview" fill className="object-cover" />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground group-hover:text-primary transition-colors">
+                            <Camera className="h-10 w-10 mb-1" />
+                            <span className="text-[10px] uppercase font-bold tracking-wider">Add Photo</span>
+                        </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Camera className="h-8 w-8 text-white" />
+                    </div>
+                </div>
+                <FormField
+                    control={form.control}
+                    name="photo"
+                    render={() => (
+                        <FormItem>
+                            <FormControl>
+                                <Input 
+                                    type="file" 
+                                    className="hidden" 
+                                    ref={fileInputRef} 
+                                    accept="image/*"
+                                    onChange={handlePhotoChange}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <p className="text-xs text-muted-foreground">Click to upload a profile picture (max 5MB)</p>
+            </div>
 
-            <FormField
-              control={form.control}
-              name="dateOfBirth"
-              render={({ field }) => (
-                <FormItem className="flex flex-col pt-2 md:col-span-2">
-                  <FormLabel>Date of birth</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Student Name</FormLabel>
                       <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
+                        <Input placeholder="John Doe" {...field} />
                       </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                        captionLayout="dropdown-buttons"
-                        fromYear={1950}
-                        toYear={new Date().getFullYear() - 10}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-        </div>
-        <div className="flex justify-end pt-4">
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Enroll Student
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              
+                <FormField
+                  control={form.control}
+                  name="registerNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Register Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Unique ID" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              
+              <FormField
+                control={form.control}
+                name="fatherName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Father's Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="motherName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mother's Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="department"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a department" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="cs">Computer Science (CS)</SelectItem>
+                        <SelectItem value="ce">Civil Engineering (CE)</SelectItem>
+                        <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
+                        <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
+                        <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
+                        <SelectItem value="ec">Electronics &amp; Comm. (EC)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="semester"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Current Semester</FormLabel>
+                    <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a semester" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {[1,2,3,4,5,6,7,8].map(sem => (
+                            <SelectItem key={sem} value={String(sem)}>{sem}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="student@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="contact"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Number</FormLabel>
+                    <FormControl>
+                      <Input type="tel" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+                <FormField
+                  control={form.control}
+                  name="dateOfBirth"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col pt-2 md:col-span-2">
+                      <FormLabel>Date of birth</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date("1900-01-01")
+                            }
+                            initialFocus
+                            captionLayout="dropdown-buttons"
+                            fromYear={1950}
+                            toYear={new Date().getFullYear() - 10}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
+          </div>
+        </ScrollArea>
+        <div className="flex justify-end pt-4 mt-4 border-t">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting ? "Enrolling..." : "Enroll Student"}
           </Button>
         </div>
       </form>

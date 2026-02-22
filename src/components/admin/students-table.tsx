@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import type { Student } from "@/lib/types";
 import { Button } from "../ui/button";
-import { Pencil, Trash, Eye } from "lucide-react";
+import { Pencil, Trash, Eye, MessageCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 
@@ -38,82 +38,85 @@ export function StudentsTable({ students, title, description, onViewStudent, onE
       };
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{title}</CardTitle>
+        <Card className="shadow-md border-none">
+            <CardHeader className="pb-2">
+                <CardTitle className="font-headline text-xl">{title}</CardTitle>
                 <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent>
                 <TooltipProvider>
                  <Table>
-                    {students.length === 0 && <TableCaption>No students found.</TableCaption>}
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[64px]">Photo</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Register No.</TableHead>
-                            <TableHead>Department</TableHead>
-                            <TableHead>Contact</TableHead>
+                    {students.length === 0 && <TableCaption className="py-10">No students found in this category.</TableCaption>}
+                    <TableHeader className="bg-muted/30">
+                        <TableRow className="hover:bg-transparent">
+                            <TableHead className="w-[80px]">Profile</TableHead>
+                            <TableHead>Student Details</TableHead>
+                            <TableHead className="hidden md:table-cell">Register No.</TableHead>
+                            <TableHead className="hidden md:table-cell">Department</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {students.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((student) => (
-                        <TableRow key={student.registerNumber}>
+                        <TableRow key={student.registerNumber} className="hover:bg-muted/20 transition-colors group">
                             <TableCell>
-                                <Avatar className="h-10 w-10">
-                                    <AvatarImage src={student.profilePhotoUrl} alt={student.name} />
-                                    <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+                                <Avatar className="h-14 w-14 border-2 border-background shadow-sm">
+                                    <AvatarImage src={student.profilePhotoUrl} alt={student.name} className="object-cover" />
+                                    <AvatarFallback className="text-lg bg-primary/10 text-primary font-bold">{getInitials(student.name)}</AvatarFallback>
                                 </Avatar>
                             </TableCell>
                             <TableCell>
                                 <div className="grid gap-0.5">
-                                    <div className="font-medium">{student.name}</div>
-                                    <div className="text-xs text-muted-foreground">{student.email}</div>
+                                    <div className="font-bold text-base text-foreground group-hover:text-primary transition-colors">{student.name}</div>
+                                    <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                        <MessageCircle className="h-3 w-3" />
+                                        {student.email}
+                                    </div>
+                                    <div className="md:hidden mt-1 flex gap-2">
+                                        <Badge variant="outline" className="text-[10px] px-1 py-0">{student.registerNumber}</Badge>
+                                        <Badge variant="secondary" className="text-[10px] px-1 py-0 uppercase">{student.department}</Badge>
+                                    </div>
                                 </div>
                             </TableCell>
-                            <TableCell>{student.registerNumber}</TableCell>
-                            <TableCell>
-                                <Badge variant="secondary" className="uppercase">{student.department}</Badge>
+                            <TableCell className="hidden md:table-cell font-code text-muted-foreground">
+                                {student.registerNumber}
                             </TableCell>
-                            <TableCell>{student.contact}</TableCell>
+                            <TableCell className="hidden md:table-cell">
+                                <Badge variant="secondary" className="uppercase font-semibold tracking-wider text-[10px]">
+                                    {student.department}
+                                </Badge>
+                            </TableCell>
                             <TableCell className="text-right">
-                               <div className="flex justify-end gap-2">
+                               <div className="flex justify-end gap-1">
                                      <Tooltip>
                                         <TooltipTrigger asChild>
-                                             <Button variant="outline" size="icon" onClick={() => onViewStudent(student)}>
+                                             <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-primary" onClick={() => onViewStudent(student)}>
                                                 <Eye className="h-4 w-4" />
-                                                <span className="sr-only">View Details</span>
+                                                <span className="sr-only">View</span>
                                             </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>View Details</p>
-                                        </TooltipContent>
+                                        <TooltipContent><p>View Profile</p></TooltipContent>
                                     </Tooltip>
                                    {!readOnly && onEditStudent && (
                                      <Tooltip>
                                         <TooltipTrigger asChild>
-                                             <Button variant="outline" size="icon" onClick={() => onEditStudent(student)}>
+                                             <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-blue-600" onClick={() => onEditStudent(student)}>
                                                 <Pencil className="h-4 w-4" />
-                                                <span className="sr-only">Edit Details</span>
+                                                <span className="sr-only">Edit</span>
                                             </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Edit Details</p>
-                                        </TooltipContent>
+                                        <TooltipContent><p>Edit Student</p></TooltipContent>
                                     </Tooltip>
                                    )}
                                     {!readOnly && onDeleteStudent && (
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                             <Button variant="destructive" size="icon" onClick={() => onDeleteStudent(student)}>
+                                             <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" onClick={() => onDeleteStudent(student)}>
                                                 <Trash className="h-4 w-4" />
-                                                <span className="sr-only">Delete Student</span>
+                                                <span className="sr-only">Delete</span>
                                             </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Delete Student</p>
-                                        </TooltipContent>
+                                        <TooltipContent><p>Delete Student</p></TooltipContent>
                                     </Tooltip>
                                     )}
                                </div>
