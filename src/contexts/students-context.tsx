@@ -13,14 +13,12 @@ import { useFirestore, useFirebaseApp } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
-import { initializeApp, deleteApp, getApp, getApps } from 'firebase/app';
+import { initializeApp, deleteApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getImageHash, resizeAndCompressImage } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
-
-const ADMIN_EMAIL = "apdd46@gmail.com";
 
 export const StudentsContext = createContext<StudentsContextType | undefined>(
   undefined
@@ -133,7 +131,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         const studentDocRef = doc(firestore, 'students', details.registerNumber);
         const existingSnap = await getDoc(studentDocRef);
         if (existingSnap.exists()) {
-            return { success: boolean = false, error: `ID ${details.registerNumber} is already registered.` };
+            return { success: false, error: `ID ${details.registerNumber} is already registered.` };
         }
 
         // 2. Auth Creation (Step 1 of sequence)

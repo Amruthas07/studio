@@ -92,7 +92,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     setIsSubmitting(true);
     
     // Immediate feedback
-    const processToast = toast({
+    toast({
         title: "Enrolling Student",
         description: "Processing registration and optimizing profile photo...",
     });
@@ -117,12 +117,14 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
             });
         }
     } catch (e: any) {
+        console.error(e);
         toast({
             variant: "destructive",
             title: "Error",
             description: e.message || "Failed to complete enrollment.",
         });
     } finally {
+        // RESILIENT: Always reset the loading state regardless of outcome
         setIsSubmitting(false);
     }
   }
