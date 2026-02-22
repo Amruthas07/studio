@@ -1,10 +1,12 @@
+
 "use client"
 
 import React, { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Loader2 } from "lucide-react"
+import { Loader2, Camera, User } from "lucide-react"
+import Image from 'next/image'
 
 import { Button } from "@/components/ui/button"
 import {
@@ -36,6 +38,7 @@ const formSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   position: z.enum(["Professor", "Associate Professor", "Assistant Professor", "HOD"]),
+  photo: z.instanceof(File, { message: "A profile photo is required." }),
   subjects: z.object({
       '1': z.array(z.string()).optional(),
       '2': z.array(z.string()).optional(),
@@ -58,6 +61,8 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const { toast } = useToast()
   const { addTeacher } = useTeachers();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -79,17 +84,22 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     
-    const { dismiss } = toast({
+    const { update } = toast({
         title: "Registering Teacher",
-        description: `Starting account creation for ${values.name}...`,
+        description: "Optimizing profile photo...",
     });
 
+    const { photo, ...teacherDetails } = values;
+
     try {
-        const result = await addTeacher(values);
+        update({ title: "Registering Teacher", description: "Creating teacher account..." });
+        const result = await addTeacher(teacherDetails, photo);
+        
         if (result.success) {
             toast({ title: 'Teacher Registered', description: `${values.name} can now log in.` });
             onTeacherAdded();
             form.reset();
+            setPreviewUrl(null);
         } else {
             toast({
                 variant: "destructive",
@@ -105,9 +115,24 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
             description: "Failed to complete registration process.",
         });
     } finally {
-        // Guaranteed cleanup of state
         setIsSubmitting(false);
-        dismiss();
+    }
+  }
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+          toast({
+              variant: 'destructive',
+              title: 'File Too Large',
+              description: 'Please select an image smaller than 5MB.',
+          });
+          return;
+      }
+      form.setValue('photo', file, { shouldValidate: true });
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
     }
   }
   
@@ -115,7 +140,48 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[70vh]">
         <ScrollArea className="flex-1 pr-6">
-          <div className="space-y-4">
+          <div className="space-y-6">
+            <div className="flex flex-col items-center gap-4 py-4">
+                <div 
+                    className="relative h-32 w-32 rounded-full overflow-hidden bg-secondary border-4 border-background shadow-xl cursor-pointer group"
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    {previewUrl ? (
+                        <Image src={previewUrl} alt="Preview" fill className="object-cover" />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground group-hover:text-primary transition-colors">
+                            <User className="h-12 w-12 mb-1 opacity-20" />
+                            <span className="text-[10px] uppercase font-bold tracking-wider">Add Photo</span>
+                        </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Camera className="h-8 w-8 text-white" />
+                    </div>
+                </div>
+                <FormField
+                    control={form.control}
+                    name="photo"
+                    render={() => (
+                        <FormItem>
+                            <FormControl>
+                                <Input 
+                                    type="file" 
+                                    className="hidden" 
+                                    ref={fileInputRef} 
+                                    accept="image/*"
+                                    onChange={handlePhotoChange}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <div className="text-center">
+                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Photo Size: Square, 200x200px or larger</p>
+                    <p className="text-[10px] text-muted-foreground italic leading-tight">Photos are optimized locally for speed.</p>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}

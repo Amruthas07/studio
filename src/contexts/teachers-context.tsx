@@ -1,12 +1,13 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, getDocs, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useFirestore, useFirebaseApp } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { getAuth, createUserWithEmailAndPassword, UserCredential } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import type { Teacher, TeachersContextType } from '@/lib/types';
@@ -72,9 +73,10 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
   }, [firestore, user, authLoading]);
 
   const addTeacher = useCallback(async (
-    teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }
+    teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string },
+    photoFile?: File
   ): Promise<{ success: boolean; error?: string }> => {
-    if (!firestore) {
+    if (!firestore || !firebaseApp) {
         return { success: false, error: 'Database not initialized.' };
     }
 
@@ -88,24 +90,40 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         
         // 1. Fast duplicate check
         const teacherDocRef = doc(firestore, 'teachers', email);
-        const existingTeacherSnap = await getDocs(query(collection(firestore, "teachers"), where("email", "==", email)));
-        if (!existingTeacherSnap.empty) {
+        const existingSnap = await getDoc(teacherDocRef);
+        if (existingSnap.exists()) {
             throw new Error(`A teacher account with email ${email} already exists.`);
         }
 
-        // 2. Auth creation (Sequential for reliability)
+        // 2. Parallel optimization and Auth creation
+        const optimizationPromise = photoFile 
+            ? resizeAndCompressImage(photoFile, 200, 0.6)
+            : Promise.resolve(null);
+
         const tempAppName = `teacher-${Date.now()}`;
         tempApp = initializeApp(firebaseConfig, tempAppName);
         const tempAuth = getAuth(tempApp);
         
-        await createUserWithEmailAndPassword(tempAuth, email, password);
+        const [userCredential, processedImage] = await Promise.all([
+            createUserWithEmailAndPassword(tempAuth, email, password),
+            optimizationPromise
+        ]);
         
-        // 3. Firestore data save
+        // 3. Storage upload
+        let photoUrl = '';
+        if (processedImage) {
+            const storage = getStorage(firebaseApp);
+            const photoRef = ref(storage, `teachers/${email}/profile.jpg`);
+            await uploadBytes(photoRef, processedImage);
+            photoUrl = await getDownloadURL(photoRef);
+        }
+
+        // 4. Firestore data save
         const newTeacherData = {
             ...details,
             email,
             teacherId: email,
-            profilePhotoUrl: '',
+            profilePhotoUrl: photoUrl,
             subjects: subjects || {},
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
@@ -122,12 +140,11 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         }
         return { success: false, error: error.message };
     } finally {
-        // Guaranteed cleanup
         if (tempApp) {
             deleteApp(tempApp).catch(() => {});
         }
     }
-  }, [firestore]);
+  }, [firestore, firebaseApp]);
   
   const updateTeacher = useCallback(async (
     teacherId: string, 

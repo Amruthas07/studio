@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -45,8 +46,7 @@ const formSchema = z.object({
   dateOfBirth: z.date({
     required_error: "A date of birth is required.",
   }),
-  photo: z.instanceof(File).optional()
-    .refine(file => !file || file.size < 5 * 1024 * 1024, "Photo must be less than 5MB."),
+  photo: z.instanceof(File, { message: "A profile photo is required." }),
 })
 
 type AddStudentFormProps = {
@@ -91,16 +91,18 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
 
     setIsSubmitting(true);
     
-    // Immediate feedback
-    const { dismiss } = toast({
+    // Immediate feedback steps
+    const { update } = toast({
         title: "Enrolling Student",
-        description: "Starting secure registration process...",
+        description: "Optimizing profile photo...",
     });
 
     const { photo, ...details } = values;
 
     try {
+        update({ id: "enrollment", title: "Enrolling Student", description: "Creating secure account..." });
         const result = await addStudent(details, photo);
+        
         if (result.success) {
             toast({
                 title: "Enrollment Successful",
@@ -124,9 +126,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
             description: e.message || "Failed to complete enrollment.",
         });
     } finally {
-        // GUARANTEED: Always reset the loading state regardless of outcome
         setIsSubmitting(false);
-        dismiss();
     }
   }
 
@@ -187,7 +187,10 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                         </FormItem>
                     )}
                 />
-                <p className="text-xs text-muted-foreground text-center">Click circle to upload profile picture.<br/>Optimized for fast mobile loading.</p>
+                <div className="text-center">
+                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Photo Size: Square, 200x200px or larger</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight italic">Large photos are automatically compressed<br/>locally for near-instant enrollment.</p>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">

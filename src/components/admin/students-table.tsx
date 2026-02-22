@@ -1,3 +1,4 @@
+
 import {
   Table,
   TableBody,
@@ -124,7 +125,7 @@ export function StudentsTable({ students, title, description, onViewStudent, onE
                         </TableRow>
                         ))}
                     </TableBody>
-                </Table>
+                 </Table>
                 </TooltipProvider>
             </CardContent>
         </Card>

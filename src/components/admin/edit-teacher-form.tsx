@@ -1,10 +1,11 @@
+
 "use client"
 
 import React, { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Loader2 } from "lucide-react"
+import { Loader2, Camera, User } from "lucide-react"
 import Image from 'next/image';
 
 import { Button } from "@/components/ui/button"
@@ -106,115 +107,120 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[70vh]">
         <ScrollArea className="flex-1 pr-6">
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-4">
-                    <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Teacher Name</FormLabel>
+          <div className="space-y-6">
+            <div className="flex flex-col items-center gap-4 py-4">
+                <div 
+                    className="relative h-32 w-32 rounded-full overflow-hidden bg-secondary border-4 border-background shadow-xl cursor-pointer group"
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    {previewUrl ? (
+                        <Image src={previewUrl} alt="Preview" fill className="object-cover" />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground group-hover:text-primary transition-colors">
+                            <User className="h-12 w-12 mb-1 opacity-20" />
+                            <span className="text-[10px] uppercase font-bold tracking-wider">Change Photo</span>
+                        </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Camera className="h-8 w-8 text-white" />
+                    </div>
+                </div>
+                <FormField
+                    control={form.control}
+                    name="photo"
+                    render={() => (
+                        <FormItem>
                             <FormControl>
-                                <Input placeholder="Jane Smith" {...field} />
+                                <Input 
+                                    type="file" 
+                                    className="hidden" 
+                                    ref={fileInputRef} 
+                                    accept="image/*"
+                                    onChange={handlePhotoChange}
+                                />
                             </FormControl>
                             <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                            <Input value={teacher.email} disabled />
-                        </FormControl>
-                        <FormDescription>Email cannot be changed.</FormDescription>
-                    </FormItem>
-                </div>
-                 <div className="space-y-2">
-                    <FormLabel>Profile Photo</FormLabel>
-                    <div className="w-full aspect-video rounded-md overflow-hidden bg-secondary border relative flex items-center justify-center">
-                        {previewUrl ? (
-                            <Image src={previewUrl} alt="Teacher preview" layout="fill" objectFit="cover" />
-                        ) : (
-                            <div className="text-center text-muted-foreground p-4">
-                               <p className="text-xs">Upload new photo (optional)</p>
-                            </div>
-                        )}
-                    </div>
-                     <FormField
-                        control={form.control}
-                        name="photo"
-                        render={() => (
-                           <FormItem>
-                                <FormControl>
-                                    <Input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept="image/png, image/jpeg"
-                                        onChange={handlePhotoChange}
-                                        className="hidden"
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                           </FormItem>
-                        )}
-                    />
-                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
-                        Change Photo
-                    </Button>
+                        </FormItem>
+                    )}
+                />
+                <div className="text-center">
+                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Square, 200x200px Recommended</p>
+                    <p className="text-[10px] text-muted-foreground italic">Optimized automatically for fast loading.</p>
                 </div>
             </div>
-            
-            <FormField
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Teacher Name</FormLabel>
+                        <FormControl>
+                            <Input placeholder="Jane Smith" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                        <Input value={teacher.email} disabled />
+                    </FormControl>
+                    <FormDescription>Email cannot be changed.</FormDescription>
+                </FormItem>
+                <FormField
+                    control={form.control}
+                    name="department"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Department</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a department" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="cs">Computer Science (CS)</SelectItem>
+                            <SelectItem value="ce">Civil Engineering (CE)</SelectItem>
+                            <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
+                            <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
+                            <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
+                            <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
                 control={form.control}
-                name="department"
+                name="position"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Department</FormLabel>
+                    <FormLabel>Position</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                         <SelectTrigger>
-                            <SelectValue placeholder="Select a department" />
+                            <SelectValue placeholder="Select a position" />
                         </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                        <SelectItem value="cs">Computer Science (CS)</SelectItem>
-                        <SelectItem value="ce">Civil Engineering (CE)</SelectItem>
-                        <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
-                        <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
-                        <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
-                        <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
+                            <SelectItem value="Professor">Professor</SelectItem>
+                            <SelectItem value="Associate Professor">Associate Professor</SelectItem>
+                            <SelectItem value="Assistant Professor">Assistant Professor</SelectItem>
+                            <SelectItem value="HOD">Head of Department (HOD)</SelectItem>
                         </SelectContent>
                     </Select>
                     <FormMessage />
                     </FormItem>
                 )}
-            />
-
-            <FormField
-              control={form.control}
-              name="position"
-              render={({ field }) => (
-                  <FormItem>
-                  <FormLabel>Position</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                      <SelectTrigger>
-                          <SelectValue placeholder="Select a position" />
-                      </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                          <SelectItem value="Professor">Professor</SelectItem>
-                          <SelectItem value="Associate Professor">Associate Professor</SelectItem>
-                          <SelectItem value="Assistant Professor">Assistant Professor</SelectItem>
-                          <SelectItem value="HOD">Head of Department (HOD)</SelectItem>
-                      </SelectContent>
-                  </Select>
-                  <FormMessage />
-                  </FormItem>
-              )}
-            />
-
+                />
+            </div>
+            
             <Separator />
             <div className="space-y-2">
                 <h3 className="text-lg font-medium">Subject Assignments</h3>
