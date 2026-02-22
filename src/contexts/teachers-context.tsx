@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -14,7 +13,6 @@ import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { resizeAndCompressImage } from '@/lib/utils';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const ADMIN_EMAIL = "apdd46@gmail.com";
 
@@ -81,32 +79,30 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     }
 
     const { email, password, subjects, ...details } = teacherData;
-    const teacherDocRef = doc(firestore, 'teachers', email);
-    const tempAppName = `create-user-teacher-${Date.now()}`;
-    const tempApp = initializeApp(firebaseConfig, tempAppName);
-    const tempAuth = getAuth(tempApp);
-    let userCredential: UserCredential | undefined;
-
+    
     try {
         if (email.toLowerCase() === ADMIN_EMAIL) {
             throw new Error("This email is reserved for the administrator.");
         }
         
-        // Check if email is used by another teacher
-        const teacherQuery = query(collection(firestore, "teachers"), where("email", "==", email));
-        const teacherSnap = await getDocs(teacherQuery);
-        if (!teacherSnap.empty) {
+        // Fast duplicate checks
+        const teacherDocRef = doc(firestore, 'teachers', email);
+        const existingTeacherSnap = await getDocs(query(collection(firestore, "teachers"), where("email", "==", email)));
+        if (!existingTeacherSnap.empty) {
             throw new Error(`A teacher account with email ${email} already exists.`);
         }
 
-        // Check if email is used by a student
-        const studentQuery = query(collection(firestore, "students"), where("email", "==", email));
-        const studentSnap = await getDocs(studentQuery);
-        if (!studentSnap.empty) {
+        const existingStudentSnap = await getDocs(query(collection(firestore, "students"), where("email", "==", email)));
+        if (!existingStudentSnap.empty) {
             throw new Error(`This email is already in use by a student account.`);
         }
         
-        userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
+        // Auth creation
+        const tempAppName = `create-user-teacher-${Date.now()}`;
+        const tempApp = initializeApp(firebaseConfig, tempAppName);
+        const tempAuth = getAuth(tempApp);
+        
+        const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
         
         const newTeacherData = {
             ...details,
@@ -120,21 +116,16 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
 
         await setDoc(teacherDocRef, newTeacherData);
         
+        await deleteApp(tempApp).catch(() => {});
+        
         return { success: true };
 
     } catch (error: any) {
         console.error("Add teacher failed:", error);
-        if (userCredential) {
-            await userCredential.user.delete().catch(e => console.warn("Auth user cleanup failed", e));
-        }
-
         if (error.code === 'auth/email-already-in-use') {
-            return { success: false, error: 'This email address is already registered. It may be in use by another teacher or student.' };
+            return { success: false, error: 'This email address is already registered.' };
         }
-        
         return { success: false, error: error.message };
-    } finally {
-        await deleteApp(tempApp);
     }
   }, [firestore]);
   
@@ -155,7 +146,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         if (newPhotoFile) {
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `teachers/${teacherId}/profile.jpg`);
-            const processedPhoto = await resizeAndCompressImage(newPhotoFile);
+            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 300);
             await uploadBytes(photoRef, processedPhoto);
             const downloadURL = await getDownloadURL(photoRef);
             updatesToApply.profilePhotoUrl = downloadURL;

@@ -119,9 +119,9 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
   /**
    * Optimized Add Student process:
-   * 1. Check for duplicates.
-   * 2. Process and compress photo (client-side).
-   * 3. Create Auth user.
+   * 1. Start image processing immediately (parallel).
+   * 2. Check for duplicate ID.
+   * 3. Create Auth user (parallel).
    * 4. Upload photo to Storage.
    * 5. Save document to Firestore.
    */
@@ -132,43 +132,55 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     if (!firestore || !firebaseApp) {
         return { success: false, error: 'Firebase services not initialized.' };
     }
+    
+    // 1. Parallelize non-dependent tasks
+    // Start processing image immediately if provided
+    const imageProcessingPromise = photoFile 
+      ? resizeAndCompressImage(photoFile, 300).then(async (processed) => ({
+          file: processed,
+          hash: await getImageHash(processed)
+        }))
+      : Promise.resolve(null);
+
     const details = studentData;
 
-    // Check for duplicates first to save time
-    const studentDocRef = doc(firestore, 'students', details.registerNumber);
-    const existingSnap = await getDoc(studentDocRef);
-    if (existingSnap.exists()) {
-        return { success: false, error: `Student ID ${details.registerNumber} is already registered.` };
-    }
-
-    const tempAppName = `create-user-student-${Date.now()}`;
-    const tempApp = initializeApp(firebaseConfig, tempAppName);
-    const tempAuth = getAuth(tempApp);
-    let userCredential: UserCredential | undefined;
-
     try {
+        // 2. Fast duplicate check
+        const studentDocRef = doc(firestore, 'students', details.registerNumber);
+        const existingSnap = await getDoc(studentDocRef);
+        if (existingSnap.exists()) {
+            return { success: false, error: `Student ID ${details.registerNumber} is already registered.` };
+        }
+
         if (details.email.toLowerCase() === ADMIN_EMAIL) {
             throw new Error("This email is reserved for the administrator.");
         }
 
-        // Create Auth User
-        userCredential = await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
-        const uid = userCredential.user.uid;
+        // 3. Auth Creation (Slowest part, starts now)
+        const tempAppName = `create-user-student-${Date.now()}`;
+        const tempApp = initializeApp(firebaseConfig, tempAppName);
+        const tempAuth = getAuth(tempApp);
+        
+        const authPromise = createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
 
+        // 4. Wait for critical parallel tasks
+        const [userCredential, processedImage] = await Promise.all([
+            authPromise,
+            imageProcessingPromise
+        ]);
+
+        const uid = userCredential.user.uid;
         let profilePhotoUrl = '';
         let photoHash = '';
 
-        // Process and Upload Photo if provided
-        if (photoFile) {
+        // 5. Upload if image exists
+        if (processedImage) {
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
             
-            // Critical optimization: Resize before hashing/uploading
-            const processedPhoto = await resizeAndCompressImage(photoFile);
-            photoHash = await getImageHash(processedPhoto);
-            
-            await uploadBytes(photoRef, processedPhoto);
+            await uploadBytes(photoRef, processedImage.file);
             profilePhotoUrl = await getDownloadURL(photoRef);
+            photoHash = processedImage.hash;
         }
 
         const newStudentData = {
@@ -180,26 +192,22 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             updatedAt: serverTimestamp(),
         };
 
-        // Save to Firestore
+        // 6. Save to Firestore
         await setDoc(studentDocRef, newStudentData);
+        
+        // Finalize cleanup
+        await deleteApp(tempApp).catch(() => {});
         
         return { success: true };
 
     } catch (error: any) {
         console.error("Add student failed:", error);
         
-        // Cleanup Auth user if Firestore save failed
-        if (userCredential) {
-            await userCredential.user.delete().catch(e => console.warn("Auth user cleanup failed", e));
-        }
-        
         let errorMessage = error.message;
         if (error.code === 'auth/email-already-in-use') {
             errorMessage = "This email is already in use by another student or teacher.";
         }
         return { success: false, error: errorMessage };
-    } finally {
-        await deleteApp(tempApp);
     }
   }, [firestore, firebaseApp]);
 
@@ -223,8 +231,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
             
-            // Critical optimization: Resize before upload
-            const processedPhoto = await resizeAndCompressImage(newPhotoFile);
+            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 300);
             const photoHash = await getImageHash(processedPhoto);
             
             // Check for photo duplicates across institution

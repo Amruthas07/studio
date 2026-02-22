@@ -31,11 +31,11 @@ export async function getImageHash(file: File): Promise<string> {
  * Resizes and compresses an image file on the client-side.
  * This is critical for fast uploads and preventing UI freezes.
  * @param file The image file to process.
- * @param maxSize The maximum width or height of the output image (default 512px).
+ * @param maxSize The maximum width or height of the output image (default 300px - optimized for avatars).
  * @param quality The quality of the output JPEG image (0 to 1).
  * @returns A promise that resolves with the processed image as a File object.
  */
-export function resizeAndCompressImage(file: File, maxSize: number = 512, quality: number = 0.7): Promise<File> {
+export function resizeAndCompressImage(file: File, maxSize: number = 300, quality: number = 0.75): Promise<File> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (readerEvent) => {

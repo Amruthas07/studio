@@ -90,6 +90,13 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     }
 
     setIsSubmitting(true);
+    
+    // Immediate feedback
+    const processToast = toast({
+        title: "Enrolling Student",
+        description: "Processing registration and optimizing profile photo...",
+    });
+
     const { photo, ...details } = values;
 
     try {
@@ -177,7 +184,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                         </FormItem>
                     )}
                 />
-                <p className="text-xs text-muted-foreground text-center">Click circle to upload profile picture.<br/>Auto-resized for speed.</p>
+                <p className="text-xs text-muted-foreground text-center">Click circle to upload profile picture.<br/>Auto-resized for fast enrollment.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
@@ -362,7 +369,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
             {isSubmitting ? (
                 <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Enrolling Student...
+                    Enrolling...
                 </>
             ) : "Enroll Student"}
           </Button>
