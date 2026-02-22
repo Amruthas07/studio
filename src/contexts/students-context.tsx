@@ -124,60 +124,61 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     }
 
     const details = studentData;
-    let tempApp;
 
     try {
-        // 1. Pre-check: Duplicate ID
+        // 1. Fast Pre-check
         const studentDocRef = doc(firestore, 'students', details.registerNumber);
         const existingSnap = await getDoc(studentDocRef);
         if (existingSnap.exists()) {
             return { success: false, error: `ID ${details.registerNumber} is already registered.` };
         }
 
-        // 2. Auth Creation (Step 1 of sequence)
-        const tempAppName = `enroll-${Date.now()}`;
-        tempApp = initializeApp(firebaseConfig, tempAppName);
-        const tempAuth = getAuth(tempApp);
-        
-        const userCredential = await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
-        const uid = userCredential.user.uid;
+        // 2. Parallel Tasks: Auth creation and Image processing
+        const authPromise = (async () => {
+            const tempAppName = `enroll-${Date.now()}`;
+            const tApp = initializeApp(firebaseConfig, tempAppName);
+            const tAuth = getAuth(tApp);
+            const userCredential = await createUserWithEmailAndPassword(tAuth, details.email, details.registerNumber);
+            return { uid: userCredential.user.uid, tApp };
+        })();
 
-        // 3. Image Processing & Upload (Step 2 of sequence)
-        let profilePhotoUrl = '';
-        let photoHash = '';
-
-        if (photoFile) {
-            const processedImage = await resizeAndCompressImage(photoFile, 300);
-            photoHash = await getImageHash(processedImage);
+        const imagePromise = (async () => {
+            if (!photoFile) return { url: '', hash: '' };
+            
+            // Speed optimization: 200px is plenty for avatars and uploads in <1s
+            const processedImage = await resizeAndCompressImage(photoFile, 200, 0.6);
+            const photoHash = await getImageHash(processedImage);
             
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
             
             await uploadBytes(photoRef, processedImage);
-            profilePhotoUrl = await getDownloadURL(photoRef);
-        }
+            const url = await getDownloadURL(photoRef);
+            return { url, hash: photoHash };
+        })();
 
-        // 4. Save to Firestore (Step 3 of sequence)
+        // Wait for both critical paths to complete
+        const [authResult, imageResult] = await Promise.all([authPromise, imagePromise]);
+
+        // 3. Save to Firestore
         const newStudentData = {
             ...details,
-            uid,
-            profilePhotoUrl,
-            photoHash,
+            uid: authResult.uid,
+            profilePhotoUrl: imageResult.url,
+            photoHash: imageResult.hash,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
 
         await setDoc(studentDocRef, newStudentData);
         
-        // Cleanup temp app
-        await deleteApp(tempApp).catch(() => {});
+        // 4. Background Cleanup
+        deleteApp(authResult.tApp).catch(() => {});
         
         return { success: true };
 
     } catch (error: any) {
         console.error("Add student failed:", error);
-        if (tempApp) await deleteApp(tempApp).catch(() => {});
-        
         let errorMessage = error.message;
         if (error.code === 'auth/email-already-in-use') {
             errorMessage = "This email is already in use.";
@@ -201,10 +202,11 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     
     try {
         if (newPhotoFile) {
+            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 200, 0.6);
+            const photoHash = await getImageHash(processedPhoto);
+            
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
-            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 300);
-            const photoHash = await getImageHash(processedPhoto);
             
             await uploadBytes(photoRef, processedPhoto);
             updatesToApply.profilePhotoUrl = await getDownloadURL(photoRef);

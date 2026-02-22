@@ -85,20 +85,15 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             throw new Error("This email is reserved for the administrator.");
         }
         
-        // Fast duplicate checks
+        // Fast duplicate check
         const teacherDocRef = doc(firestore, 'teachers', email);
         const existingTeacherSnap = await getDocs(query(collection(firestore, "teachers"), where("email", "==", email)));
         if (!existingTeacherSnap.empty) {
             throw new Error(`A teacher account with email ${email} already exists.`);
         }
 
-        const existingStudentSnap = await getDocs(query(collection(firestore, "students"), where("email", "==", email)));
-        if (!existingStudentSnap.empty) {
-            throw new Error(`This email is already in use by a student account.`);
-        }
-        
         // Auth creation
-        const tempAppName = `create-user-teacher-${Date.now()}`;
+        const tempAppName = `teacher-${Date.now()}`;
         const tempApp = initializeApp(firebaseConfig, tempAppName);
         const tempAuth = getAuth(tempApp);
         
@@ -116,7 +111,8 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
 
         await setDoc(teacherDocRef, newTeacherData);
         
-        await deleteApp(tempApp).catch(() => {});
+        // Async cleanup
+        deleteApp(tempApp).catch(() => {});
         
         return { success: true };
 
@@ -144,16 +140,16 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
 
     try {
         if (newPhotoFile) {
+            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 200, 0.6);
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `teachers/${teacherId}/profile.jpg`);
-            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 300);
             await uploadBytes(photoRef, processedPhoto);
             const downloadURL = await getDownloadURL(photoRef);
             updatesToApply.profilePhotoUrl = downloadURL;
         }
         
         await updateDoc(teacherDocRef, updatesToApply);
-        toast({ title: 'Teacher Updated', description: `Details for ${updates.name || teacherId} have been saved.` });
+        toast({ title: 'Teacher Updated', description: `Details saved.` });
     } catch (error: any) {
         const isPermissionError = error.code === 'permission-denied';
         if (isPermissionError) {
