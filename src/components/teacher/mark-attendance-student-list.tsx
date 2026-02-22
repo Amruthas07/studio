@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/trigger"; // assuming some kind of dialog setup
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from '@/hooks/use-toast';
@@ -23,10 +23,6 @@ import { Progress } from '../ui/progress';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
-// Import AlertDialog from correct place
-import {
-  AlertDialog as ShadcnAlertDialog,
-} from "@/components/ui/alert-dialog";
 
 interface MarkAttendanceStudentListProps {
   students: Student[];
@@ -76,7 +72,7 @@ const LeaveReasonButton = ({ student, onMarkAttendance, subject, disabled }: { s
   }
 
   return (
-    <ShadcnAlertDialog open={isDialogOpen} onOpenChange={handleOpenChange}>
+    <AlertDialog open={isDialogOpen} onOpenChange={handleOpenChange}>
       <AlertDialogTrigger asChild>
          <Button 
             size="sm" 
@@ -113,7 +109,7 @@ const LeaveReasonButton = ({ student, onMarkAttendance, subject, disabled }: { s
               <AlertDialogAction onClick={handleLeaveSubmit} className="bg-primary">Save Reason</AlertDialogAction>
           </AlertDialogFooter>
       </AlertDialogContent>
-    </ShadcnAlertDialog>
+    </AlertDialog>
   );
 };
 

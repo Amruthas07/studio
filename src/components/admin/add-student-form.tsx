@@ -92,9 +92,9 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     setIsSubmitting(true);
     
     // Immediate feedback
-    toast({
+    const { dismiss } = toast({
         title: "Enrolling Student",
-        description: "Processing registration and optimizing profile photo...",
+        description: "Starting secure registration process...",
     });
 
     const { photo, ...details } = values;
@@ -120,12 +120,13 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
         console.error(e);
         toast({
             variant: "destructive",
-            title: "Error",
+            title: "Critical Error",
             description: e.message || "Failed to complete enrollment.",
         });
     } finally {
-        // RESILIENT: Always reset the loading state regardless of outcome
+        // GUARANTEED: Always reset the loading state regardless of outcome
         setIsSubmitting(false);
+        dismiss();
     }
   }
 
@@ -186,7 +187,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                         </FormItem>
                     )}
                 />
-                <p className="text-xs text-muted-foreground text-center">Click circle to upload profile picture.<br/>Auto-resized for fast enrollment.</p>
+                <p className="text-xs text-muted-foreground text-center">Click circle to upload profile picture.<br/>Optimized for fast mobile loading.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
@@ -263,7 +264,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                         <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
                         <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
                         <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
-                        <SelectItem value="ec">Electronics &amp; Comm. (EC)</SelectItem>
+                        <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -27,9 +27,9 @@ export async function getImageHash(file: File): Promise<string> {
 
 /**
  * Resizes and compresses an image file on the client-side.
- * Optimized to use createObjectURL for faster processing.
+ * Optimized to use createObjectURL for faster processing and small output for fast uploads.
  */
-export function resizeAndCompressImage(file: File, maxSize: number = 300, quality: number = 0.7): Promise<File> {
+export function resizeAndCompressImage(file: File, maxSize: number = 200, quality: number = 0.6): Promise<File> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);

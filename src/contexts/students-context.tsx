@@ -123,57 +123,57 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         return { success: false, error: 'Firebase services not initialized.' };
     }
 
+    let tempApp;
     const details = studentData;
 
     try {
-        // 1. Fast Pre-check
+        // PRE-CHECK: Fast duplicate check in Firestore
         const studentDocRef = doc(firestore, 'students', details.registerNumber);
         const existingSnap = await getDoc(studentDocRef);
         if (existingSnap.exists()) {
             return { success: false, error: `ID ${details.registerNumber} is already registered.` };
         }
 
-        // 2. Parallel Tasks: Auth creation and Image processing
-        const authPromise = (async () => {
-            const tempAppName = `enroll-${Date.now()}`;
-            const tApp = initializeApp(firebaseConfig, tempAppName);
-            const tAuth = getAuth(tApp);
-            const userCredential = await createUserWithEmailAndPassword(tAuth, details.email, details.registerNumber);
-            return { uid: userCredential.user.uid, tApp };
-        })();
+        // SPEED BOOST: Parallelize Auth creation and Image Optimization
+        const optimizationPromise = photoFile 
+            ? resizeAndCompressImage(photoFile, 200, 0.6)
+            : Promise.resolve(null);
 
-        const imagePromise = (async () => {
-            if (!photoFile) return { url: '', hash: '' };
-            
-            // Speed optimization: 200px is plenty for avatars and uploads in <1s
-            const processedImage = await resizeAndCompressImage(photoFile, 200, 0.6);
-            const photoHash = await getImageHash(processedImage);
-            
+        const tempAppName = `enroll-${Date.now()}`;
+        tempApp = initializeApp(firebaseConfig, tempAppName);
+        const tAuth = getAuth(tempApp);
+        
+        // Wait for both the user account to be created AND the image to be processed
+        const [userCredential, processedImage] = await Promise.all([
+            createUserWithEmailAndPassword(tAuth, details.email, details.registerNumber),
+            optimizationPromise
+        ]);
+
+        const uid = userCredential.user.uid;
+
+        // SEQUENTIAL: Storage then Firestore (requires UID and optimized image)
+        let photoUrl = '';
+        let photoHash = '';
+        
+        if (processedImage) {
+            photoHash = await getImageHash(processedImage);
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
             
             await uploadBytes(photoRef, processedImage);
-            const url = await getDownloadURL(photoRef);
-            return { url, hash: photoHash };
-        })();
+            photoUrl = await getDownloadURL(photoRef);
+        }
 
-        // Wait for both critical paths to complete
-        const [authResult, imageResult] = await Promise.all([authPromise, imagePromise]);
-
-        // 3. Save to Firestore
         const newStudentData = {
             ...details,
-            uid: authResult.uid,
-            profilePhotoUrl: imageResult.url,
-            photoHash: imageResult.hash,
+            uid,
+            profilePhotoUrl: photoUrl,
+            photoHash,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
 
         await setDoc(studentDocRef, newStudentData);
-        
-        // 4. Background Cleanup
-        deleteApp(authResult.tApp).catch(() => {});
         
         return { success: true };
 
@@ -186,6 +186,10 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             errorMessage = "Password (ID) must be at least 6 characters.";
         }
         return { success: false, error: errorMessage };
+    } finally {
+        if (tempApp) {
+            deleteApp(tempApp).catch(() => {});
+        }
     }
   }, [firestore, firebaseApp]);
 

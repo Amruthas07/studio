@@ -79,26 +79,28 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     }
 
     const { email, password, subjects, ...details } = teacherData;
+    let tempApp;
     
     try {
         if (email.toLowerCase() === ADMIN_EMAIL) {
             throw new Error("This email is reserved for the administrator.");
         }
         
-        // Fast duplicate check
+        // 1. Fast duplicate check
         const teacherDocRef = doc(firestore, 'teachers', email);
         const existingTeacherSnap = await getDocs(query(collection(firestore, "teachers"), where("email", "==", email)));
         if (!existingTeacherSnap.empty) {
             throw new Error(`A teacher account with email ${email} already exists.`);
         }
 
-        // Auth creation
+        // 2. Auth creation (Sequential for reliability)
         const tempAppName = `teacher-${Date.now()}`;
-        const tempApp = initializeApp(firebaseConfig, tempAppName);
+        tempApp = initializeApp(firebaseConfig, tempAppName);
         const tempAuth = getAuth(tempApp);
         
-        const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
+        await createUserWithEmailAndPassword(tempAuth, email, password);
         
+        // 3. Firestore data save
         const newTeacherData = {
             ...details,
             email,
@@ -111,9 +113,6 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
 
         await setDoc(teacherDocRef, newTeacherData);
         
-        // Async cleanup
-        deleteApp(tempApp).catch(() => {});
-        
         return { success: true };
 
     } catch (error: any) {
@@ -122,6 +121,11 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             return { success: false, error: 'This email address is already registered.' };
         }
         return { success: false, error: error.message };
+    } finally {
+        // Guaranteed cleanup
+        if (tempApp) {
+            deleteApp(tempApp).catch(() => {});
+        }
     }
   }, [firestore]);
   

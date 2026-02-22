@@ -57,6 +57,7 @@ const semesters = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const { toast } = useToast()
   const { addTeacher } = useTeachers();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -75,27 +76,39 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     form.resetField("subjects");
   }, [department, form]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    onTeacherAdded();
-    toast({
-        title: "Registering Teacher...",
-        description: `Your request to register ${values.name} is being processed.`,
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    
+    const { dismiss } = toast({
+        title: "Registering Teacher",
+        description: `Starting account creation for ${values.name}...`,
     });
 
-    addTeacher(values).then((result) => {
-      if (result.success) {
-        toast({ title: 'Teacher Registered', description: `${values.name} can now log in.` });
-      } else {
-          toast({
-              variant: "destructive",
-              title: "Registration Failed",
-              description: result.error || "An unexpected error occurred.",
-              duration: 9000,
-          });
-      }
-    });
-    
-    form.reset();
+    try {
+        const result = await addTeacher(values);
+        if (result.success) {
+            toast({ title: 'Teacher Registered', description: `${values.name} can now log in.` });
+            onTeacherAdded();
+            form.reset();
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Registration Failed",
+                description: result.error || "An unexpected error occurred.",
+            });
+        }
+    } catch (e: any) {
+        console.error(e);
+        toast({
+            variant: "destructive",
+            title: "Critical Error",
+            description: "Failed to complete registration process.",
+        });
+    } finally {
+        // Guaranteed cleanup of state
+        setIsSubmitting(false);
+        dismiss();
+    }
   }
   
   return (
@@ -255,9 +268,9 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
           </div>
         </ScrollArea>
         <div className="flex justify-end pt-4 mt-4 border-t">
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Add Teacher
+            <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? "Registering..." : "Add Teacher"}
             </Button>
         </div>
       </form>
