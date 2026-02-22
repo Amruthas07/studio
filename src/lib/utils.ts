@@ -15,19 +15,8 @@ export function fileToBase64(file: File): Promise<string> {
 }
 
 /**
- * Generates a SHA-256 hash of an image file.
- */
-export async function getImageHash(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
-  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-/**
  * Resizes and compresses an image file on the client-side.
- * Updated to 400x400px at 70% quality for optimal speed/quality balance.
+ * Standard: 400x400px at 70% quality for optimal speed/quality balance.
  */
 export function resizeAndCompressImage(file: File, maxSize: number = 400, quality: number = 0.7): Promise<File> {
   return new Promise((resolve, reject) => {

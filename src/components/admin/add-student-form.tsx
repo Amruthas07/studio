@@ -52,11 +52,9 @@ type AddStudentFormProps = {
     onStudentAdded: () => void;
 }
 
-const DEPARTMENT_LIMIT = 700;
-
 export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const { toast } = useToast()
-  const { addStudent, students } = useStudents();
+  const { addStudent } = useStudents();
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -75,22 +73,9 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   })
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const departmentStudentsCount = students.filter(
-        (student) => student.department === values.department
-    ).length;
-
-    if (departmentStudentsCount >= DEPARTMENT_LIMIT) {
-      toast({
-        variant: "destructive",
-        title: "Department Full",
-        description: `The ${values.department.toUpperCase()} department has reached its limit of ${DEPARTMENT_LIMIT} students.`,
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     
-    const { update } = toast({
+    const { update, dismiss } = toast({
         title: "Enrolling Student",
         description: "Step 1: Optimizing profile photo...",
     });
@@ -125,20 +110,13 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
         });
     } finally {
         setIsSubmitting(false);
+        dismiss();
     }
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) { // Increased limit for source, but we optimize it
-          toast({
-              variant: 'destructive',
-              title: 'File Too Large',
-              description: 'Please select an image smaller than 10MB.',
-          });
-          return;
-      }
       form.setValue('photo', file, { shouldValidate: true });
       const objectUrl = URL.createObjectURL(file);
       setPreviewUrl(objectUrl);
@@ -186,8 +164,8 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                     )}
                 />
                 <div className="text-center">
-                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Recommended: Square, 400x400px</p>
-                    <p className="text-[10px] text-muted-foreground leading-tight italic">Photos are auto-compressed to ~150KB for<br/>instant enrollment and high-quality display.</p>
+                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Recommended: 400x400px Square</p>
+                    <p className="text-[10px] text-muted-foreground italic">Photos are optimized locally for fast enrollment.</p>
                 </div>
             </div>
 

@@ -127,30 +127,26 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const details = studentData;
 
     try {
-        // Step 1: Optimize image immediately (using 400px @ 0.7 quality)
-        const optimizationPromise = photoFile 
-            ? resizeAndCompressImage(photoFile, 400, 0.7)
-            : Promise.resolve(null);
+        // Step 1: Optimize image (400px @ 0.7 quality)
+        const optimizedImage = photoFile 
+            ? await resizeAndCompressImage(photoFile, 400, 0.7)
+            : null;
 
-        // Step 2: Initialize secondary app for user creation
+        // Step 2: Initialize secondary app
         const tempAppName = `enroll-${Date.now()}`;
         tempApp = initializeApp(firebaseConfig, tempAppName);
         const tAuth = getAuth(tempApp);
         
-        // Step 3: Create Auth Account and Finish Optimization in Parallel
-        const [userCredential, processedImage] = await Promise.all([
-            createUserWithEmailAndPassword(tAuth, details.email, details.registerNumber),
-            optimizationPromise
-        ]);
-
+        // Step 3: Create Auth Account
+        const userCredential = await createUserWithEmailAndPassword(tAuth, details.email, details.registerNumber);
         const uid = userCredential.user.uid;
 
-        // Step 4: Upload optimized small image to Storage
+        // Step 4: Upload to Storage
         let photoUrl = '';
-        if (processedImage) {
+        if (optimizedImage) {
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
-            await uploadBytes(photoRef, processedImage);
+            await uploadBytes(photoRef, optimizedImage);
             photoUrl = await getDownloadURL(photoRef);
         }
 
@@ -173,8 +169,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         let errorMessage = error.message;
         if (error.code === 'auth/email-already-in-use') {
             errorMessage = "This email is already in use.";
-        } else if (error.code === 'auth/weak-password') {
-            errorMessage = "Register Number must be at least 6 characters for security.";
         }
         return { success: false, error: errorMessage };
     } finally {
