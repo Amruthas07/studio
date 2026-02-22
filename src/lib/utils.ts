@@ -16,8 +16,6 @@ export function fileToBase64(file: File): Promise<string> {
 
 /**
  * Generates a SHA-256 hash of an image file.
- * @param file The image file to hash.
- * @returns A promise that resolves with the hex string of the hash.
  */
 export async function getImageHash(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
@@ -29,64 +27,54 @@ export async function getImageHash(file: File): Promise<string> {
 
 /**
  * Resizes and compresses an image file on the client-side.
- * This is critical for fast uploads and preventing UI freezes.
- * @param file The image file to process.
- * @param maxSize The maximum width or height of the output image (default 300px - optimized for avatars).
- * @param quality The quality of the output JPEG image (0 to 1).
- * @returns A promise that resolves with the processed image as a File object.
+ * Optimized to use createObjectURL for faster processing.
  */
-export function resizeAndCompressImage(file: File, maxSize: number = 300, quality: number = 0.75): Promise<File> {
+export function resizeAndCompressImage(file: File, maxSize: number = 300, quality: number = 0.7): Promise<File> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (readerEvent) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let { width, height } = img;
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
 
-        if (width > height) {
-          if (width > maxSize) {
-            height = Math.round(height * (maxSize / width));
-            width = maxSize;
-          }
-        } else {
-          if (height > maxSize) {
-            width = Math.round(width * (maxSize / height));
-            height = maxSize;
-          }
+      if (width > height) {
+        if (width > maxSize) {
+          height = Math.round(height * (maxSize / width));
+          width = maxSize;
         }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            return reject(new Error('Could not get canvas context'));
-        }
-        
-        // Use high-quality resizing
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        canvas.toBlob((blob) => {
-            if (!blob) {
-                return reject(new Error('Canvas to Blob conversion failed'));
-            }
-            const processedFile = new File([blob], file.name, {
-                type: 'image/jpeg',
-                lastModified: Date.now(),
-            });
-            resolve(processedFile);
-        }, 'image/jpeg', quality);
-      };
-      img.onerror = () => reject(new Error('Failed to load image for resizing.'));
-      if (typeof readerEvent.target?.result === 'string') {
-        img.src = readerEvent.target.result;
       } else {
-        reject(new Error('Failed to read file as string'));
+        if (height > maxSize) {
+          width = Math.round(width * (maxSize / height));
+          height = maxSize;
+        }
       }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Could not get canvas context'));
+      
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      canvas.toBlob((blob) => {
+        if (!blob) return reject(new Error('Canvas to Blob conversion failed'));
+        const processedFile = new File([blob], file.name, {
+          type: 'image/jpeg',
+          lastModified: Date.now(),
+        });
+        resolve(processedFile);
+      }, 'image/jpeg', quality);
     };
-    reader.onerror = () => reject(new Error('Failed to read file.'));
-    reader.readAsDataURL(file);
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Failed to load image.'));
+    };
+    
+    img.src = objectUrl;
   });
 }

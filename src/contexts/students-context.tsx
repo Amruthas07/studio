@@ -12,8 +12,8 @@ import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'fire
 import { useFirestore, useFirebaseApp } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { getAuth, createUserWithEmailAndPassword, UserCredential } from 'firebase/auth';
-import { initializeApp, deleteApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { initializeApp, deleteApp, getApp, getApps } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -83,7 +83,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       const studentsCollection = collection(firestore, 'students');
       if (user.role === 'teacher' && user.department !== 'all') {
         studentsQuery = query(studentsCollection, where("department", "==", user.department));
-      } else { // Admin or teacher with 'all' access
+      } else { 
         studentsQuery = studentsCollection;
       }
       
@@ -117,14 +117,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [firestore, user, authLoading]);
 
-  /**
-   * Optimized Add Student process:
-   * 1. Start image processing immediately (parallel).
-   * 2. Check for duplicate ID.
-   * 3. Create Auth user (parallel).
-   * 4. Upload photo to Storage.
-   * 5. Save document to Firestore.
-   */
   const addStudent = useCallback(async (
     studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt' | 'uid'>,
     photoFile?: File
@@ -132,57 +124,42 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     if (!firestore || !firebaseApp) {
         return { success: false, error: 'Firebase services not initialized.' };
     }
-    
-    // 1. Parallelize non-dependent tasks
-    // Start processing image immediately if provided
-    const imageProcessingPromise = photoFile 
-      ? resizeAndCompressImage(photoFile, 300).then(async (processed) => ({
-          file: processed,
-          hash: await getImageHash(processed)
-        }))
-      : Promise.resolve(null);
 
     const details = studentData;
+    let tempApp;
 
     try {
-        // 2. Fast duplicate check
+        // 1. Pre-check: Duplicate ID
         const studentDocRef = doc(firestore, 'students', details.registerNumber);
         const existingSnap = await getDoc(studentDocRef);
         if (existingSnap.exists()) {
-            return { success: false, error: `Student ID ${details.registerNumber} is already registered.` };
+            return { success: boolean = false, error: `ID ${details.registerNumber} is already registered.` };
         }
 
-        if (details.email.toLowerCase() === ADMIN_EMAIL) {
-            throw new Error("This email is reserved for the administrator.");
-        }
-
-        // 3. Auth Creation (Slowest part, starts now)
-        const tempAppName = `create-user-student-${Date.now()}`;
-        const tempApp = initializeApp(firebaseConfig, tempAppName);
+        // 2. Auth Creation (Step 1 of sequence)
+        const tempAppName = `enroll-${Date.now()}`;
+        tempApp = initializeApp(firebaseConfig, tempAppName);
         const tempAuth = getAuth(tempApp);
         
-        const authPromise = createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
-
-        // 4. Wait for critical parallel tasks
-        const [userCredential, processedImage] = await Promise.all([
-            authPromise,
-            imageProcessingPromise
-        ]);
-
+        const userCredential = await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
         const uid = userCredential.user.uid;
+
+        // 3. Image Processing & Upload (Step 2 of sequence)
         let profilePhotoUrl = '';
         let photoHash = '';
 
-        // 5. Upload if image exists
-        if (processedImage) {
+        if (photoFile) {
+            const processedImage = await resizeAndCompressImage(photoFile, 300);
+            photoHash = await getImageHash(processedImage);
+            
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
             
-            await uploadBytes(photoRef, processedImage.file);
+            await uploadBytes(photoRef, processedImage);
             profilePhotoUrl = await getDownloadURL(photoRef);
-            photoHash = processedImage.hash;
         }
 
+        // 4. Save to Firestore (Step 3 of sequence)
         const newStudentData = {
             ...details,
             uid,
@@ -192,20 +169,22 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             updatedAt: serverTimestamp(),
         };
 
-        // 6. Save to Firestore
         await setDoc(studentDocRef, newStudentData);
         
-        // Finalize cleanup
+        // Cleanup temp app
         await deleteApp(tempApp).catch(() => {});
         
         return { success: true };
 
     } catch (error: any) {
         console.error("Add student failed:", error);
+        if (tempApp) await deleteApp(tempApp).catch(() => {});
         
         let errorMessage = error.message;
         if (error.code === 'auth/email-already-in-use') {
-            errorMessage = "This email is already in use by another student or teacher.";
+            errorMessage = "This email is already in use.";
+        } else if (error.code === 'auth/weak-password') {
+            errorMessage = "Password (ID) must be at least 6 characters.";
         }
         return { success: false, error: errorMessage };
     }
@@ -216,91 +195,54 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     registerNumber: string,
     studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'profilePhotoUrl' | 'photoHash' | 'updatedAt'>> & { newPhotoFile?: File }
   ): Promise<void> => {
-    if (!firestore || !firebaseApp) {
-      toast({ variant: "destructive", title: "Update Failed", description: "Database is not available." });
-      return;
-    }
+    if (!firestore || !firebaseApp) return;
     
     const { newPhotoFile, ...otherUpdates } = studentUpdate;
     const studentDocRef = doc(firestore, 'students', registerNumber);
-    
     const updatesToApply: { [key: string]: any } = { ...otherUpdates, updatedAt: serverTimestamp() };
     
     try {
         if (newPhotoFile) {
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
-            
             const processedPhoto = await resizeAndCompressImage(newPhotoFile, 300);
             const photoHash = await getImageHash(processedPhoto);
             
-            // Check for photo duplicates across institution
-            const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
-            const duplicateSnap = await getDocs(duplicateQuery);
-            if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== registerNumber) {
-                const duplicateStudent = duplicateSnap.docs[0].data();
-                throw new Error(`This photo is already associated with student: ${duplicateStudent.name}.`);
-            }
-            
             await uploadBytes(photoRef, processedPhoto);
-            const downloadURL = await getDownloadURL(photoRef);
-
-            updatesToApply.profilePhotoUrl = downloadURL;
+            updatesToApply.profilePhotoUrl = await getDownloadURL(photoRef);
             updatesToApply.photoHash = photoHash;
         }
 
         await updateDoc(studentDocRef, updatesToApply);
-
-        toast({
-            title: "Student Updated",
-            description: `Details for ${otherUpdates.name || registerNumber} have been saved.`,
-        });
+        toast({ title: "Student Updated", description: `Details saved.` });
     } catch (error: any) {
-        const isPermissionError = error.code === 'permission-denied';
-        if (isPermissionError) {
+        if (error.code === 'permission-denied') {
             errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'update', requestResourceData: updatesToApply }));
         } else {
-            toast({ variant: "destructive", title: "Update Failed", description: error.message || "Could not save changes." });
+            toast({ variant: "destructive", title: "Update Failed", description: error.message });
         }
     }
   }, [firestore, firebaseApp, toast]);
   
   const deleteStudent = useCallback((registerNumber: string) => {
-    if (!firestore || !firebaseApp) {
-      toast({ variant: 'destructive', title: 'Delete Failed', description: 'Database not available.' });
-      return;
-    }
-    
+    if (!firestore || !firebaseApp) return;
     const studentToDelete = students.find(s => s.registerNumber === registerNumber);
-    if (!studentToDelete) {
-         toast({ variant: 'destructive', title: 'Delete Failed', description: 'Student not found.' });
-         return;
-    }
+    if (!studentToDelete) return;
 
     const storage = getStorage(firebaseApp);
     const studentDocRef = doc(firestore, 'students', registerNumber);
     
     deleteDoc(studentDocRef)
       .then(() => {
-        toast({
-          title: "Student Record Deleted",
-          description: `${studentToDelete.name}'s record and photo have been removed.`,
-        });
-
+        toast({ title: "Deleted", description: `${studentToDelete.name} removed.` });
         if (studentToDelete.profilePhotoUrl) {
             const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
-            deleteObject(photoRef).catch(storageError => {
-                if (storageError.code !== 'storage/object-not-found') {
-                    console.error("Failed to delete student photo from storage:", storageError);
-                }
-            });
+            deleteObject(photoRef).catch(() => {});
         }
       })
       .catch(error => {
         if (error.code === 'permission-denied') {
             errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'delete' }));
-        } else {
-             toast({ variant: "destructive", title: "Delete Failed", description: `Could not delete student. Error: ${error.message}` });
         }
     });
   }, [firestore, firebaseApp, toast, students]);
