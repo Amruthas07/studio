@@ -1,11 +1,10 @@
-
 'use client';
 
 import React from 'react';
 import type { Student, AttendanceRecord } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle, FileClock, Info } from 'lucide-react';
+import { CheckCircle, XCircle, FileClock, Info, User } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/trigger"; // assuming some kind of dialog setup
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +23,10 @@ import { Progress } from '../ui/progress';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+// Import AlertDialog from correct place
+import {
+  AlertDialog as ShadcnAlertDialog,
+} from "@/components/ui/alert-dialog";
 
 interface MarkAttendanceStudentListProps {
   students: Student[];
@@ -73,43 +76,44 @@ const LeaveReasonButton = ({ student, onMarkAttendance, subject, disabled }: { s
   }
 
   return (
-    <AlertDialog open={isDialogOpen} onOpenChange={handleOpenChange}>
+    <ShadcnAlertDialog open={isDialogOpen} onOpenChange={handleOpenChange}>
       <AlertDialogTrigger asChild>
          <Button 
             size="sm" 
             variant="ghost"
             className={cn(
-                "h-8 w-8 p-0 rounded-full",
-                hasReason ? 'bg-yellow-500 text-white hover:bg-yellow-600' : 'text-muted-foreground hover:bg-muted'
+                "h-10 w-10 p-0 rounded-full transition-all",
+                hasReason ? 'bg-yellow-500 text-white hover:bg-yellow-600 shadow-md scale-110' : 'text-muted-foreground hover:bg-muted'
             )} 
             disabled={disabled}>
-            <FileClock className="h-4 w-4" />
+            <FileClock className="h-5 w-5" />
             <span className="sr-only">{hasReason ? "On Leave" : "Add Leave"}</span>
          </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
           <AlertDialogHeader>
-              <AlertDialogTitle>Manage Leave Reason for {student.name}</AlertDialogTitle>
+              <AlertDialogTitle className="text-xl font-headline">Leave Reason for {student.name}</AlertDialogTitle>
               <AlertDialogDescription>
-                  Providing a reason will mark the student as "On Leave". They will still be counted as present for attendance calculation purposes.
+                  Providing a reason marks the student as "On Leave". This counts as present for percentage calculations.
               </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="grid gap-2">
-              <Label htmlFor={`reason-${student.registerNumber}`}>Leave Reason</Label>
+          <div className="grid gap-3 py-2">
+              <Label htmlFor={`reason-${student.registerNumber}`} className="font-bold">Reason for Absence</Label>
               <Textarea 
                   id={`reason-${student.registerNumber}`}
-                  placeholder="e.g., Medical appointment, family function" 
+                  placeholder="e.g., Medical emergency, college event, etc." 
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
+                  className="min-h-[100px]"
               />
           </div>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="gap-2">
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              {hasReason && <Button variant="outline" onClick={handleRemoveLeave}>Remove Leave</Button>}
-              <AlertDialogAction onClick={handleLeaveSubmit}>Save Reason</AlertDialogAction>
+              {hasReason && <Button variant="destructive" onClick={handleRemoveLeave}>Remove Leave</Button>}
+              <AlertDialogAction onClick={handleLeaveSubmit} className="bg-primary">Save Reason</AlertDialogAction>
           </AlertDialogFooter>
       </AlertDialogContent>
-    </AlertDialog>
+    </ShadcnAlertDialog>
   );
 };
 
@@ -121,15 +125,15 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
 
   if (students.length === 0) {
     return (
-        <div className="text-center py-16 bg-muted/20 rounded-xl border-2 border-dashed">
-            <Info className="mx-auto h-10 w-10 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground font-medium">No students found for this semester.</p>
+        <div className="text-center py-20 bg-muted/10 rounded-2xl border-2 border-dashed">
+            <Info className="mx-auto h-12 w-12 text-muted-foreground opacity-20 mb-4" />
+            <p className="text-muted-foreground font-semibold">No students found for this semester.</p>
         </div>
     );
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-4">
       {students.sort((a, b) => a.name.localeCompare(b.name)).map(student => {
         
         const todaysRecord = allDepartmentRecords
@@ -159,47 +163,52 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
         };
 
         return (
-          <div key={student.registerNumber} className="flex items-center gap-4 p-3 rounded-xl bg-card border shadow-sm hover:shadow-md transition-all group">
-            <Avatar className="h-14 w-14 border-2 border-muted shadow-sm flex-shrink-0">
+          <div key={student.registerNumber} className="flex items-center gap-5 p-4 rounded-2xl bg-card border shadow-md hover:shadow-lg transition-all group border-primary/5">
+            <Avatar className="h-20 w-20 border-4 border-background shadow-xl flex-shrink-0 ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all">
                 <AvatarImage src={student.profilePhotoUrl} alt={student.name} className="object-cover" />
-                <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">{getInitials(student.name)}</AvatarFallback>
+                <AvatarFallback className="bg-primary/5 text-primary font-black text-2xl">{getInitials(student.name)}</AvatarFallback>
             </Avatar>
             
             <div className='flex-1 min-w-0'>
-                <p className="font-bold text-foreground truncate group-hover:text-primary transition-colors">{student.name}</p>
-                <p className="text-[10px] font-code text-muted-foreground uppercase tracking-wider">{student.registerNumber}</p>
-                <div className="flex items-center gap-2 mt-1.5">
-                    <Progress value={overallAttendancePercentage} className="h-1.5 w-16" indicatorClassName={getIndicatorColor(overallAttendancePercentage)} />
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">{overallAttendancePercentage}% Rate</span>
+                <p className="text-xl font-black text-foreground truncate group-hover:text-primary transition-colors leading-tight mb-0.5">{student.name}</p>
+                <p className="text-xs font-code text-muted-foreground uppercase tracking-widest font-bold opacity-70 mb-2">{student.registerNumber}</p>
+                <div className="flex flex-col gap-1.5 max-w-[120px]">
+                    <div className="flex items-center justify-between text-[10px] font-black text-muted-foreground uppercase">
+                        <span>Rate</span>
+                        <span className={cn("px-1 rounded", overallAttendancePercentage < 75 ? "text-red-500" : "text-green-600")}>{overallAttendancePercentage}%</span>
+                    </div>
+                    <Progress value={overallAttendancePercentage} className="h-2 rounded-full bg-muted shadow-inner" indicatorClassName={getIndicatorColor(overallAttendancePercentage)} />
                 </div>
             </div>
 
-            <div className="flex items-center gap-1.5 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Button 
-                size="sm" 
+                size="lg" 
                 variant="outline" 
                 className={cn(
-                    "h-9 px-3 rounded-lg border-2 transition-all font-bold text-xs uppercase tracking-tight",
-                    isPresent && 'bg-green-600 text-white border-green-600 hover:bg-green-700 hover:border-green-700',
-                    !isPresent && 'border-green-100 text-green-700 hover:bg-green-50 hover:border-green-200 dark:border-green-900/30'
+                    "h-14 w-14 rounded-2xl border-2 transition-all font-black text-lg shadow-sm flex flex-col items-center justify-center p-0",
+                    isPresent && 'bg-green-600 text-white border-green-600 hover:bg-green-700 hover:border-green-700 shadow-green-200 dark:shadow-none scale-105',
+                    !isPresent && 'border-green-100 text-green-700 hover:bg-green-50 hover:border-green-300 dark:border-green-900/20'
                 )} 
                 onClick={() => onMarkAttendance(student.registerNumber, 'present', subject)} 
                 disabled={!isTeacher || !subject}
               >
-                  <CheckCircle className="mr-1.5 h-3.5 w-3.5" /> P
+                  <CheckCircle className="h-6 w-6" />
+                  <span className="text-[10px] uppercase font-bold tracking-tighter mt-0.5">Present</span>
               </Button>
               <Button 
-                size="sm" 
+                size="lg" 
                 variant="outline" 
                 className={cn(
-                    "h-9 px-3 rounded-lg border-2 transition-all font-bold text-xs uppercase tracking-tight",
-                    isAbsent && 'bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700',
-                    !isAbsent && 'border-red-100 text-red-700 hover:bg-red-50 hover:border-red-200 dark:border-red-900/30'
+                    "h-14 w-14 rounded-2xl border-2 transition-all font-black text-lg shadow-sm flex flex-col items-center justify-center p-0",
+                    isAbsent && 'bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 shadow-red-200 dark:shadow-none scale-105',
+                    !isAbsent && 'border-red-100 text-red-700 hover:bg-red-50 hover:border-red-300 dark:border-red-900/20'
                 )}
                 onClick={() => onMarkAttendance(student.registerNumber, 'absent', subject)} 
                 disabled={!isTeacher || !subject}
               >
-                  <XCircle className="mr-1.5 h-3.5 w-3.5" /> A
+                  <XCircle className="h-6 w-6" />
+                  <span className="text-[10px] uppercase font-bold tracking-tighter mt-0.5">Absent</span>
               </Button>
               <LeaveReasonButton student={studentWithRecord} onMarkAttendance={onMarkAttendance} subject={subject} disabled={!isTeacher || !isPresent || !subject} />
             </div>

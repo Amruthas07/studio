@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -30,12 +29,13 @@ export async function getImageHash(file: File): Promise<string> {
 
 /**
  * Resizes and compresses an image file on the client-side.
+ * This is critical for fast uploads and preventing UI freezes.
  * @param file The image file to process.
- * @param maxSize The maximum width or height of the output image.
+ * @param maxSize The maximum width or height of the output image (default 512px).
  * @param quality The quality of the output JPEG image (0 to 1).
  * @returns A promise that resolves with the processed image as a File object.
  */
-export function resizeAndCompressImage(file: File, maxSize: number = 512, quality: number = 0.8): Promise<File> {
+export function resizeAndCompressImage(file: File, maxSize: number = 512, quality: number = 0.7): Promise<File> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (readerEvent) => {
@@ -62,6 +62,10 @@ export function resizeAndCompressImage(file: File, maxSize: number = 512, qualit
         if (!ctx) {
             return reject(new Error('Could not get canvas context'));
         }
+        
+        // Use high-quality resizing
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
         
         canvas.toBlob((blob) => {
@@ -75,14 +79,14 @@ export function resizeAndCompressImage(file: File, maxSize: number = 512, qualit
             resolve(processedFile);
         }, 'image/jpeg', quality);
       };
-      img.onerror = reject;
+      img.onerror = () => reject(new Error('Failed to load image for resizing.'));
       if (typeof readerEvent.target?.result === 'string') {
         img.src = readerEvent.target.result;
       } else {
         reject(new Error('Failed to read file as string'));
       }
     };
-    reader.onerror = reject;
+    reader.onerror = () => reject(new Error('Failed to read file.'));
     reader.readAsDataURL(file);
   });
 }

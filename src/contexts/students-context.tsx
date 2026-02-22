@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, {
@@ -118,6 +117,14 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [firestore, user, authLoading]);
 
+  /**
+   * Optimized Add Student process:
+   * 1. Check for duplicates.
+   * 2. Process and compress photo (client-side).
+   * 3. Create Auth user.
+   * 4. Upload photo to Storage.
+   * 5. Save document to Firestore.
+   */
   const addStudent = useCallback(async (
     studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt' | 'uid'>,
     photoFile?: File
@@ -127,36 +134,36 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     }
     const details = studentData;
 
+    // Check for duplicates first to save time
+    const studentDocRef = doc(firestore, 'students', details.registerNumber);
+    const existingSnap = await getDoc(studentDocRef);
+    if (existingSnap.exists()) {
+        return { success: false, error: `Student ID ${details.registerNumber} is already registered.` };
+    }
+
     const tempAppName = `create-user-student-${Date.now()}`;
     const tempApp = initializeApp(firebaseConfig, tempAppName);
     const tempAuth = getAuth(tempApp);
     let userCredential: UserCredential | undefined;
 
-    const studentDocRef = doc(firestore, 'students', details.registerNumber);
-
     try {
         if (details.email.toLowerCase() === ADMIN_EMAIL) {
             throw new Error("This email is reserved for the administrator.");
         }
-        const existingStudentSnap = await getDoc(studentDocRef);
-        if (existingStudentSnap.exists()) {
-            throw new Error(`A student with register number ${details.registerNumber} already exists.`);
-        }
-        const q = query(collection(firestore, "students"), where("email", "==", details.email));
-        const emailSnap = await getDocs(q);
-        if (!emailSnap.empty) {
-            throw new Error(`A student with email ${details.email} already exists.`);
-        }
 
+        // Create Auth User
         userCredential = await createUserWithEmailAndPassword(tempAuth, details.email, details.registerNumber);
         const uid = userCredential.user.uid;
 
         let profilePhotoUrl = '';
         let photoHash = '';
 
+        // Process and Upload Photo if provided
         if (photoFile) {
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
+            
+            // Critical optimization: Resize before hashing/uploading
             const processedPhoto = await resizeAndCompressImage(photoFile);
             photoHash = await getImageHash(processedPhoto);
             
@@ -173,6 +180,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             updatedAt: serverTimestamp(),
         };
 
+        // Save to Firestore
         await setDoc(studentDocRef, newStudentData);
         
         return { success: true };
@@ -180,11 +188,16 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
         console.error("Add student failed:", error);
         
+        // Cleanup Auth user if Firestore save failed
         if (userCredential) {
             await userCredential.user.delete().catch(e => console.warn("Auth user cleanup failed", e));
         }
         
-        return { success: false, error: error.message };
+        let errorMessage = error.message;
+        if (error.code === 'auth/email-already-in-use') {
+            errorMessage = "This email is already in use by another student or teacher.";
+        }
+        return { success: false, error: errorMessage };
     } finally {
         await deleteApp(tempApp);
     }
@@ -209,14 +222,17 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         if (newPhotoFile) {
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
+            
+            // Critical optimization: Resize before upload
             const processedPhoto = await resizeAndCompressImage(newPhotoFile);
             const photoHash = await getImageHash(processedPhoto);
             
+            // Check for photo duplicates across institution
             const duplicateQuery = query(collection(firestore, "students"), where("photoHash", "==", photoHash));
             const duplicateSnap = await getDocs(duplicateQuery);
             if (!duplicateSnap.empty && duplicateSnap.docs[0].id !== registerNumber) {
                 const duplicateStudent = duplicateSnap.docs[0].data();
-                throw new Error(`This photo is already in use for ${duplicateStudent.name}.`);
+                throw new Error(`This photo is already associated with student: ${duplicateStudent.name}.`);
             }
             
             await uploadBytes(photoRef, processedPhoto);
@@ -261,7 +277,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       .then(() => {
         toast({
           title: "Student Record Deleted",
-          description: `${studentToDelete.name}'s record has been removed. Auth user cleanup will be attempted.`,
+          description: `${studentToDelete.name}'s record and photo have been removed.`,
         });
 
         if (studentToDelete.profilePhotoUrl) {

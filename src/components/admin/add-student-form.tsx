@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from "react"
@@ -6,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2, Camera } from "lucide-react"
+import { CalendarIcon, Loader2, Camera, User } from "lucide-react"
 import Image from 'next/image'
 
 import { Button } from "@/components/ui/button"
@@ -93,31 +92,45 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     setIsSubmitting(true);
     const { photo, ...details } = values;
 
-    const result = await addStudent(details, photo);
-    
-    setIsSubmitting(false);
-
-    if (result.success) {
-        toast({
-            title: "Enrollment Successful",
-            description: `${values.name} has been added to the system.`,
-        });
-        onStudentAdded();
-        form.reset();
-        setPreviewUrl(null);
-    } else {
+    try {
+        const result = await addStudent(details, photo);
+        if (result.success) {
+            toast({
+                title: "Enrollment Successful",
+                description: `${values.name} has been added to the system.`,
+            });
+            onStudentAdded();
+            form.reset();
+            setPreviewUrl(null);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Enrollment Failed",
+                description: result.error || "An unexpected error occurred.",
+            });
+        }
+    } catch (e: any) {
         toast({
             variant: "destructive",
-            title: "Enrollment Failed",
-            description: result.error || "An unexpected error occurred.",
-            duration: 9000,
+            title: "Error",
+            description: e.message || "Failed to complete enrollment.",
         });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+          toast({
+              variant: 'destructive',
+              title: 'File Too Large',
+              description: 'Please select an image smaller than 5MB.',
+          });
+          return;
+      }
       form.setValue('photo', file, { shouldValidate: true });
       const objectUrl = URL.createObjectURL(file);
       setPreviewUrl(objectUrl);
@@ -131,14 +144,14 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           <div className="space-y-6">
             <div className="flex flex-col items-center gap-4 py-4">
                 <div 
-                    className="relative h-32 w-32 rounded-full overflow-hidden bg-secondary border-4 border-muted cursor-pointer group"
+                    className="relative h-32 w-32 rounded-full overflow-hidden bg-secondary border-4 border-background shadow-xl cursor-pointer group"
                     onClick={() => fileInputRef.current?.click()}
                 >
                     {previewUrl ? (
                         <Image src={previewUrl} alt="Preview" fill className="object-cover" />
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full text-muted-foreground group-hover:text-primary transition-colors">
-                            <Camera className="h-10 w-10 mb-1" />
+                            <User className="h-12 w-12 mb-1 opacity-20" />
                             <span className="text-[10px] uppercase font-bold tracking-wider">Add Photo</span>
                         </div>
                     )}
@@ -164,7 +177,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                         </FormItem>
                     )}
                 />
-                <p className="text-xs text-muted-foreground">Click to upload a profile picture (max 5MB)</p>
+                <p className="text-xs text-muted-foreground text-center">Click circle to upload profile picture.<br/>Auto-resized for speed.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
@@ -189,7 +202,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                     <FormItem>
                       <FormLabel>Register Number</FormLabel>
                       <FormControl>
-                        <Input placeholder="Unique ID" {...field} />
+                        <Input placeholder="Unique ID (e.g. 324CS21001)" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -203,7 +216,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                   <FormItem>
                     <FormLabel>Father's Name</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="Father's Full Name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -216,7 +229,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                   <FormItem>
                     <FormLabel>Mother's Name</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="Mother's Full Name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -290,7 +303,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                   <FormItem>
                     <FormLabel>Contact Number</FormLabel>
                     <FormControl>
-                      <Input type="tel" {...field} />
+                      <Input type="tel" placeholder="10-digit number" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -302,14 +315,14 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                   name="dateOfBirth"
                   render={({ field }) => (
                     <FormItem className="flex flex-col pt-2 md:col-span-2">
-                      <FormLabel>Date of birth</FormLabel>
+                      <FormLabel>Date of Birth</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
                               variant={"outline"}
                               className={cn(
-                                "w-full pl-3 text-left font-normal",
+                                "w-full pl-3 text-left font-normal h-12",
                                 !field.value && "text-muted-foreground"
                               )}
                             >
@@ -345,9 +358,13 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           </div>
         </ScrollArea>
         <div className="flex justify-end pt-4 mt-4 border-t">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSubmitting ? "Enrolling..." : "Enroll Student"}
+          <Button type="submit" disabled={isSubmitting} size="lg" className="px-10">
+            {isSubmitting ? (
+                <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enrolling Student...
+                </>
+            ) : "Enroll Student"}
           </Button>
         </div>
       </form>
