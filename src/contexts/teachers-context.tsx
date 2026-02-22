@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -88,14 +87,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             throw new Error("This email is reserved for the administrator.");
         }
         
-        // 1. Fast duplicate check
-        const teacherDocRef = doc(firestore, 'teachers', email);
-        const existingSnap = await getDoc(teacherDocRef);
-        if (existingSnap.exists()) {
-            throw new Error(`A teacher account with email ${email} already exists.`);
-        }
-
-        // 2. Parallel optimization and Auth creation
+        // SPEED PIPELINE: Parallelize optimization and Auth creation
         const optimizationPromise = photoFile 
             ? resizeAndCompressImage(photoFile, 200, 0.6)
             : Promise.resolve(null);
@@ -119,6 +111,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         }
 
         // 4. Firestore data save
+        const teacherDocRef = doc(firestore, 'teachers', email);
         const newTeacherData = {
             ...details,
             email,

@@ -1,4 +1,3 @@
-
 import {
   Table,
   TableBody,
@@ -13,15 +12,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import type { Student } from "@/lib/types";
 import { Button } from "../ui/button";
-import { Pencil, Trash, Eye, MessageCircle, Hash } from "lucide-react";
+import { Pencil, Trash, Eye, MessageCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { cn } from "@/lib/utils";
-
 
 interface StudentsTableProps {
     students: Student[];
-    title: string;
-    description: string;
+    title?: string;
+    description?: string;
     onViewStudent: (student: Student) => void;
     onEditStudent?: (student: Student) => void;
     onDeleteStudent?: (student: Student) => void;
@@ -40,10 +37,12 @@ export function StudentsTable({ students, title, description, onViewStudent, onE
 
     return (
         <Card className="shadow-md border-none overflow-hidden">
-            <CardHeader className="pb-4 bg-muted/10">
-                <CardTitle className="font-headline text-2xl text-primary">{title}</CardTitle>
-                <CardDescription className="text-foreground/70">{description}</CardDescription>
-            </CardHeader>
+            {(title || description) && (
+                <CardHeader className="pb-4 bg-muted/10">
+                    {title && <CardTitle className="font-headline text-2xl text-primary">{title}</CardTitle>}
+                    {description && <CardDescription className="text-foreground/70">{description}</CardDescription>}
+                </CardHeader>
+            )}
             <CardContent className="p-0">
                 <TooltipProvider>
                  <Table>

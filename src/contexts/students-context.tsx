@@ -17,7 +17,7 @@ import { initializeApp, deleteApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import type { Student, StudentsContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { getImageHash, resizeAndCompressImage } from '@/lib/utils';
+import { resizeAndCompressImage } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 
 export const StudentsContext = createContext<StudentsContextType | undefined>(
@@ -127,14 +127,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const details = studentData;
 
     try {
-        // PRE-CHECK: Fast duplicate check in Firestore
-        const studentDocRef = doc(firestore, 'students', details.registerNumber);
-        const existingSnap = await getDoc(studentDocRef);
-        if (existingSnap.exists()) {
-            return { success: false, error: `ID ${details.registerNumber} is already registered.` };
-        }
-
-        // SPEED BOOST: Parallelize Auth creation and Image Optimization
+        // PIPELINE OPTIMIZATION: Start optimization and Auth parallelly
         const optimizationPromise = photoFile 
             ? resizeAndCompressImage(photoFile, 200, 0.6)
             : Promise.resolve(null);
@@ -143,7 +136,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         tempApp = initializeApp(firebaseConfig, tempAppName);
         const tAuth = getAuth(tempApp);
         
-        // Wait for both the user account to be created AND the image to be processed
+        // Wait for both user account and image processing simultaneously
         const [userCredential, processedImage] = await Promise.all([
             createUserWithEmailAndPassword(tAuth, details.email, details.registerNumber),
             optimizationPromise
@@ -151,24 +144,20 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
         const uid = userCredential.user.uid;
 
-        // SEQUENTIAL: Storage then Firestore (requires UID and optimized image)
+        // UPLOAD PIPELINE: Storage then Firestore
         let photoUrl = '';
-        let photoHash = '';
-        
         if (processedImage) {
-            photoHash = await getImageHash(processedImage);
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${details.registerNumber}/profile.jpg`);
-            
             await uploadBytes(photoRef, processedImage);
             photoUrl = await getDownloadURL(photoRef);
         }
 
+        const studentDocRef = doc(firestore, 'students', details.registerNumber);
         const newStudentData = {
             ...details,
             uid,
             profilePhotoUrl: photoUrl,
-            photoHash,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
@@ -183,7 +172,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         if (error.code === 'auth/email-already-in-use') {
             errorMessage = "This email is already in use.";
         } else if (error.code === 'auth/weak-password') {
-            errorMessage = "Password (ID) must be at least 6 characters.";
+            errorMessage = "Register Number must be at least 6 characters for security.";
         }
         return { success: false, error: errorMessage };
     } finally {
@@ -207,14 +196,10 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     try {
         if (newPhotoFile) {
             const processedPhoto = await resizeAndCompressImage(newPhotoFile, 200, 0.6);
-            const photoHash = await getImageHash(processedPhoto);
-            
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
-            
             await uploadBytes(photoRef, processedPhoto);
             updatesToApply.profilePhotoUrl = await getDownloadURL(photoRef);
-            updatesToApply.photoHash = photoHash;
         }
 
         await updateDoc(studentDocRef, updatesToApply);

@@ -4,7 +4,7 @@ import React from 'react';
 import type { Student, AttendanceRecord } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle, FileClock, Info, User } from 'lucide-react';
+import { CheckCircle, XCircle, FileClock, Info } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
