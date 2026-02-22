@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect } from 'react';
@@ -7,7 +6,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { Loader2 } from 'lucide-react';
 import { Sidebar, MobileSidebarContent } from './sidebar';
 import { Header } from './header';
-import { Chatbot } from '@/components/shared/chatbot';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -40,7 +38,6 @@ export function DashboardLayout({ children, allowedRoles }: DashboardLayoutProps
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
           {children}
         </main>
-        <Chatbot />
       </div>
     </div>
   );
