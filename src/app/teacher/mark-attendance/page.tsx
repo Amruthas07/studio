@@ -4,7 +4,7 @@ import React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useStudents } from '@/hooks/use-students';
 import { useAttendance } from '@/hooks/use-attendance';
-import { Loader2, Search, CheckCheck } from 'lucide-react';
+import { Loader2, Search, CheckCheck, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,8 @@ import { MarkAttendanceStudentList } from '@/components/teacher/mark-attendance-
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Student } from '@/lib/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
-// New component for the tab content
 const SemesterTabContent = ({ sem, students, allRecords, user, onMarkAttendance, onMarkAllPresent }: {
     sem: number;
     students: Student[];
@@ -33,37 +32,50 @@ const SemesterTabContent = ({ sem, students, allRecords, user, onMarkAttendance,
         }
     }, [subjectsForSemester, selectedSubject]);
 
+    if (subjectsForSemester.length === 0) {
+        return (
+            <TabsContent value={String(sem)} className="mt-4">
+                <Card className="border-dashed">
+                    <CardContent className="py-12 text-center text-muted-foreground">
+                        No subjects assigned to you for Semester {sem}.
+                    </CardContent>
+                </Card>
+            </TabsContent>
+        );
+    }
+
     return (
-        <TabsContent value={String(sem)} className="mt-4">
+        <TabsContent value={String(sem)} className="mt-4 space-y-6">
+            <div className="flex flex-wrap gap-2">
+                {subjectsForSemester.map(subj => (
+                    <Button 
+                        key={subj} 
+                        variant={selectedSubject === subj ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedSubject(subj)}
+                        className="rounded-full gap-2"
+                    >
+                        <BookOpen className="h-4 w-4" />
+                        {subj}
+                    </Button>
+                ))}
+            </div>
+
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle>Semester {sem} Students</CardTitle>
-                        <CardDescription className="flex items-center gap-2 mt-1">
-                            {subjectsForSemester.length > 0 ? (
-                                <>
-                                    <span>Subject:</span>
-                                    {subjectsForSemester.length === 1 ? (
-                                        <span className="font-semibold">{subjectsForSemester[0]}</span>
-                                    ) : (
-                                        <Select onValueChange={setSelectedSubject} value={selectedSubject}>
-                                            <SelectTrigger className="w-[250px] h-8">
-                                                <SelectValue placeholder="Select a subject" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {subjectsForSemester.map(subj => (
-                                                    <SelectItem key={subj} value={subj}>{subj}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                </>
-                            ) : 'No subject assigned for this semester.'}
+                        <CardTitle className="flex items-center gap-2">
+                            {selectedSubject}
+                            <Badge variant="secondary">Semester {sem}</Badge>
+                        </CardTitle>
+                        <CardDescription className="mt-1">
+                            Marking attendance for {students.length} student(s).
                         </CardDescription>
                     </div>
                     <Button
                         onClick={() => onMarkAllPresent(students, selectedSubject)}
                         disabled={students.length === 0 || !selectedSubject}
+                        variant="secondary"
                     >
                         <CheckCheck className="mr-2 h-4 w-4" />
                         Mark All Present
@@ -144,7 +156,7 @@ export default function MarkAttendancePage() {
 
     toast({
         title: `Attendance Marked`,
-        description: `A "Present" status has been sent for all ${studentsInSemester.length} student(s) for the subject ${subject}.`,
+        description: `All ${studentsInSemester.length} student(s) marked as present for ${subject}.`,
     });
   };
 
@@ -161,31 +173,36 @@ export default function MarkAttendancePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight font-headline">
-          Mark Daily Attendance
-        </h1>
-        <p className="text-foreground">
-          For department: <span className="font-bold uppercase">{user.department}</span> | Date: <span className="font-bold">{format(new Date(), 'PPP')}</span>
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 className="text-3xl font-bold tracking-tight font-headline text-primary">
+            Mark Daily Attendance
+            </h1>
+            <p className="text-muted-foreground">
+            {format(new Date(), 'EEEE, do MMMM yyyy')}
+            </p>
+        </div>
+        <div className="relative w-full max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-            placeholder="Search by name or register number..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+                placeholder="Search students..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 h-10 text-sm"
             />
         </div>
       </div>
 
       <Tabs defaultValue="1" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 md:grid-cols-8">
+        <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 h-auto p-1 bg-muted/50">
           {semesters.map(sem => (
-            <TabsTrigger key={sem} value={String(sem)}>Sem {sem}</TabsTrigger>
+            <TabsTrigger 
+                key={sem} 
+                value={String(sem)}
+                className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+                Sem {sem}
+            </TabsTrigger>
           ))}
         </TabsList>
 

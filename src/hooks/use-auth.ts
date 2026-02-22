@@ -1,24 +1,15 @@
 "use client";
 
 import { useContext } from 'react';
-import { AuthContext } from '@/contexts/auth-context';
-import type { Student } from '@/lib/types';
-
-type Role = 'admin' | 'student' | 'teacher';
-
-interface AuthUser extends Omit<Student, 'department'> {
-    role: Role;
-    department: Student['department'] | 'all';
-}
+import { AuthContext, type AuthUser } from '@/contexts/auth-context';
 
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   login: (identifier: string, pass: string) => Promise<void>;
   logout: () => void;
-  changePassword: (currentPass: string, newPass: string) => Promise<{ success: boolean; error?: string }>;
+  changePassword: (newPass: string) => Promise<{ success: boolean; error?: string }>;
 }
-
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

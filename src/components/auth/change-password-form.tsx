@@ -15,14 +15,14 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, KeyRound, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
 const formSchema = z.object({
   newPassword: z.string().min(6, { message: 'New password must be at least 6 characters.' }),
   confirmPassword: z.string(),
 }).refine(data => data.newPassword === data.confirmPassword, {
-    message: "New passwords do not match.",
+    message: "Passwords do not match.",
     path: ["confirmPassword"],
 });
 
@@ -34,6 +34,8 @@ export function ChangePasswordForm({ onPasswordChanged }: ChangePasswordFormProp
   const { toast } = useToast();
   const { changePassword } = useAuth();
   const [loading, setLoading] = React.useState(false);
+  const [showNewPassword, setShowNewPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -49,15 +51,15 @@ export function ChangePasswordForm({ onPasswordChanged }: ChangePasswordFormProp
     
     if (result.success) {
         toast({
-            title: 'Password Changed',
+            title: 'Success!',
             description: 'Your password has been updated successfully.',
         });
         onPasswordChanged();
     } else {
         toast({
             variant: 'destructive',
-            title: 'Error Changing Password',
-            description: result.error,
+            title: 'Error',
+            description: result.error || 'Failed to update password.',
         });
     }
     setLoading(false);
@@ -65,19 +67,35 @@ export function ChangePasswordForm({ onPasswordChanged }: ChangePasswordFormProp
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 py-2">
         <FormField
           control={form.control}
           name="newPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>New Password</FormLabel>
+              <FormLabel className="flex items-center gap-2">
+                <KeyRound className="h-4 w-4 text-primary" />
+                New Password
+              </FormLabel>
               <FormControl>
-                <Input
-                  type="password"
-                  placeholder="Enter your new password"
-                  {...field}
-                />
+                <div className="relative">
+                  <Input
+                    type={showNewPassword ? 'text' : 'password'}
+                    placeholder="Minimum 6 characters"
+                    {...field}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute inset-y-0 right-0 h-full px-3 text-muted-foreground hover:bg-transparent"
+                    onClick={() => setShowNewPassword((prev) => !prev)}
+                    tabIndex={-1}
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -88,28 +106,46 @@ export function ChangePasswordForm({ onPasswordChanged }: ChangePasswordFormProp
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Confirm New Password</FormLabel>
+              <FormLabel className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                Confirm Password
+              </FormLabel>
               <FormControl>
-                <Input
-                  type="password"
-                  placeholder="Confirm your new password"
-                  {...field}
-                />
+                <div className="relative">
+                  <Input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Repeat new password"
+                    {...field}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute inset-y-0 right-0 h-full px-3 text-muted-foreground hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            'Save New Password'
-          )}
-        </Button>
+        <div className="pt-2">
+            <Button type="submit" className="w-full h-11" disabled={loading}>
+            {loading ? (
+                <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Updating...
+                </>
+            ) : (
+                'Update Password'
+            )}
+            </Button>
+        </div>
       </form>
     </Form>
   );
