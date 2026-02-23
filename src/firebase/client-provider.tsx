@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, type ReactNode } from 'react';
+import React, { useState, useEffect, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
 
@@ -9,10 +9,20 @@ interface FirebaseClientProviderProps {
 }
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-  const firebaseServices = useMemo(() => {
-    // Initialize Firebase on the client side, once per component mount.
-    return initializeFirebase();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  // Use state to track initialized services to prevent hydration mismatches
+  // and ensure Firebase is only initialized once on the client.
+  const [firebaseServices, setFirebaseServices] = useState<ReturnType<typeof initializeFirebase> | null>(null);
+
+  useEffect(() => {
+    const services = initializeFirebase();
+    setFirebaseServices(services);
+  }, []);
+
+  // While waiting for client-side initialization, we don't render children
+  // to avoid hydration errors where providers expect initialized instances.
+  if (!firebaseServices) {
+    return null; 
+  }
 
   return (
     <FirebaseProvider

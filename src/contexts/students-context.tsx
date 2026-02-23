@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, {
@@ -112,30 +111,30 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
     let tempApp: any = null;
     try {
-        // Check for existing register number locally to save time
+        // FAST CHECK: Local validation
         if (students.some(s => s.registerNumber === studentData.registerNumber)) {
             return { success: false, error: 'Register number already exists.' };
         }
 
         const storage = getStorage(firebaseApp);
+        // Using registerNumber for path so we can start upload immediately without waiting for Auth UID
         const photoRef = ref(storage, `students/${studentData.registerNumber}/profile.jpg`);
 
-        // ULTRA-FAST PARALLEL PIPELINE:
-        // 1. Auth Creation
-        // 2. Image Optimization & Storage Upload
-        // These run concurrently to hit the sub-2s target.
+        // HIGH-SPEED PARALLEL PIPELINE
         const [userCredential, photoUrl] = await Promise.all([
+            // Task 1: Auth User Creation
             (async () => {
                 const tempAppName = `enroll-${Date.now()}-${Math.random().toString(36).substring(7)}`;
                 tempApp = initializeApp(firebaseConfig, tempAppName);
                 const tAuth = getAuth(tempApp);
-                // We use registerNumber as password. Form validation now ensures >= 6 chars.
+                // Register Number is used as initial password (validation ensures >= 6 chars)
                 const cred = await createUserWithEmailAndPassword(tAuth, studentData.email, studentData.registerNumber);
                 return cred;
             })(),
+            // Task 2: Image Processing & Storage Upload
             (async () => {
                 if (!photoFile) return '';
-                // Fast local optimization (400px @ 70% quality ~40KB)
+                // Pre-optimize locally (400px @ 70% quality is very fast and < 50KB)
                 const optimized = await resizeAndCompressImage(photoFile, 400, 0.7);
                 await uploadBytes(photoRef, optimized);
                 return await getDownloadURL(photoRef);
@@ -145,6 +144,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         const uid = userCredential.user.uid;
         const studentDocRef = doc(firestore, 'students', studentData.registerNumber);
         
+        // Final Task: Firestore Metadata Save
         await setDoc(studentDocRef, {
             ...studentData,
             uid,
@@ -155,10 +155,10 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         
         return { success: true };
     } catch (error: any) {
-        console.error("Enrollment failed:", error);
-        let message = 'Enrollment failed. Please try again.';
-        if (error.code === 'auth/email-already-in-use') message = 'This email is already registered.';
-        if (error.code === 'auth/weak-password') message = 'The register number is too short to be used as a secure password.';
+        console.error("Enrollment Exception:", error);
+        let message = 'Enrollment failed. Please check your connection.';
+        if (error.code === 'auth/email-already-in-use') message = 'This email is already in use.';
+        if (error.code === 'auth/weak-password') message = 'Register number must be at least 6 characters.';
         return { success: false, error: message };
     } finally {
         if (tempApp) deleteApp(tempApp).catch(() => {});

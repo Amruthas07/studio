@@ -6,7 +6,6 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
 import { CalendarIcon, Loader2, Camera, User, Info } from "lucide-react"
-import Image from 'next/image'
 
 import { Button } from "@/components/ui/button"
 import {
@@ -34,12 +33,13 @@ import { cn } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
+// MIN 6 chars for registerNumber because it is used as the initial password
 const formSchema = z.object({
   name: z.string().min(2, "Name required."),
-  registerNumber: z.string().min(6, "ID must be at least 6 characters (for security)."),
+  registerNumber: z.string().min(6, "Minimum 6 characters required (used as password)."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   semester: z.coerce.number().min(1).max(8),
-  email: z.string().email(),
+  email: z.string().email("Valid email required."),
   contact: z.string().length(10, "10 digits required."),
   fatherName: z.string().min(2, "Required."),
   motherName: z.string().min(2, "Required."),
@@ -56,7 +56,15 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: "", registerNumber: "", email: "", contact: "", fatherName: "", motherName: "", semester: 1 },
+    defaultValues: { 
+      name: "", 
+      registerNumber: "", 
+      email: "", 
+      contact: "", 
+      fatherName: "", 
+      motherName: "", 
+      semester: 1 
+    },
   })
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -75,9 +83,14 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
             toast({ variant: "destructive", title: "Enrollment Failed", description: result.error });
         }
     } catch (e: any) {
-        console.error("Enrollment Exception:", e);
-        toast({ variant: "destructive", title: "System Error", description: e.message || "An unexpected error occurred." });
+        console.error("Form Submission Error:", e);
+        toast({ 
+          variant: "destructive", 
+          title: "System Error", 
+          description: e.message || "An unexpected error occurred during submission." 
+        });
     } finally {
+        // GUARANTEED UI RESET
         setIsSubmitting(false);
     }
   }
@@ -90,7 +103,8 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
           return;
       }
       form.setValue('photo', file, { shouldValidate: true });
-      setPreviewUrl(URL.createObjectURL(file));
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
     }
   }
 
@@ -100,30 +114,30 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
         <ScrollArea className="flex-1 pr-6">
           <div className="space-y-6">
             <div className="flex items-center gap-6 py-4">
-                <Avatar className="h-24 w-24 border">
+                <Avatar className="h-20 w-20 border shadow-sm">
                     <AvatarImage src={previewUrl || ""} className="object-cover" />
                     <AvatarFallback className="bg-muted">
-                        <User className="h-10 w-10 text-muted-foreground" />
+                        <User className="h-8 w-8 text-muted-foreground" />
                     </AvatarFallback>
                 </Avatar>
                 <div className="space-y-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isSubmitting}>
                         <Camera className="mr-2 h-4 w-4" />
                         Select Photo
                     </Button>
-                    <p className="text-[10px] text-muted-foreground">Recommend: Square image, max 10MB. Will be optimized to 400px.</p>
+                    <p className="text-[10px] text-muted-foreground">Photos are optimized to 400px for lightning-fast loads.</p>
                 </div>
-                <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} />
+                <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} disabled={isSubmitting} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <FormField control={form.control} name="name" render={({ field }) => (
-                    <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="e.g. John Doe" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="registerNumber" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Register Number</FormLabel>
-                        <FormControl><Input placeholder="Min. 6 chars" {...field} /></FormControl>
+                        <FormControl><Input placeholder="Min. 6 characters" {...field} disabled={isSubmitting} /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />
@@ -131,7 +145,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                 <FormField control={form.control} name="department" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Department</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="cs">Computer Science (CS)</SelectItem>
@@ -148,7 +162,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                 <FormField control={form.control} name="semester" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Semester</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(Number(v))} defaultValue={String(field.value)}>
+                    <Select onValueChange={(v) => field.onChange(Number(v))} defaultValue={String(field.value)} disabled={isSubmitting}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
                       <SelectContent>{[1,2,3,4,5,6,7,8].map(s => <SelectItem key={s} value={String(s)}>{s}</SelectItem>)}</SelectContent>
                     </Select>
@@ -156,16 +170,16 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="email" render={({ field }) => (
-                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="student@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="student@example.com" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="contact" render={({ field }) => (
-                    <FormItem><FormLabel>Contact No.</FormLabel><FormControl><Input type="tel" placeholder="10 digits" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Contact No.</FormLabel><FormControl><Input type="tel" placeholder="10 digits" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="fatherName" render={({ field }) => (
-                    <FormItem><FormLabel>Father's Name</FormLabel><FormControl><Input placeholder="Guardian Name" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Father's Name</FormLabel><FormControl><Input placeholder="Guardian Name" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="motherName" render={({ field }) => (
-                    <FormItem><FormLabel>Mother's Name</FormLabel><FormControl><Input placeholder="Guardian Name" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Mother's Name</FormLabel><FormControl><Input placeholder="Guardian Name" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
                     <FormItem className="flex flex-col md:col-span-2">
@@ -173,7 +187,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                         <Popover>
                             <PopoverTrigger asChild>
                                 <FormControl>
-                                    <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                    <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={isSubmitting}>
                                         {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
@@ -188,10 +202,10 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                 )} />
             </div>
             
-            <Alert>
+            <Alert className="bg-muted/50">
                 <Info className="h-4 w-4" />
                 <AlertDescription className="text-xs">
-                    Enrollment creates a secure account using the Register Number as the initial password.
+                    Register number will be the student's initial password. It must be at least 6 characters.
                 </AlertDescription>
             </Alert>
           </div>
