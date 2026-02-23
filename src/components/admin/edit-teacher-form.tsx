@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect } from "react"
@@ -43,8 +44,6 @@ const formSchema = z.object({
     '4': z.array(z.string()).optional(),
     '5': z.array(z.string()).optional(),
     '6': z.array(z.string()).optional(),
-    '7': z.array(z.string()).optional(),
-    '8': z.array(z.string()).optional(),
   }).optional(),
 })
 
@@ -53,7 +52,7 @@ type EditTeacherFormProps = {
     onTeacherUpdated: () => void;
 }
 
-const semesters = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+const semesters = [1, 2, 3, 4, 5, 6] as const;
 
 export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormProps) {
   const { updateTeacher } = useTeachers();
@@ -84,7 +83,6 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
         await updateTeacher(teacher.teacherId, values);
         onTeacherUpdated();
     } catch (error: any) {
-        console.error(error);
         toast({
             variant: "destructive",
             title: "Update Failed",
@@ -175,7 +173,7 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
             <Separator />
             <div className="space-y-2">
                 <h3 className="text-lg font-medium">Subject Assignments</h3>
-                <p className="text-sm text-muted-foreground">Assign subjects for each semester.</p>
+                <p className="text-sm text-muted-foreground">Assign subjects for each semester (1-6).</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {semesters.map(sem => {

@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -34,9 +35,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name required."),
-  registerNumber: z.string().min(6, "Min. 6 chars required."),
+  registerNumber: z.string().min(6, "Register number must be at least 6 characters."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
-  semester: z.coerce.number().min(1).max(8),
+  semester: z.coerce.number().min(1).max(6),
   email: z.string().email("Valid email required."),
   contact: z.string().length(10, "10 digits required."),
   fatherName: z.string().min(2, "Required."),
@@ -64,10 +65,8 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    
     try {
         const result = await addStudent(values);
-        
         if (result.success) {
             toast({ title: "Enrollment Success", description: `${values.name} has been registered.` });
             onStudentAdded();
@@ -76,7 +75,6 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
             toast({ variant: "destructive", title: "Enrollment Failed", description: result.error });
         }
     } catch (e: any) {
-        console.error("Form Submission Error:", e);
         toast({ 
           variant: "destructive", 
           title: "System Error", 
@@ -126,7 +124,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                     <FormLabel>Semester</FormLabel>
                     <Select onValueChange={(v) => field.onChange(Number(v))} defaultValue={String(field.value)} disabled={isSubmitting}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
-                      <SelectContent>{[1,2,3,4,5,6,7,8].map(s => <SelectItem key={s} value={String(s)}>{s}</SelectItem>)}</SelectContent>
+                      <SelectContent>{[1,2,3,4,5,6].map(s => <SelectItem key={s} value={String(s)}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
@@ -167,7 +165,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
             <Alert className="bg-muted/50 border-primary/20">
                 <Info className="h-4 w-4 text-primary" />
                 <AlertDescription className="text-xs">
-                    Enrollment is instant. Register number serves as the student's ID and initial password (min. 6 characters required).
+                    Enrollment is instant. Register number serves as the student's initial password (min. 6 characters required).
                 </AlertDescription>
             </Alert>
           </div>

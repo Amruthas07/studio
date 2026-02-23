@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect } from "react"
@@ -43,8 +44,6 @@ const formSchema = z.object({
       '4': z.array(z.string()).optional(),
       '5': z.array(z.string()).optional(),
       '6': z.array(z.string()).optional(),
-      '7': z.array(z.string()).optional(),
-      '8': z.array(z.string()).optional(),
   }).optional(),
 })
 
@@ -52,7 +51,7 @@ type AddTeacherFormProps = {
     onTeacherAdded: () => void;
 }
 
-const semesters = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+const semesters = [1, 2, 3, 4, 5, 6] as const;
 
 export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const { toast } = useToast()
@@ -77,28 +76,17 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    
     try {
         const result = await addTeacher(values);
-        
         if (result.success) {
             toast({ title: 'Teacher Registered', description: `${values.name} has been added to the system.` });
             onTeacherAdded();
             form.reset();
         } else {
-            toast({
-                variant: "destructive",
-                title: "Registration Failed",
-                description: result.error || "An unexpected error occurred.",
-            });
+            toast({ variant: "destructive", title: "Registration Failed", description: result.error || "An unexpected error occurred." });
         }
     } catch (e: any) {
-        console.error(e);
-        toast({
-            variant: "destructive",
-            title: "System Error",
-            description: "Failed to complete registration.",
-        });
+        toast({ variant: "destructive", title: "System Error", description: "Failed to complete registration." });
     } finally {
         setIsSubmitting(false);
     }
@@ -198,11 +186,10 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                     )}
                 />
             </div>
-            
             <Separator />
             <div className="space-y-2">
                 <h3 className="text-lg font-medium">Subject Assignments</h3>
-                <p className="text-sm text-muted-foreground">Select the subjects this teacher will manage.</p>
+                <p className="text-sm text-muted-foreground">Select the subjects this teacher will manage (Sem 1-6).</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {semesters.map(sem => {

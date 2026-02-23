@@ -112,9 +112,8 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         tempApp = initializeApp(firebaseConfig, tempAppName);
         const tAuth = getAuth(tempApp);
         
-        const [userCredential] = await Promise.all([
-            createUserWithEmailAndPassword(tAuth, studentData.email, studentData.registerNumber)
-        ]);
+        // Register number must be at least 6 characters for Firebase Auth password
+        const userCredential = await createUserWithEmailAndPassword(tAuth, studentData.email, studentData.registerNumber);
 
         const uid = userCredential.user.uid;
         const studentDocRef = doc(firestore, 'students', studentData.registerNumber);
@@ -167,7 +166,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         const batch = writeBatch(firestore);
         let count = 0;
         studentsToPromote.forEach(student => {
-            if (student.semester < 8) {
+            if (student.semester < 6) { // Max semester is 6
                 const studentRef = doc(firestore, 'students', student.registerNumber);
                 batch.update(studentRef, { semester: student.semester + 1, updatedAt: serverTimestamp() });
                 count++;

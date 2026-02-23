@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -58,7 +59,7 @@ export default function Error({
             variant="default"
           >
             <RefreshCcw className="h-5 w-5" />
-            {isChunkError ? 'Refresh & Reconnect' : 'Retry Connection'}
+            {isChunkError ? 'Hard Refresh & Sync' : 'Retry Connection'}
           </Button>
           <Button 
             onClick={() => window.location.href = '/'} 

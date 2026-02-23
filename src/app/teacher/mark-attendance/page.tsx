@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -169,7 +170,7 @@ export default function MarkAttendancePage() {
     );
   }
 
-  const semesters = [1, 2, 3, 4, 5, 6, 7, 8];
+  const semesters = [1, 2, 3, 4, 5, 6];
 
   return (
     <div className="flex flex-col gap-6">
@@ -194,7 +195,7 @@ export default function MarkAttendancePage() {
       </div>
 
       <Tabs defaultValue="1" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 h-auto p-1 bg-muted/50">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto p-1 bg-muted/50">
           {semesters.map(sem => (
             <TabsTrigger 
                 key={sem} 

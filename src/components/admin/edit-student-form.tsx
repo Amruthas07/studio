@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -36,7 +37,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
-  semester: z.coerce.number().min(1).max(8),
+  semester: z.coerce.number().min(1).max(6),
   email: z.string().email(),
   contact: z.string().length(10, "Contact number must be exactly 10 digits.").regex(/^[0-9]+$/, "Contact number must only contain digits."),
   fatherName: z.string().min(2, "Father's name is required."),
@@ -76,7 +77,6 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
         await updateStudent(student.registerNumber, values);
         onStudentUpdated();
     } catch (e: any) {
-        console.error(e);
         toast({
             variant: "destructive",
             title: "Update Failed",
@@ -178,7 +178,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {[1,2,3,4,5,6,7,8].map(sem => (
+                          {[1,2,3,4,5,6].map(sem => (
                               <SelectItem key={sem} value={String(sem)}>{sem}</SelectItem>
                           ))}
                         </SelectContent>
