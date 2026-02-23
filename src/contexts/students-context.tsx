@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -7,7 +8,7 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, updateDoc, serverTimestamp, limit } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, updateDoc, serverTimestamp, limit, writeBatch } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'firebase/storage';
 import { useFirestore, useFirebaseApp } from '@/firebase/provider';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
@@ -194,8 +195,48 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       });
   }, [firestore, firebaseApp, toast, students]);
 
+  const promoteStudents = useCallback(async (department: string): Promise<{ success: boolean; count: number; error?: string }> => {
+    if (!firestore) return { success: false, count: 0, error: 'Database not ready' };
+    
+    try {
+        const studentsToPromote = department === 'all' 
+            ? students 
+            : students.filter(s => s.department === department);
+        
+        if (studentsToPromote.length === 0) {
+            return { success: true, count: 0 };
+        }
+
+        const batch = writeBatch(firestore);
+        let count = 0;
+
+        studentsToPromote.forEach(student => {
+            if (student.semester < 8) {
+                const studentRef = doc(firestore, 'students', student.registerNumber);
+                batch.update(studentRef, { 
+                    semester: student.semester + 1,
+                    updatedAt: serverTimestamp()
+                });
+                count++;
+            }
+        });
+
+        if (count > 0) {
+            await batch.commit();
+            toast({ title: "Promotion Successful", description: `${count} students moved to the next semester.` });
+        } else {
+            toast({ title: "No Action Taken", description: "All students are already in the final semester." });
+        }
+        
+        return { success: true, count };
+    } catch (error: any) {
+        console.error("Promotion failed:", error);
+        return { success: false, count: 0, error: error.message };
+    }
+  }, [firestore, students, toast]);
+
   return (
-    <StudentsContext.Provider value={{ students, loading, addStudent, updateStudent, deleteStudent, setStudents }}>
+    <StudentsContext.Provider value={{ students, loading, addStudent, updateStudent, deleteStudent, promoteStudents, setStudents }}>
       {children}
     </StudentsContext.Provider>
   );

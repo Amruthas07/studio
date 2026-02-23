@@ -64,6 +64,7 @@ export interface StudentsContextType {
     studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'profilePhotoUrl' | 'photoHash' | 'updatedAt'>> & { newPhotoFile?: File }
   ) => Promise<void>;
   deleteStudent: (registerNumber: string) => void;
+  promoteStudents: (department: string) => Promise<{ success: boolean; count: number; error?: string }>;
 }
 
 export interface TeachersContextType {
