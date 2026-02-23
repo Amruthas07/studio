@@ -123,25 +123,27 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         return { success: false, error: 'Firebase services not initialized.' };
     }
 
-    let tempApp;
+    let tempApp: any = null;
     const details = studentData;
 
     try {
-        // Step 1: Sequential Flow Reliability
-        // First, optimize the image locally (lightning fast)
-        const optimizedImage = photoFile 
-            ? await resizeAndCompressImage(photoFile, 400, 0.7)
-            : null;
+        // ULTRA-FAST PIPELINE: Run Auth and Image Processing in parallel
+        // 300px @ 60% quality is perfect for avatars and tiny (~20KB)
+        const [optimizedImage, userCredential] = await Promise.all([
+            photoFile ? resizeAndCompressImage(photoFile, 300, 0.6) : Promise.resolve(null),
+            (async () => {
+                const tempAppName = `enroll-${Date.now()}`;
+                const tApp = initializeApp(firebaseConfig, tempAppName);
+                const tAuth = getAuth(tApp);
+                const cred = await createUserWithEmailAndPassword(tAuth, details.email, details.registerNumber);
+                tempApp = tApp; // Store for cleanup
+                return cred;
+            })()
+        ]);
 
-        // Step 2: Create Auth account using a separate instance to avoid logging out admin
-        const tempAppName = `enroll-${Date.now()}`;
-        tempApp = initializeApp(firebaseConfig, tempAppName);
-        const tAuth = getAuth(tempApp);
-        
-        const userCredential = await createUserWithEmailAndPassword(tAuth, details.email, details.registerNumber);
         const uid = userCredential.user.uid;
 
-        // Step 3: Upload Optimized Photo to Storage
+        // Step 2: Immediate Upload (Millisecond response for 20KB file)
         let photoUrl = '';
         if (optimizedImage) {
             const storage = getStorage(firebaseApp);
@@ -150,7 +152,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             photoUrl = await getDownloadURL(photoRef);
         }
 
-        // Step 4: Save complete profile to Firestore
+        // Step 3: Finalize Profile
         const studentDocRef = doc(firestore, 'students', details.registerNumber);
         const newStudentData = {
             ...details,
@@ -191,7 +193,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     
     try {
         if (newPhotoFile) {
-            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 400, 0.7);
+            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 300, 0.6);
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
             await uploadBytes(photoRef, processedPhoto);

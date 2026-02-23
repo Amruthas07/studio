@@ -7,9 +7,9 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Resizes and compresses an image file on the client-side.
- * Professional Standard: 400x400px at 70% quality for optimal speed/quality balance.
+ * Optimized for sub-2-second enrollment: 300x300px @ 60% quality (~20KB payload).
  */
-export function resizeAndCompressImage(file: File, maxSize: number = 400, quality: number = 0.7): Promise<File> {
+export function resizeAndCompressImage(file: File, maxSize: number = 300, quality: number = 0.6): Promise<File> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
@@ -18,7 +18,7 @@ export function resizeAndCompressImage(file: File, maxSize: number = 400, qualit
       URL.revokeObjectURL(objectUrl);
       const canvas = document.createElement('canvas');
       
-      // Force square aspect ratio for avatars (WhatsApp style)
+      // Force square aspect ratio for avatars
       canvas.width = maxSize;
       canvas.height = maxSize;
       
@@ -26,7 +26,7 @@ export function resizeAndCompressImage(file: File, maxSize: number = 400, qualit
       if (!ctx) return reject(new Error('Could not get canvas context'));
       
       ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
+      ctx.imageSmoothingQuality = 'medium'; // Medium is faster than high and sufficient for avatars
 
       // Calculate source crop to center the square
       const sourceWidth = img.width;

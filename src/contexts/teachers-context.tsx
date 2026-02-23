@@ -80,27 +80,29 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     }
 
     const { email, password, subjects, ...details } = teacherData;
-    let tempApp;
+    let tempApp: any = null;
     
     try {
         if (email.toLowerCase() === ADMIN_EMAIL) {
             throw new Error("This email is reserved for the administrator.");
         }
         
-        // Step 1: Optimize locally
-        const processedImage = photoFile 
-            ? await resizeAndCompressImage(photoFile, 400, 0.7)
-            : null;
+        // ULTRA-FAST PIPELINE: Run Auth and Image Processing in parallel
+        const [processedImage, userCredential] = await Promise.all([
+            photoFile ? resizeAndCompressImage(photoFile, 300, 0.6) : Promise.resolve(null),
+            (async () => {
+                const tempAppName = `teacher-${Date.now()}`;
+                const tApp = initializeApp(firebaseConfig, tempAppName);
+                const tAuth = getAuth(tApp);
+                const cred = await createUserWithEmailAndPassword(tAuth, email, password);
+                tempApp = tApp;
+                return cred;
+            })()
+        ]);
 
-        // Step 2: Create Auth account
-        const tempAppName = `teacher-${Date.now()}`;
-        tempApp = initializeApp(firebaseConfig, tempAppName);
-        const tempAuth = getAuth(tempApp);
-        
-        const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
         const uid = userCredential.user.uid;
         
-        // Step 3: Storage upload
+        // Step 2: Storage upload
         let photoUrl = '';
         if (processedImage) {
             const storage = getStorage(firebaseApp);
@@ -109,7 +111,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             photoUrl = await getDownloadURL(photoRef);
         }
 
-        // Step 4: Firestore data save
+        // Step 3: Firestore data save
         const teacherDocRef = doc(firestore, 'teachers', email);
         const newTeacherData = {
             ...details,
@@ -153,7 +155,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
 
     try {
         if (newPhotoFile) {
-            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 400, 0.7);
+            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 300, 0.6);
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `teachers/${teacherId}/profile.jpg`);
             await uploadBytes(photoRef, processedPhoto);
