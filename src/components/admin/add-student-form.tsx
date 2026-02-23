@@ -4,7 +4,8 @@ import React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Loader2, Camera, User } from "lucide-react"
+import { format } from "date-fns"
+import { CalendarIcon, Loader2, Camera, User } from "lucide-react"
 import Image from 'next/image'
 
 import { Button } from "@/components/ui/button"
@@ -27,6 +28,9 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { useStudents } from "@/hooks/use-students"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { cn } from "@/lib/utils"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name required."),
@@ -54,12 +58,11 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
   })
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // PREVENT DEFAULT is handled by form.handleSubmit
     setIsSubmitting(true);
     
     try {
         const { photo, ...details } = values;
-        // The context addStudent now handles Auth and Storage in parallel for sub-2s speed
+        // The parallel pipeline in context handles Auth and Storage simultaneously
         const result = await addStudent(details, photo);
         
         if (result.success) {
@@ -74,7 +77,6 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
         console.error("Enrollment Exception:", e);
         toast({ variant: "destructive", title: "System Error", description: e.message });
     } finally {
-        // CRITICAL: Always reset button state
         setIsSubmitting(false);
     }
   }
@@ -159,6 +161,31 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                 )} />
                 <FormField control={form.control} name="contact" render={({ field }) => (
                     <FormItem><FormLabel>Contact No.</FormLabel><FormControl><Input type="tel" placeholder="10 digits" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="fatherName" render={({ field }) => (
+                    <FormItem><FormLabel>Father's Name</FormLabel><FormControl><Input placeholder="Guardian Name" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="motherName" render={({ field }) => (
+                    <FormItem><FormLabel>Mother's Name</FormLabel><FormControl><Input placeholder="Guardian Name" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
+                    <FormItem className="flex flex-col md:col-span-2">
+                        <FormLabel>Date of Birth</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus />
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                    </FormItem>
                 )} />
             </div>
           </div>
