@@ -76,20 +76,20 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     setIsSubmitting(true);
     
     const { update, dismiss } = toast({
-        title: "Enrolling Student",
-        description: "Starting secure enrollment process...",
+        title: "Starting Enrollment",
+        description: "Initializing secure registration flow...",
     });
 
     try {
         const { photo, ...details } = values;
-        update({ title: "Enrolling Student", description: "Step 1: Optimizing photo & creating account..." });
+        update({ title: "Enrolling Student", description: "Step 1: Optimizing profile photo..." });
         
         const result = await addStudent(details, photo);
         
         if (result.success) {
             toast({
                 title: "Enrollment Successful",
-                description: `${values.name} has been successfully added.`,
+                description: `${values.name} has been enrolled successfully.`,
             });
             onStudentAdded();
             form.reset();
@@ -106,7 +106,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
         toast({
             variant: "destructive",
             title: "Critical Error",
-            description: e.message || "Failed to complete enrollment.",
+            description: e.message || "Failed to complete enrollment process.",
         });
     } finally {
         setIsSubmitting(false);
@@ -173,7 +173,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                 />
                 <div className="text-center">
                     <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Ideal: Square, 400x400px</p>
-                    <p className="text-[10px] text-muted-foreground italic leading-tight">Photos are auto-compressed for lightning speed.</p>
+                    <p className="text-[10px] text-muted-foreground italic leading-tight">Fast processing enabled: photos are auto-optimized.</p>
                 </div>
             </div>
 

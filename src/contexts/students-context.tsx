@@ -128,12 +128,12 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
     try {
         // Step 1: Sequential Flow Reliability
-        // First, optimize the image locally
+        // First, optimize the image locally (lightning fast)
         const optimizedImage = photoFile 
             ? await resizeAndCompressImage(photoFile, 400, 0.7)
             : null;
 
-        // Step 2: Create Auth account
+        // Step 2: Create Auth account using a separate instance to avoid logging out admin
         const tempAppName = `enroll-${Date.now()}`;
         tempApp = initializeApp(firebaseConfig, tempAppName);
         const tAuth = getAuth(tempApp);
@@ -141,7 +141,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         const userCredential = await createUserWithEmailAndPassword(tAuth, details.email, details.registerNumber);
         const uid = userCredential.user.uid;
 
-        // Step 3: Upload to Storage
+        // Step 3: Upload Optimized Photo to Storage
         let photoUrl = '';
         if (optimizedImage) {
             const storage = getStorage(firebaseApp);
@@ -150,7 +150,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             photoUrl = await getDownloadURL(photoRef);
         }
 
-        // Step 4: Save to Firestore
+        // Step 4: Save complete profile to Firestore
         const studentDocRef = doc(firestore, 'students', details.registerNumber);
         const newStudentData = {
             ...details,
