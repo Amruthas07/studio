@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from '@/hooks/use-toast';
@@ -160,7 +160,7 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
         return (
           <div key={student.registerNumber} className="flex items-center gap-4 p-3 rounded-lg border bg-card hover:bg-muted/10 transition-colors">
             <Avatar className="h-14 w-14 border flex-shrink-0">
-                <AvatarImage src={student.profilePhotoUrl} alt={student.name} className="object-cover" />
+                <AvatarImage src={student.uid ? undefined : undefined} alt={student.name} className="object-cover" />
                 <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
             </Avatar>
             
