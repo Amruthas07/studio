@@ -9,46 +9,38 @@
       "properties": {
         "registerNumber": {
           "type": "string",
-          "description": "Unique identifier for the student. (e.g., 324cs21001)",
+          "description": "Unique identifier for the student (min 6 chars).",
           "format": "string"
         },
         "name": {
-          "type": "string",
-          "description": "The student's full name."
+          "type": "string"
         },
         "fatherName": {
-          "type": "string",
-          "description": "The student's father's name."
+          "type": "string"
         },
         "motherName": {
-          "type": "string",
-          "description": "The student's mother's name."
+          "type": "string"
         },
         "department": {
           "type": "string",
-          "description": "The department the student belongs to (e.g., cs, ce, me).",
-          "format": "string"
+          "enum": ["cs", "ce", "me", "ee", "mce", "ec"]
         },
         "semester": {
           "type": "number",
-          "description": "The current semester of the student (e.g., 1, 2, ... 8)."
+          "description": "Current semester (1-6)."
         },
         "email": {
           "type": "string",
-          "description": "The student's email address.",
           "format": "email"
         },
         "contact": {
-          "type": "string",
-          "description": "The student's contact phone number."
+          "type": "string"
         },
         "uid": {
-          "type": "string",
-          "description": "The Firebase Authentication user ID."
+          "type": "string"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp of when the student record was created.",
           "format": "date-time"
         },
         "dateOfBirth": {
@@ -59,167 +51,53 @@
       "required": [
         "registerNumber",
         "name",
-        "fatherName",
-        "motherName",
         "department",
         "semester",
         "email",
-        "contact",
-        "createdAt",
-        "dateOfBirth"
-      ]
-    },
-    "Attendance": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Attendance",
-      "type": "object",
-      "description": "Represents an attendance record for a student on a specific date.",
-      "properties": {
-        "studentRegister": {
-          "type": "string",
-          "description": "Reference to Student."
-        },
-        "date": {
-          "type": "string",
-          "description": "Date of the attendance record (YYYY-MM-DD)."
-        },
-        "status": {
-          "type": "string",
-          "description": "Attendance status (present, absent)."
-        },
-        "markedBy": {
-          "type": "string",
-          "description": "Admin email or UID that marked the attendance."
-        },
-        "method": {
-          "type": "string",
-          "description": "Method used (manual)."
-        },
-        "subject": {
-            "type": "string",
-            "description": "The subject for which attendance was marked."
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "Timestamp of when the attendance was recorded.",
-          "format": "date-time"
-        },
-        "department": {
-          "type": "string"
-        },
-        "studentUid": {
-          "type": "string"
-        },
-        "reason": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "studentRegister",
-        "date",
-        "status",
-        "markedBy",
-        "method",
-        "timestamp",
-        "department",
-        "studentUid"
-      ]
-    },
-    "Teacher": {
-      "title": "Teacher",
-      "description": "Represents a teacher in the system.",
-      "type": "object",
-      "properties": {
-        "teacherId": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "email": {
-          "type": "string",
-          "format": "email"
-        },
-        "department": {
-          "type": "string"
-        },
-        "position": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "subjects": {
-          "type": "object",
-          "description": "Mapping of semester number to a list of assigned subjects."
-        }
-      },
-      "required": [
-        "teacherId",
-        "name",
-        "email",
-        "department",
         "createdAt"
       ]
     },
-    "AdminRole": {
-      "title": "Admin Role",
-      "description": "A document indicating a user has admin privileges.",
+    "Attendance": {
+      "title": "Attendance",
       "type": "object",
       "properties": {
-        "isAdmin": {
-          "type": "boolean"
-        }
+        "studentRegister": { "type": "string" },
+        "date": { "type": "string" },
+        "status": { "type": "string", "enum": ["present", "absent"] },
+        "markedBy": { "type": "string" },
+        "method": { "type": "string", "enum": ["manual"] },
+        "subject": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "department": { "type": "string" },
+        "studentUid": { "type": "string" },
+        "reason": { "type": "string" }
       },
-      "required": [
-        "isAdmin"
-      ]
+      "required": ["studentRegister", "date", "status", "markedBy", "method", "timestamp", "department", "studentUid"]
+    },
+    "Teacher": {
+      "title": "Teacher",
+      "type": "object",
+      "properties": {
+        "teacherId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "department": { "type": "string" },
+        "position": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "subjects": { "type": "object" }
+      },
+      "required": ["teacherId", "name", "email", "department", "createdAt"]
     }
   },
   "auth": {
-    "providers": [
-      "password"
-    ]
+    "providers": ["password"]
   },
   "firestore": {
     "structure": [
-      {
-        "path": "/students/{registerNumber}",
-        "definition": {
-          "entityName": "Student",
-          "schema": { "$ref": "#/backend/entities/Student" },
-          "description": "Stores student profile information."
-        }
-      },
-      {
-        "path": "/attendance/{attendanceId}",
-        "definition": {
-          "entityName": "Attendance",
-          "schema": { "$ref": "#/backend/entities/Attendance" },
-          "description": "Stores attendance records."
-        }
-      },
-      {
-        "path": "/roles_admin/{uid}",
-        "definition": {
-          "entityName": "AdminRole",
-          "schema": { "$ref": "#/backend/entities/AdminRole" },
-          "description": "Indicates admin role."
-        }
-      },
-      {
-        "path": "/teachers/{email}",
-        "definition": {
-          "entityName": "Teacher",
-          "schema": { "$ref": "#/backend/entities/Teacher" },
-          "description": "Stores teacher profile information."
-        }
-      }
+      { "path": "/students/{registerNumber}", "definition": { "entityName": "Student" } },
+      { "path": "/attendance/{attendanceId}", "definition": { "entityName": "Attendance" } },
+      { "path": "/teachers/{email}", "definition": { "entityName": "Teacher" } },
+      { "path": "/institution/profile", "definition": { "entityName": "InstitutionProfile" } }
     ]
   }
 }
