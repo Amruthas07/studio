@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -127,21 +128,23 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const details = studentData;
 
     try {
-        // Step 1: Optimize image (400px @ 0.7 quality)
-        const optimizedImage = photoFile 
-            ? await resizeAndCompressImage(photoFile, 400, 0.7)
-            : null;
+        // PARALLEL PIPELINE: Optimize image and create Auth account simultaneously
+        const optimizationPromise = photoFile 
+            ? resizeAndCompressImage(photoFile, 400, 0.7)
+            : Promise.resolve(null);
 
-        // Step 2: Initialize secondary app
         const tempAppName = `enroll-${Date.now()}`;
         tempApp = initializeApp(firebaseConfig, tempAppName);
         const tAuth = getAuth(tempApp);
         
-        // Step 3: Create Auth Account
-        const userCredential = await createUserWithEmailAndPassword(tAuth, details.email, details.registerNumber);
+        const [userCredential, optimizedImage] = await Promise.all([
+            createUserWithEmailAndPassword(tAuth, details.email, details.registerNumber),
+            optimizationPromise
+        ]);
+
         const uid = userCredential.user.uid;
 
-        // Step 4: Upload to Storage
+        // Step 4: Upload to Storage (Sequential after optimization is ready)
         let photoUrl = '';
         if (optimizedImage) {
             const storage = getStorage(firebaseApp);

@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -117,6 +118,14 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+          toast({
+              variant: 'destructive',
+              title: 'File Too Large',
+              description: 'Please select an image smaller than 5MB.',
+          });
+          return;
+      }
       form.setValue('photo', file, { shouldValidate: true });
       const objectUrl = URL.createObjectURL(file);
       setPreviewUrl(objectUrl);
