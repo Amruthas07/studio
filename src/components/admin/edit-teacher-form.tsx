@@ -32,6 +32,7 @@ import { Separator } from "../ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -119,45 +120,19 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[70vh]">
         <ScrollArea className="flex-1 pr-6">
           <div className="space-y-6">
-            <div className="flex flex-col items-center gap-4 py-4">
-                <div 
-                    className="relative h-32 w-32 rounded-full overflow-hidden bg-secondary border-4 border-background shadow-xl cursor-pointer group"
-                    onClick={() => fileInputRef.current?.click()}
-                >
-                    {previewUrl ? (
-                        <Image src={previewUrl} alt="Preview" fill className="object-cover" />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground group-hover:text-primary transition-colors">
-                            <User className="h-12 w-12 mb-1 opacity-20" />
-                            <span className="text-[10px] uppercase font-bold tracking-wider">Change Photo</span>
-                        </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Camera className="h-8 w-8 text-white" />
-                    </div>
+            <div className="flex items-center gap-6 py-4">
+                <Avatar className="h-20 w-20 border">
+                    <AvatarImage src={previewUrl || ""} className="object-cover" />
+                    <AvatarFallback><User className="h-8 w-8 text-muted-foreground" /></AvatarFallback>
+                </Avatar>
+                <div className="space-y-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                        <Camera className="mr-2 h-4 w-4" />
+                        Change Photo
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground">Standard avatar change.</p>
                 </div>
-                <FormField
-                    control={form.control}
-                    name="photo"
-                    render={() => (
-                        <FormItem>
-                            <FormControl>
-                                <Input 
-                                    type="file" 
-                                    className="hidden" 
-                                    ref={fileInputRef} 
-                                    accept="image/*"
-                                    onChange={handlePhotoChange}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <div className="text-center">
-                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Recommended: 400x400px Square</p>
-                    <p className="text-[10px] text-muted-foreground italic">Photos are optimized locally for fast loading.</p>
-                </div>
+                <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -179,7 +154,7 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                     <FormControl>
                         <Input value={teacher.email} disabled />
                     </FormControl>
-                    <FormDescription>Email cannot be changed.</FormDescription>
+                    <FormDescription className="text-[10px]">Email cannot be changed.</FormDescription>
                 </FormItem>
                 <FormField
                     control={form.control}
@@ -235,9 +210,9 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
             <Separator />
             <div className="space-y-2">
                 <h3 className="text-lg font-medium">Subject Assignments</h3>
-                <p className="text-sm text-muted-foreground">Assign subjects for each semester based on the selected department.</p>
+                <p className="text-sm text-muted-foreground">Assign subjects for each semester.</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {semesters.map(sem => {
                     const subjectsForSemester = department ? getSubjects(department, sem as Semester) : [];
                     return (
@@ -246,9 +221,9 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                             control={form.control}
                             name={`subjects.${sem}`}
                             render={() => (
-                                <FormItem className="flex flex-col p-4 border rounded-lg bg-muted/50">
-                                    <FormLabel className="font-semibold mb-2">Semester {sem}</FormLabel>
-                                    <div className="space-y-2">
+                                <FormItem className="flex flex-col p-3 border rounded-md bg-muted/30">
+                                    <FormLabel className="font-semibold text-xs mb-2">Semester {sem}</FormLabel>
+                                    <div className="space-y-1">
                                     {subjectsForSemester.length > 0 ? (
                                         subjectsForSemester.map((subject) => (
                                             <FormField
@@ -257,7 +232,7 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                                                 name={`subjects.${sem}`}
                                                 render={({ field }) => {
                                                     return (
-                                                        <FormItem key={subject} className="flex flex-row items-start space-x-3 space-y-0">
+                                                        <FormItem key={subject} className="flex flex-row items-center space-x-2 space-y-0">
                                                             <FormControl>
                                                                 <Checkbox
                                                                     checked={field.value?.includes(subject)}
@@ -270,7 +245,7 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                                                                     }}
                                                                 />
                                                             </FormControl>
-                                                            <FormLabel className="text-sm font-normal">
+                                                            <FormLabel className="text-xs font-normal">
                                                                 {subject}
                                                             </FormLabel>
                                                         </FormItem>
@@ -279,12 +254,9 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                                             />
                                         ))
                                     ) : (
-                                        <p className="text-sm text-muted-foreground italic">
-                                            {department ? 'No subjects' : 'Select a department'}
-                                        </p>
+                                        <p className="text-[10px] text-muted-foreground italic">No subjects</p>
                                     )}
                                     </div>
-                                    <FormMessage className="!mt-2" />
                                 </FormItem>
                             )}
                         />

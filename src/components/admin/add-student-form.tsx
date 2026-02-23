@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from "react"
@@ -33,9 +32,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-// Firebase Auth requires 6 characters for passwords.
-// Since registerNumber is the initial password, we enforce min(6).
 const formSchema = z.object({
   name: z.string().min(2, "Name required."),
   registerNumber: z.string().min(6, "ID must be at least 6 characters (for security)."),
@@ -66,7 +64,6 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
     
     try {
         const { photo, ...details } = values;
-        // High-speed parallel pipeline
         const result = await addStudent(details, photo);
         
         if (result.success) {
@@ -102,28 +99,21 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[75vh]">
         <ScrollArea className="flex-1 pr-6">
           <div className="space-y-6">
-            <div className="flex flex-col items-center gap-4 py-4">
-                <div 
-                    className="relative h-36 w-36 rounded-full overflow-hidden bg-secondary border-4 border-background shadow-2xl cursor-pointer group ring-4 ring-primary/10 hover:ring-primary/30 transition-all"
-                    onClick={() => fileInputRef.current?.click()}
-                >
-                    {previewUrl ? (
-                        <Image src={previewUrl} alt="Preview" fill className="object-cover" />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground group-hover:text-primary transition-colors">
-                            <User className="h-14 w-14 mb-1 opacity-20" />
-                            <span className="text-[10px] uppercase font-bold tracking-wider">Add Photo</span>
-                        </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Camera className="h-10 w-10 text-white" />
-                    </div>
+            <div className="flex items-center gap-6 py-4">
+                <Avatar className="h-24 w-24 border">
+                    <AvatarImage src={previewUrl || ""} className="object-cover" />
+                    <AvatarFallback className="bg-muted">
+                        <User className="h-10 w-10 text-muted-foreground" />
+                    </AvatarFallback>
+                </Avatar>
+                <div className="space-y-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                        <Camera className="mr-2 h-4 w-4" />
+                        Select Photo
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground">Recommend: Square image, max 10MB. Will be optimized to 400px.</p>
                 </div>
                 <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} />
-                <div className="text-center">
-                    <p className="text-xs font-black text-primary mb-1 uppercase tracking-tighter">WhatsApp-Style Square DP</p>
-                    <p className="text-[10px] text-muted-foreground italic">Fast enrollment: photos are optimized to 400px instantly.</p>
-                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
@@ -133,7 +123,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                 <FormField control={form.control} name="registerNumber" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Register Number</FormLabel>
-                        <FormControl><Input placeholder="Min. 6 chars (e.g. 324CS210)" {...field} /></FormControl>
+                        <FormControl><Input placeholder="Min. 6 chars" {...field} /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />
@@ -183,7 +173,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                         <Popover>
                             <PopoverTrigger asChild>
                                 <FormControl>
-                                    <Button variant="outline" className={cn("pl-3 text-left font-normal h-12", !field.value && "text-muted-foreground")}>
+                                    <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
                                         {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
@@ -198,16 +188,16 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                 )} />
             </div>
             
-            <Alert className="bg-primary/5 border-primary/20">
-                <Info className="h-4 w-4 text-primary" />
-                <AlertDescription className="text-xs text-muted-foreground">
-                    Enrollment creates a secure account for the student using their Register Number as the initial password.
+            <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                    Enrollment creates a secure account using the Register Number as the initial password.
                 </AlertDescription>
             </Alert>
           </div>
         </ScrollArea>
         <div className="flex justify-end pt-4 mt-4 border-t">
-          <Button type="submit" disabled={isSubmitting} size="lg" className="min-w-[160px] font-black uppercase tracking-widest shadow-lg">
+          <Button type="submit" disabled={isSubmitting} size="lg" className="min-w-[140px]">
             {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enrolling...</> : "Enroll Student"}
           </Button>
         </div>

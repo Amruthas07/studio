@@ -30,6 +30,7 @@ import { getSubjects, type Semester } from "@/lib/subjects"
 import { Separator } from "../ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -83,15 +84,8 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     
-    const { update, dismiss } = toast({
-        title: "Registering Teacher",
-        description: "Optimizing profile photo...",
-    });
-
-    const { photo, ...teacherDetails } = values;
-
     try {
-        update({ title: "Registering Teacher", description: "Step 1: Creating secure account & uploading photo..." });
+        const { photo, ...teacherDetails } = values;
         const result = await addTeacher(teacherDetails, photo);
         
         if (result.success) {
@@ -110,12 +104,11 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
         console.error(e);
         toast({
             variant: "destructive",
-            title: "Critical Error",
-            description: "Failed to complete registration process.",
+            title: "System Error",
+            description: "Failed to complete registration.",
         });
     } finally {
         setIsSubmitting(false);
-        dismiss();
     }
   }
 
@@ -123,16 +116,11 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-          toast({
-              variant: 'destructive',
-              title: 'File Too Large',
-              description: 'Please select an image smaller than 5MB.',
-          });
+          toast({ variant: 'destructive', title: 'File Too Large', description: 'Maximum 5MB allowed.' });
           return;
       }
       form.setValue('photo', file, { shouldValidate: true });
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
+      setPreviewUrl(URL.createObjectURL(file));
     }
   }
   
@@ -141,45 +129,19 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[70vh]">
         <ScrollArea className="flex-1 pr-6">
           <div className="space-y-6">
-            <div className="flex flex-col items-center gap-4 py-4">
-                <div 
-                    className="relative h-32 w-32 rounded-full overflow-hidden bg-secondary border-4 border-background shadow-xl cursor-pointer group"
-                    onClick={() => fileInputRef.current?.click()}
-                >
-                    {previewUrl ? (
-                        <Image src={previewUrl} alt="Preview" fill className="object-cover" />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground group-hover:text-primary transition-colors">
-                            <User className="h-12 w-12 mb-1 opacity-20" />
-                            <span className="text-[10px] uppercase font-bold tracking-wider">Add Photo</span>
-                        </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Camera className="h-8 w-8 text-white" />
-                    </div>
+            <div className="flex items-center gap-6 py-4">
+                <Avatar className="h-20 w-20 border">
+                    <AvatarImage src={previewUrl || ""} className="object-cover" />
+                    <AvatarFallback><User className="h-8 w-8 text-muted-foreground" /></AvatarFallback>
+                </Avatar>
+                <div className="space-y-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                        <Camera className="mr-2 h-4 w-4" />
+                        Select Photo
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground">Standard profile photo upload.</p>
                 </div>
-                <FormField
-                    control={form.control}
-                    name="photo"
-                    render={() => (
-                        <FormItem>
-                            <FormControl>
-                                <Input 
-                                    type="file" 
-                                    className="hidden" 
-                                    ref={fileInputRef} 
-                                    accept="image/*"
-                                    onChange={handlePhotoChange}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <div className="text-center">
-                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Ideal: Square, 400x400px</p>
-                    <p className="text-[10px] text-muted-foreground italic leading-tight">Fast processing enabled: photos are auto-optimized.</p>
-                </div>
+                <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -277,7 +239,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                 <h3 className="text-lg font-medium">Subject Assignments</h3>
                 <p className="text-sm text-muted-foreground">Select the subjects this teacher will manage.</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {semesters.map(sem => {
                     const subjectsForSemester = department ? getSubjects(department, sem as Semester) : [];
                     return (
@@ -286,9 +248,9 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                             control={form.control}
                             name={`subjects.${sem}`}
                             render={() => (
-                                <FormItem className="flex flex-col p-4 border rounded-lg bg-muted/50">
-                                    <FormLabel className="font-semibold mb-2">Semester {sem}</FormLabel>
-                                    <div className="space-y-2">
+                                <FormItem className="flex flex-col p-3 border rounded-md bg-muted/30">
+                                    <FormLabel className="font-semibold text-xs mb-2">Semester {sem}</FormLabel>
+                                    <div className="space-y-1">
                                     {subjectsForSemester.length > 0 ? (
                                         subjectsForSemester.map((subject) => (
                                             <FormField
@@ -297,7 +259,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                                                 name={`subjects.${sem}`}
                                                 render={({ field }) => {
                                                     return (
-                                                        <FormItem key={subject} className="flex flex-row items-start space-x-3 space-y-0">
+                                                        <FormItem key={subject} className="flex flex-row items-center space-x-2 space-y-0">
                                                             <FormControl>
                                                                 <Checkbox
                                                                     checked={field.value?.includes(subject)}
@@ -310,7 +272,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                                                                     }}
                                                                 />
                                                             </FormControl>
-                                                            <FormLabel className="text-sm font-normal">
+                                                            <FormLabel className="text-xs font-normal">
                                                                 {subject}
                                                             </FormLabel>
                                                         </FormItem>
@@ -319,12 +281,9 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                                             />
                                         ))
                                     ) : (
-                                        <p className="text-sm text-muted-foreground italic">
-                                            {department ? 'No subjects' : 'Select department'}
-                                        </p>
+                                        <p className="text-[10px] text-muted-foreground italic">No subjects</p>
                                     )}
                                     </div>
-                                    <FormMessage className="!mt-2" />
                                 </FormItem>
                             )}
                         />

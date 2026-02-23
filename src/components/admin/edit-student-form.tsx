@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from "react"
@@ -34,6 +33,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useStudents } from "@/hooks/use-students"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -121,45 +121,19 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[70vh]">
         <ScrollArea className="flex-1 pr-6">
           <div className="space-y-6">
-            <div className="flex flex-col items-center gap-4 py-4">
-                <div 
-                    className="relative h-32 w-32 rounded-full overflow-hidden bg-secondary border-4 border-background shadow-xl cursor-pointer group"
-                    onClick={() => fileInputRef.current?.click()}
-                >
-                    {previewUrl ? (
-                        <Image src={previewUrl} alt="Preview" fill className="object-cover" />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground group-hover:text-primary transition-colors">
-                            <User className="h-12 w-12 mb-1 opacity-20" />
-                            <span className="text-[10px] uppercase font-bold tracking-wider">Change Photo</span>
-                        </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Camera className="h-8 w-8 text-white" />
-                    </div>
+            <div className="flex items-center gap-6 py-4">
+                <Avatar className="h-20 w-20 border">
+                    <AvatarImage src={previewUrl || ""} className="object-cover" />
+                    <AvatarFallback><User className="h-8 w-8 text-muted-foreground" /></AvatarFallback>
+                </Avatar>
+                <div className="space-y-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                        <Camera className="mr-2 h-4 w-4" />
+                        Change Photo
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground">Upload to update the profile picture.</p>
                 </div>
-                <FormField
-                    control={form.control}
-                    name="photo"
-                    render={() => (
-                        <FormItem>
-                            <FormControl>
-                                <Input 
-                                    type="file" 
-                                    className="hidden" 
-                                    ref={fileInputRef} 
-                                    accept="image/*"
-                                    onChange={handlePhotoChange}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <div className="text-center">
-                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Square, 200x200px Recommended</p>
-                    <p className="text-[10px] text-muted-foreground italic">Uploaded photos are automatically optimized.</p>
-                </div>
+                <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
@@ -181,7 +155,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                     <FormControl>
                     <Input value={student.registerNumber} disabled />
                     </FormControl>
-                    <FormDescription>Register number cannot be changed.</FormDescription>
+                    <FormDescription className="text-[10px]">Register number cannot be changed.</FormDescription>
                 </FormItem>
 
                  <FormField
@@ -317,9 +291,6 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                                 date > new Date() || date < new Date("1900-01-01")
                                 }
                                 initialFocus
-                                captionLayout="dropdown-buttons"
-                                fromYear={1950}
-                                toYear={new Date().getFullYear() - 10}
                             />
                             </PopoverContent>
                         </Popover>
