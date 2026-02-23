@@ -14,12 +14,14 @@ service cloud.firestore {
     }
 
     function isTeacher() {
-      // Checks if the requesting user's email exists as a document ID in the teachers collection.
-      return isSignedIn() && exists(/databases/$(database)/documents/teachers/$(request.auth.token.email));
+      // Document IDs are normalized emails (lowercase)
+      let email = request.auth.token.email.lower();
+      return isSignedIn() && exists(/databases/$(database)/documents/teachers/$(email));
     }
     
     function getTeacherDepartment() {
-        return get(/databases/$(database)/documents/teachers/$(request.auth.token.email)).data.department;
+        let email = request.auth.token.email.lower();
+        return get(/databases/$(database)/documents/teachers/$(email)).data.department;
     }
 
     // ======== Path Rules ========
@@ -32,24 +34,20 @@ service cloud.firestore {
 
     // Teachers collection
     match /teachers/{email} {
-      // Admins can read/write. A teacher can read their own profile.
-      allow read: if isAdmin() || (isSignedIn() && request.auth.token.email == email);
+      // Normalize email for comparison
+      allow read: if isAdmin() || (isSignedIn() && request.auth.token.email.lower() == email.lower());
       allow write: if isAdmin();
     }
     match /teachers {
-        // Only admins can list all teachers.
         allow list: if isAdmin();
     }
 
     // --- Students ---
     match /students/{studentId} {
-      // Define who can read student data (get and list).
-      // A query will succeed only if every document in its potential result set is readable by the user.
       allow read: if isAdmin() || 
                    (isTeacher() && resource.data.department == getTeacherDepartment()) ||
                    (isSignedIn() && resource.data.uid == request.auth.uid);
 
-      // Only admins can create, update, or delete students.
       allow write: if isAdmin();
     }
 
@@ -61,14 +59,13 @@ service cloud.firestore {
                    (isTeacher() && resource.data.department == getTeacherDepartment()) ||
                    (isSignedIn() && resource.data.studentUid == request.auth.uid);
 
-      // Admins can create/update. Teachers can only do so for their department.
+      // Create/Update checks
       allow create: if isAdmin() || 
                        (isTeacher() && request.resource.data.department == getTeacherDepartment());
 
       allow update: if isAdmin() ||
-                       (isTeacher() && resource.data.department == getTeacherDepartment());
+                       (isTeacher() && request.resource.data.department == getTeacherDepartment());
       
-      // Only admins can delete.
       allow delete: if isAdmin();
     }
     

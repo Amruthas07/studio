@@ -78,9 +78,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const fetchUserProfile = async (user: FirebaseUser) => {
       setLoading(true);
       let profile: AuthUser | null = null;
+      const userEmail = user.email?.toLowerCase();
       
       try {
-        if (user.email === ADMIN_EMAIL) {
+        if (userEmail === ADMIN_EMAIL.toLowerCase()) {
            profile = {
               uid: user.uid,
               name: user.displayName || 'Administrator',
@@ -95,8 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               dateOfBirth: new Date(),
            };
         } else {
-            const teacherDocRef = doc(firestore, 'teachers', user.email!);
+            // Check for teacher profile first
+            const teacherDocRef = doc(firestore, 'teachers', userEmail!);
             const teacherDocSnap = await getDoc(teacherDocRef);
+            
             if (teacherDocSnap.exists()) {
                 const foundTeacher = teacherDocSnap.data() as Teacher;
                 profile = {
@@ -115,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     dateOfBirth: new Date(),
                 };
             } else {
+                // Check for student profile
                 const studentsRef = collection(firestore, 'students');
                 const q = query(studentsRef, where('uid', '==', user.uid), limit(1));
                 const studentQuerySnap = await getDocs(q);
@@ -152,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error: any) {
           if (error.code === 'permission-denied') {
               errorEmitter.emit('permission-error', new FirestorePermissionError({
-                  path: `Profile lookup for ${user.email}`, 
+                  path: `Profile lookup for ${userEmail}`, 
                   operation: 'get'
               }));
           }
@@ -168,15 +172,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [firebaseUser, isUserLoading, firestore, auth, router]);
 
   const login = useCallback(async (identifier: string, pass: string) => {
-    let emailToLogin = identifier;
+    let emailToLogin = identifier.toLowerCase();
+    
     if (!identifier.includes('@')) {
         if (!firestore) throw new Error("Database not available.");
         const studentQuery = query(collection(firestore, 'students'), where('registerNumber', '==', identifier), limit(1));
         const studentSnap = await getDocs(studentQuery);
         if (!studentSnap.empty) {
-            emailToLogin = studentSnap.docs[0].data().email;
+            emailToLogin = studentSnap.docs[0].data().email.toLowerCase();
         }
     }
+    
     try {
       await signInWithEmailAndPassword(auth, emailToLogin, pass);
     } catch (error: any) {

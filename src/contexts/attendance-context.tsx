@@ -20,8 +20,8 @@ import { useAuth } from '@/hooks/use-auth';
 interface AttendanceContextType {
   attendanceRecords: AttendanceRecord[];
   saveAttendanceRecord: (record: Omit<AttendanceRecord, 'id' | 'timestamp' | 'photoUrl' | 'department' | 'studentUid' | 'subject'>, subject: string) => void;
-  deleteAttendanceRecord: (studentRegister: string, date: string) => void;
-  getTodaysRecordForStudent: (studentRegister: string, date: string) => AttendanceRecord | undefined;
+  deleteAttendanceRecord: (studentRegister: string, date: string, subject: string) => void;
+  getTodaysRecordForStudent: (studentRegister: string, date: string, subject: string) => AttendanceRecord | undefined;
   loading: boolean;
 }
 
@@ -38,12 +38,10 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Wait for all dependencies to be ready
     if (!firestore || studentsLoading || authLoading) {
       return;
     }
     
-    // If auth is done and there's no user, clear data and stop loading.
     if (!user || !user.uid) {
         setAttendanceRecords([]);
         setLoading(false);
@@ -55,14 +53,11 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const baseCollection = collection(firestore, 'attendance');
 
     if (user.role === 'student') {
-      // Students should only query for their own records using their secure UID.
       attendanceQuery = query(baseCollection, where('studentUid', '==', user.uid));
     } else if (user.role === 'teacher' && user.department !== 'all') {
-      // Teachers query for records in their department
       attendanceQuery = query(baseCollection, where('department', '==', user.department));
     }
     else {
-      // Admins and 'all' department teachers get all records.
       attendanceQuery = baseCollection;
     }
 
@@ -84,11 +79,15 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       },
       (err) => {
-        const permissionError = new FirestorePermissionError({
-          path: (attendanceQuery as any)._query?.path?.canonicalString() || 'attendance',
-          operation: 'list'
-        });
-        errorEmitter.emit('permission-error', permissionError);
+        console.warn("Attendance listener warning:", err.message);
+        // Only emit if it's a genuine permission failure on a specific allowed path
+        if (err.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: 'attendance',
+                operation: 'list'
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
         setLoading(false);
       }
     );
@@ -105,74 +104,69 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    const student = students.find(s => s.registerNumber === record.studentRegister);
-    if (!student || !student.uid) {
-        toast({ variant: "destructive", title: "Update Failed", description: "Could not find student to link attendance." });
+    if (!subject) {
+        toast({ variant: "destructive", title: "Missing Data", description: "Subject must be selected to mark attendance." });
         return;
     }
 
-    const docId = `${record.date}_${record.studentRegister}_${subject}`;
+    const student = students.find(s => s.registerNumber === record.studentRegister);
+    if (!student || !student.uid) {
+        toast({ variant: "destructive", title: "Update Failed", description: "Could not find student profile to link attendance." });
+        return;
+    }
+
+    // Composite key ensures one record per student per date per subject
+    const docId = `${record.date}_${record.studentRegister}_${subject.replace(/\s+/g, '_')}`;
     const recordDocRef = doc(firestore, 'attendance', docId);
 
     const dataToSave: { [key: string]: any } = {
       studentRegister: record.studentRegister,
       date: record.date,
       status: record.status,
-      method: record.method,
-      markedBy: user.uid, // Save teacher UID
-      department: student.department,
-      studentUid: student.uid,
+      method: record.method || 'manual',
+      markedBy: user.uid,
+      department: student.department, // Required for security rules
+      studentUid: student.uid,       // Required for security rules
       subject: subject,
       timestamp: serverTimestamp(),
     };
     
-    // This is the critical part:
-    // If a reason is provided, we are marking as 'On Leave'.
-    // If no reason is provided (i.e., marking 'Present' or 'Absent'),
-    // we must explicitly delete the 'reason' field from the document.
     if (record.reason) {
       dataToSave.reason = record.reason;
     } else {
-      // This sentinel value ensures the 'reason' field is removed if it exists.
       dataToSave.reason = deleteField(); 
     }
 
-    const handleFirestoreError = (error: any, path: string, operation: 'write' | 'update' | 'create', data: any) => {
-      console.error(`Firestore Error (${operation}) on path '${path}':`, { error, data, userRole: user.role });
-      if (error.code === 'permission-denied') {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path, operation, requestResourceData: data }));
-      } else {
-        toast({ variant: "destructive", title: "Database Error", description: error.message });
-      }
-    };
-    
-    // Use setDoc with merge: true. This acts as an "upsert":
-    // it will create the document if it doesn't exist, or
-    // update it if it does, applying field deletions correctly.
     setDoc(recordDocRef, dataToSave, { merge: true })
-        .catch(err => handleFirestoreError(err, recordDocRef.path, 'write', dataToSave));
+        .catch(async (error: any) => {
+            if (error.code === 'permission-denied') {
+                const permissionError = new FirestorePermissionError({ 
+                    path: recordDocRef.path, 
+                    operation: 'write', 
+                    requestResourceData: dataToSave 
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            } else {
+                toast({ variant: "destructive", title: "Database Error", description: error.message });
+            }
+        });
   }, [firestore, toast, students, user]);
   
 
-  const deleteAttendanceRecord = useCallback((studentRegister: string, date: string) => {
-      if (!firestore) {
-        toast({ variant: "destructive", title: "Delete Failed", description: "Database not available." });
-        return;
-      }
-      const docId = `${date}_${studentRegister}`;
+  const deleteAttendanceRecord = useCallback((studentRegister: string, date: string, subject: string) => {
+      if (!firestore) return;
+      const docId = `${date}_${studentRegister}_${subject.replace(/\s+/g, '_')}`;
       const recordDocRef = doc(firestore, 'attendance', docId);
       deleteDoc(recordDocRef)
         .catch((error) => {
             if (error.code === 'permission-denied') {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({ path: recordDocRef.path, operation: 'delete' }));
-            } else {
-                toast({ variant: "destructive", title: "Database Error", description: error.message });
             }
         });
-  }, [firestore, toast]);
+  }, [firestore]);
 
-  const getTodaysRecordForStudent = useCallback((studentRegister: string, date: string) => {
-    return attendanceRecords.find(r => r.studentRegister === studentRegister && r.date === date);
+  const getTodaysRecordForStudent = useCallback((studentRegister: string, date: string, subject: string) => {
+    return attendanceRecords.find(r => r.studentRegister === studentRegister && r.date === date && r.subject === subject);
   }, [attendanceRecords]);
 
   const value = { attendanceRecords, saveAttendanceRecord, deleteAttendanceRecord, getTodaysRecordForStudent, loading };

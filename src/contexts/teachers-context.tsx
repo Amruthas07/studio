@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -75,25 +76,26 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         return { success: false, error: 'Database not initialized.' };
     }
 
-    const { email, password, subjects, ...details } = teacherData;
+    const emailNormalized = teacherData.email.toLowerCase();
+    const { password, subjects, ...details } = teacherData;
     let tempApp: any = null;
     
     try {
-        if (email.toLowerCase() === ADMIN_EMAIL) {
+        if (emailNormalized === ADMIN_EMAIL.toLowerCase()) {
             throw new Error("This email is reserved for the administrator.");
         }
         
         const tempAppName = `teacher-${Date.now()}`;
         tempApp = initializeApp(firebaseConfig, tempAppName);
         const tAuth = getAuth(tempApp);
-        await createUserWithEmailAndPassword(tAuth, email, password);
+        await createUserWithEmailAndPassword(tAuth, emailNormalized, password);
 
         // Firestore data save
-        const teacherDocRef = doc(firestore, 'teachers', email);
+        const teacherDocRef = doc(firestore, 'teachers', emailNormalized);
         const newTeacherData = {
             ...details,
-            email,
-            teacherId: email,
+            email: emailNormalized,
+            teacherId: emailNormalized,
             subjects: subjects || {},
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
@@ -125,7 +127,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
       return;
     }
     const { subjects, ...otherUpdates } = updates;
-    const teacherDocRef = doc(firestore, 'teachers', teacherId);
+    const teacherDocRef = doc(firestore, 'teachers', teacherId.toLowerCase());
 
     const updatesToApply: { [key: string]: any } = { ...otherUpdates, subjects, updatedAt: serverTimestamp() };
 
@@ -147,7 +149,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
       toast({ variant: 'destructive', title: 'Delete Failed', description: 'Database not available.' });
       return;
     }
-    const teacherDocRef = doc(firestore, 'teachers', teacherId);
+    const teacherDocRef = doc(firestore, 'teachers', teacherId.toLowerCase());
 
     deleteDoc(teacherDocRef)
       .then(() => {
