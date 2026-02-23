@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -54,7 +55,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
               registerNumber: docSnap.id,
               createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
               dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : new Date(data.dateOfBirth),
-              updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)),
+              updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : undefined,
             } as Student;
             setStudents([studentData]);
           } else {
@@ -83,7 +84,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                   registerNumber: doc.id,
                   createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
                   dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : new Date(data.dateOfBirth),
-                  updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)),
+                  updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : undefined,
               } as Student;
           });
           setStudents(studentData);
@@ -97,7 +98,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   }, [firestore, user, authLoading]);
 
   const addStudent = useCallback(async (
-    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt' | 'uid'>
+    studentData: Omit<Student, 'createdAt' | 'updatedAt' | 'uid'>
   ): Promise<{ success: boolean; error?: string }> => {
     if (!firestore) return { success: false, error: 'Database not ready' };
 
@@ -111,7 +112,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         tempApp = initializeApp(firebaseConfig, tempAppName);
         const tAuth = getAuth(tempApp);
         
-        // Parallel execution for maximum speed
         const [userCredential] = await Promise.all([
             createUserWithEmailAndPassword(tAuth, studentData.email, studentData.registerNumber)
         ]);
@@ -128,8 +128,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         
         return { success: true };
     } catch (error: any) {
-        console.error("Enrollment Exception:", error);
-        let message = error.message || 'Enrollment failed. Please try again.';
+        let message = error.message || 'Enrollment failed.';
         if (error.code === 'auth/email-already-in-use') message = 'This email is already in use.';
         if (error.code === 'auth/weak-password') message = 'Register number must be at least 6 characters.';
         return { success: false, error: message };
@@ -140,16 +139,13 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
   const updateStudent = useCallback(async (
     registerNumber: string,
-    studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'profilePhotoUrl' | 'photoHash' | 'updatedAt'>>
+    studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'updatedAt'>>
   ): Promise<void> => {
     if (!firestore) return;
-    
     const studentDocRef = doc(firestore, 'students', registerNumber);
-    const updates: any = { ...studentUpdate, updatedAt: serverTimestamp() };
-    
     try {
-        await updateDoc(studentDocRef, updates);
-        toast({ title: "Profile Updated", description: "Changes saved successfully." });
+        await updateDoc(studentDocRef, { ...studentUpdate, updatedAt: serverTimestamp() });
+        toast({ title: "Profile Updated", description: "Changes saved." });
     } catch (e: any) {
         toast({ variant: "destructive", title: "Update Error", description: e.message });
     }
@@ -159,46 +155,30 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     if (!firestore) return;
     deleteDoc(doc(firestore, 'students', registerNumber))
       .then(() => {
-        toast({ title: "Student Removed", description: "Record deleted successfully." });
+        toast({ title: "Student Removed", description: "Record deleted." });
       });
   }, [firestore, toast]);
 
   const promoteStudents = useCallback(async (department: string): Promise<{ success: boolean; count: number; error?: string }> => {
     if (!firestore) return { success: false, count: 0, error: 'Database not ready' };
-    
     try {
-        const studentsToPromote = department === 'all' 
-            ? students 
-            : students.filter(s => s.department === department);
-        
-        if (studentsToPromote.length === 0) {
-            return { success: true, count: 0 };
-        }
-
+        const studentsToPromote = department === 'all' ? students : students.filter(s => s.department === department);
+        if (studentsToPromote.length === 0) return { success: true, count: 0 };
         const batch = writeBatch(firestore);
         let count = 0;
-
         studentsToPromote.forEach(student => {
             if (student.semester < 8) {
                 const studentRef = doc(firestore, 'students', student.registerNumber);
-                batch.update(studentRef, { 
-                    semester: student.semester + 1,
-                    updatedAt: serverTimestamp()
-                });
+                batch.update(studentRef, { semester: student.semester + 1, updatedAt: serverTimestamp() });
                 count++;
             }
         });
-
         if (count > 0) {
             await batch.commit();
-            toast({ title: "Promotion Successful", description: `${count} students moved to the next semester.` });
-        } else {
-            toast({ title: "No Action Taken", description: "All students are already in the final semester." });
+            toast({ title: "Promotion Successful", description: `${count} students moved to next semester.` });
         }
-        
         return { success: true, count };
     } catch (error: any) {
-        console.error("Promotion failed:", error);
         return { success: false, count: 0, error: error.message };
     }
   }, [firestore, students, toast]);

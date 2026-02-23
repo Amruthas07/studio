@@ -33,11 +33,6 @@
           "type": "number",
           "description": "The current semester of the student (e.g., 1, 2, ... 8)."
         },
-        "photoURL": {
-          "type": "string",
-          "description": "URL of the student's photo in Firebase Storage.",
-          "format": "uri"
-        },
         "email": {
           "type": "string",
           "description": "The student's email address.",
@@ -47,10 +42,6 @@
           "type": "string",
           "description": "The student's contact phone number."
         },
-        "faceId": {
-          "type": "string",
-          "description": "Optional ID for matching with OpenCV backend.  References the embeddings stored elsewhere."
-        },
         "uid": {
           "type": "string",
           "description": "The Firebase Authentication user ID."
@@ -58,6 +49,10 @@
         "createdAt": {
           "type": "string",
           "description": "Timestamp of when the student record was created.",
+          "format": "date-time"
+        },
+        "dateOfBirth": {
+          "type": "string",
           "format": "date-time"
         }
       },
@@ -68,10 +63,10 @@
         "motherName",
         "department",
         "semester",
-        "photoURL",
         "email",
         "contact",
-        "createdAt"
+        "createdAt",
+        "dateOfBirth"
       ]
     },
     "Attendance": {
@@ -82,24 +77,23 @@
       "properties": {
         "studentRegister": {
           "type": "string",
-          "description": "Reference to Student. (Relationship: Student 1:N Attendance)"
+          "description": "Reference to Student."
         },
         "date": {
           "type": "string",
-          "description": "Date of the attendance record (YYYY-MM-DD).",
-          "format": "string"
+          "description": "Date of the attendance record (YYYY-MM-DD)."
         },
         "status": {
           "type": "string",
-          "description": "Attendance status (present, absent, late, manual)."
+          "description": "Attendance status (present, absent)."
         },
         "markedBy": {
           "type": "string",
-          "description": "Admin email or camera that marked the attendance."
+          "description": "Admin email or UID that marked the attendance."
         },
         "method": {
           "type": "string",
-          "description": "Method used to mark attendance (face-scan, manual, live-photo)."
+          "description": "Method used (manual)."
         },
         "subject": {
             "type": "string",
@@ -109,6 +103,15 @@
           "type": "string",
           "description": "Timestamp of when the attendance was recorded.",
           "format": "date-time"
+        },
+        "department": {
+          "type": "string"
+        },
+        "studentUid": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
         }
       },
       "required": [
@@ -117,7 +120,9 @@
         "status",
         "markedBy",
         "method",
-        "timestamp"
+        "timestamp",
+        "department",
+        "studentUid"
       ]
     },
     "Teacher": {
@@ -141,10 +146,6 @@
         "position": {
           "type": "string"
         },
-        "profilePhotoUrl": {
-          "type": "string",
-          "format": "uri"
-        },
         "createdAt": {
           "type": "string",
           "format": "date-time"
@@ -155,13 +156,7 @@
         },
         "subjects": {
           "type": "object",
-          "description": "Mapping of semester number to a list of assigned subjects.",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
+          "description": "Mapping of semester number to a list of assigned subjects."
         }
       },
       "required": [
@@ -178,8 +173,7 @@
       "type": "object",
       "properties": {
         "isAdmin": {
-          "type": "boolean",
-          "description": "Should always be true."
+          "type": "boolean"
         }
       },
       "required": [
@@ -189,8 +183,7 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
@@ -199,67 +192,34 @@
         "path": "/students/{registerNumber}",
         "definition": {
           "entityName": "Student",
-          "schema": {
-            "$ref": "#/backend/entities/Student"
-          },
-          "description": "Stores student profile information. Document ID is the student's register number.  No denormalized authorization fields are needed as security rules will leverage the `registerNumber`.",
-          "params": [
-            {
-              "name": "registerNumber",
-              "description": "The unique register number of the student. Serves as the document ID."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/Student" },
+          "description": "Stores student profile information."
         }
       },
       {
         "path": "/attendance/{attendanceId}",
         "definition": {
           "entityName": "Attendance",
-          "schema": {
-            "$ref": "#/backend/entities/Attendance"
-          },
-          "description": "Stores attendance records. Includes 'studentRegister' for querying attendance by student. The document ID is auto-generated.",
-          "params": [
-            {
-              "name": "attendanceId",
-              "description": "The auto-generated unique ID for the attendance document."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/Attendance" },
+          "description": "Stores attendance records."
         }
       },
       {
         "path": "/roles_admin/{uid}",
         "definition": {
           "entityName": "AdminRole",
-          "schema": {
-            "$ref": "#/backend/entities/AdminRole"
-          },
-          "description": "Indicates the user with {uid} has admin role.  Authorization rules check for the existence of this document.",
-          "params": [
-            {
-              "name": "uid",
-              "description": "The Firebase Auth UID of the admin user."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/AdminRole" },
+          "description": "Indicates admin role."
         }
       },
       {
         "path": "/teachers/{email}",
         "definition": {
           "entityName": "Teacher",
-          "schema": {
-            "$ref": "#/backend/entities/Teacher"
-          },
-          "description": "Stores teacher profile information. Document ID is the teacher's email.",
-          "params": [
-            {
-              "name": "email",
-              "description": "The unique email of the teacher. Serves as the document ID."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/Teacher" },
+          "description": "Stores teacher profile information."
         }
       }
-    ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, in accordance with the defined principles.  Authorization Independence is achieved through denormalization. For example, the `attendance` collection denormalizes the `studentRegister` field, ensuring that attendance records can be queried and secured independently of the student document.  Structural Segregation is applied by using separate collections for `students` and `attendance`, each with specific security requirements. Access Modeling utilizes path-based ownership for student data (`/students/{registerNumber}`), and a top-level collection for `attendance` to enable efficient queries across all students. This structure supports secure `list` operations by ensuring that only authorized users can access the data within each collection, adhering to QAPs. Invariants like ownership and timestamps are enforced through security rules."
+    ]
   }
 }
