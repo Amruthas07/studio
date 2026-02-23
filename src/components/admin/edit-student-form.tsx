@@ -5,8 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2, Camera, User } from "lucide-react"
-import Image from 'next/image';
+import { CalendarIcon, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -33,7 +32,6 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useStudents } from "@/hooks/use-students"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -46,8 +44,6 @@ const formSchema = z.object({
   dateOfBirth: z.date({
     required_error: "A date of birth is required.",
   }),
-  photo: z.instanceof(File).optional()
-    .refine(file => !file || file.size < 5 * 1024 * 1024, "Photo must be less than 5MB."),
 })
 
 type EditStudentFormProps = {
@@ -59,8 +55,6 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { updateStudent } = useStudents();
-  const [previewUrl, setPreviewUrl] = React.useState<string | null>(student.profilePhotoUrl);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -78,21 +72,8 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    
-    const { dismiss } = toast({
-        title: "Updating Student",
-        description: values.photo ? "Optimizing new photo..." : "Saving changes...",
-    });
-
     try {
-        const { photo, ...studentDetails } = values;
-
-        await updateStudent(student.registerNumber, {
-            ...studentDetails,
-            dateOfBirth: values.dateOfBirth,
-            newPhotoFile: photo,
-        });
-        
+        await updateStudent(student.registerNumber, values);
         onStudentUpdated();
     } catch (e: any) {
         console.error(e);
@@ -103,39 +84,14 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
         });
     } finally {
         setIsSubmitting(false);
-        dismiss();
-    }
-  }
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      form.setValue('photo', file, { shouldValidate: true });
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
     }
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[70vh]">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[65vh]">
         <ScrollArea className="flex-1 pr-6">
-          <div className="space-y-6">
-            <div className="flex items-center gap-6 py-4">
-                <Avatar className="h-20 w-20 border">
-                    <AvatarImage src={previewUrl || ""} className="object-cover" />
-                    <AvatarFallback><User className="h-8 w-8 text-muted-foreground" /></AvatarFallback>
-                </Avatar>
-                <div className="space-y-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                        <Camera className="mr-2 h-4 w-4" />
-                        Change Photo
-                    </Button>
-                    <p className="text-[10px] text-muted-foreground">Upload to update the profile picture.</p>
-                </div>
-                <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} />
-            </div>
-
+          <div className="space-y-6 pt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <FormField
                   control={form.control}
@@ -144,7 +100,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                       <FormItem>
                       <FormLabel>Student Name</FormLabel>
                       <FormControl>
-                          <Input placeholder="John Doe" {...field} />
+                          <Input placeholder="John Doe" {...field} disabled={isSubmitting} />
                       </FormControl>
                       <FormMessage />
                       </FormItem>
@@ -165,7 +121,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                     <FormItem>
                       <FormLabel>Father's Name</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} disabled={isSubmitting} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -178,7 +134,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                     <FormItem>
                       <FormLabel>Mother's Name</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} disabled={isSubmitting} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -190,7 +146,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Department</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a department" />
@@ -215,7 +171,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Current Semester</FormLabel>
-                      <Select onValueChange={(v) => field.onChange(Number(v))} defaultValue={String(field.value)}>
+                      <Select onValueChange={(v) => field.onChange(Number(v))} defaultValue={String(field.value)} disabled={isSubmitting}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a semester" />
@@ -238,7 +194,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="student@example.com" {...field} />
+                        <Input type="email" placeholder="student@example.com" {...field} disabled={isSubmitting} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -251,7 +207,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                     <FormItem>
                       <FormLabel>Contact Number</FormLabel>
                       <FormControl>
-                        <Input type="tel" {...field} />
+                        <Input type="tel" {...field} disabled={isSubmitting} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -268,6 +224,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                             <FormControl>
                                 <Button
                                 variant={"outline"}
+                                disabled={isSubmitting}
                                 className={cn(
                                     "w-full pl-3 text-left font-normal",
                                     !field.value && "text-muted-foreground"

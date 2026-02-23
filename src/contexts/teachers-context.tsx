@@ -1,9 +1,8 @@
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, getDocs, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { useFirestore, useFirebaseApp } from '@/firebase/provider';
+import { collection, onSnapshot, doc, setDoc, serverTimestamp, query, where, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
@@ -12,7 +11,6 @@ import { firebaseConfig } from '@/firebase/config';
 import type { Teacher, TeachersContextType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { resizeAndCompressImage } from '@/lib/utils';
 
 const ADMIN_EMAIL = "apdd46@gmail.com";
 
@@ -22,7 +20,6 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const firestore = useFirestore();
-  const firebaseApp = useFirebaseApp();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
 
@@ -72,10 +69,9 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
   }, [firestore, user, authLoading]);
 
   const addTeacher = useCallback(async (
-    teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string },
-    photoFile?: File
+    teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }
   ): Promise<{ success: boolean; error?: string }> => {
-    if (!firestore || !firebaseApp) {
+    if (!firestore) {
         return { success: false, error: 'Database not initialized.' };
     }
 
@@ -87,37 +83,18 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             throw new Error("This email is reserved for the administrator.");
         }
         
-        // ULTRA-FAST PIPELINE: Run Auth and Image Processing in parallel
-        const [processedImage, userCredential] = await Promise.all([
-            photoFile ? resizeAndCompressImage(photoFile, 300, 0.6) : Promise.resolve(null),
-            (async () => {
-                const tempAppName = `teacher-${Date.now()}`;
-                const tApp = initializeApp(firebaseConfig, tempAppName);
-                const tAuth = getAuth(tApp);
-                const cred = await createUserWithEmailAndPassword(tAuth, email, password);
-                tempApp = tApp;
-                return cred;
-            })()
-        ]);
+        const tempAppName = `teacher-${Date.now()}`;
+        tempApp = initializeApp(firebaseConfig, tempAppName);
+        const tAuth = getAuth(tempApp);
+        await createUserWithEmailAndPassword(tAuth, email, password);
 
-        const uid = userCredential.user.uid;
-        
-        // Step 2: Storage upload
-        let photoUrl = '';
-        if (processedImage) {
-            const storage = getStorage(firebaseApp);
-            const photoRef = ref(storage, `teachers/${email}/profile.jpg`);
-            await uploadBytes(photoRef, processedImage);
-            photoUrl = await getDownloadURL(photoRef);
-        }
-
-        // Step 3: Firestore data save
+        // Firestore data save
         const teacherDocRef = doc(firestore, 'teachers', email);
         const newTeacherData = {
             ...details,
             email,
             teacherId: email,
-            profilePhotoUrl: photoUrl,
+            profilePhotoUrl: '', // No photo feature
             subjects: subjects || {},
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
@@ -138,31 +115,22 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             deleteApp(tempApp).catch(() => {});
         }
     }
-  }, [firestore, firebaseApp]);
+  }, [firestore]);
   
   const updateTeacher = useCallback(async (
     teacherId: string, 
-    updates: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>> & { newPhotoFile?: File }
+    updates: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>
     ): Promise<void> => {
-    if (!firestore || !firebaseApp) {
+    if (!firestore) {
       toast({ variant: 'destructive', title: 'Update Failed', description: 'Database not available.' });
       return;
     }
-    const { newPhotoFile, subjects, ...otherUpdates } = updates;
+    const { subjects, ...otherUpdates } = updates;
     const teacherDocRef = doc(firestore, 'teachers', teacherId);
 
     const updatesToApply: { [key: string]: any } = { ...otherUpdates, subjects, updatedAt: serverTimestamp() };
 
     try {
-        if (newPhotoFile) {
-            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 300, 0.6);
-            const storage = getStorage(firebaseApp);
-            const photoRef = ref(storage, `teachers/${teacherId}/profile.jpg`);
-            await uploadBytes(photoRef, processedPhoto);
-            const downloadURL = await getDownloadURL(photoRef);
-            updatesToApply.profilePhotoUrl = downloadURL;
-        }
-        
         await updateDoc(teacherDocRef, updatesToApply);
         toast({ title: 'Teacher Updated', description: `Details saved successfully.` });
     } catch (error: any) {
@@ -173,10 +141,10 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
         }
     }
-  }, [firestore, firebaseApp, toast]);
+  }, [firestore, toast]);
   
   const deleteTeacher = useCallback((teacherId: string) => {
-    if (!firestore || !firebaseApp) {
+    if (!firestore) {
       toast({ variant: 'destructive', title: 'Delete Failed', description: 'Database not available.' });
       return;
     }
@@ -185,14 +153,6 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     deleteDoc(teacherDocRef)
       .then(() => {
         toast({ title: 'Teacher Deleted', description: `Successfully removed teacher ${teacherId}.` });
-        
-        const storage = getStorage(firebaseApp);
-        const photoRef = ref(storage, `teachers/${teacherId}/profile.jpg`);
-        deleteObject(photoRef).catch(storageError => {
-            if (storageError.code !== 'storage/object-not-found') {
-                console.error("Failed to delete teacher photo from storage:", storageError);
-            }
-        });
       })
       .catch((error: any) => {
         if (error.code === 'permission-denied') {
@@ -201,7 +161,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
              toast({ variant: 'destructive', title: 'Delete Failed', description: error.message });
         }
     });
-  }, [firestore, firebaseApp, toast]);
+  }, [firestore, toast]);
 
   const value = { teachers, loading, addTeacher, updateTeacher, deleteTeacher };
 

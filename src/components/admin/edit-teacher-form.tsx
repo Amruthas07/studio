@@ -4,8 +4,7 @@ import React, { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Loader2, Camera, User } from "lucide-react"
-import Image from 'next/image';
+import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -32,14 +31,11 @@ import { Separator } from "../ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   position: z.enum(["Professor", "Associate Professor", "Assistant Professor", "HOD"]),
-  photo: z.instanceof(File).optional()
-    .refine(file => !file || file.size < 10 * 1024 * 1024, "Photo must be less than 10MB."),
   subjects: z.object({
     '1': z.array(z.string()).optional(),
     '2': z.array(z.string()).optional(),
@@ -63,8 +59,6 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
   const { updateTeacher } = useTeachers();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [previewUrl, setPreviewUrl] = React.useState<string | null>(teacher.profilePhotoUrl);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -79,7 +73,6 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
   const department = form.watch('department');
 
   useEffect(() => {
-    // Reset subject selections if department changes from original
     if (department !== teacher.department) {
       form.resetField("subjects");
     }
@@ -88,11 +81,7 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-        const { photo, ...teacherDetails } = values;
-        await updateTeacher(teacher.teacherId, {
-            ...teacherDetails,
-            newPhotoFile: photo,
-        });
+        await updateTeacher(teacher.teacherId, values);
         onTeacherUpdated();
     } catch (error: any) {
         console.error(error);
@@ -106,35 +95,11 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
     }
   }
 
-   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      form.setValue('photo', file, { shouldValidate: true });
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
-    }
-  }
-  
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[70vh]">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[65vh]">
         <ScrollArea className="flex-1 pr-6">
-          <div className="space-y-6">
-            <div className="flex items-center gap-6 py-4">
-                <Avatar className="h-20 w-20 border">
-                    <AvatarImage src={previewUrl || ""} className="object-cover" />
-                    <AvatarFallback><User className="h-8 w-8 text-muted-foreground" /></AvatarFallback>
-                </Avatar>
-                <div className="space-y-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                        <Camera className="mr-2 h-4 w-4" />
-                        Change Photo
-                    </Button>
-                    <p className="text-[10px] text-muted-foreground">Standard avatar change.</p>
-                </div>
-                <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} />
-            </div>
-
+          <div className="space-y-6 pt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
@@ -143,7 +108,7 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                         <FormItem>
                         <FormLabel>Teacher Name</FormLabel>
                         <FormControl>
-                            <Input placeholder="Jane Smith" {...field} />
+                            <Input placeholder="Jane Smith" {...field} disabled={isSubmitting} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -162,7 +127,7 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Department</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select a department" />
@@ -188,7 +153,7 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Position</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Select a position" />
@@ -235,6 +200,7 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
                                                         <FormItem key={subject} className="flex flex-row items-center space-x-2 space-y-0">
                                                             <FormControl>
                                                                 <Checkbox
+                                                                    disabled={isSubmitting}
                                                                     checked={field.value?.includes(subject)}
                                                                     onCheckedChange={(checked) => {
                                                                         const currentSubjects = field.value || [];

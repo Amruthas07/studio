@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2, Camera, User, Info } from "lucide-react"
+import { CalendarIcon, Loader2, Info } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -31,9 +31,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-// MIN 6 chars for registerNumber because Firebase Auth requires at least 6 characters for passwords
 const formSchema = z.object({
   name: z.string().min(2, "Name required."),
   registerNumber: z.string().min(6, "Min. 6 chars required (used as password)."),
@@ -44,14 +42,11 @@ const formSchema = z.object({
   fatherName: z.string().min(2, "Required."),
   motherName: z.string().min(2, "Required."),
   dateOfBirth: z.date({ required_error: "Required." }),
-  photo: z.instanceof(File, { message: "Photo required." }),
 })
 
 export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void }) {
   const { toast } = useToast()
   const { addStudent } = useStudents();
-  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -71,14 +66,12 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
     setIsSubmitting(true);
     
     try {
-        const { photo, ...details } = values;
-        const result = await addStudent(details, photo);
+        const result = await addStudent(values);
         
         if (result.success) {
             toast({ title: "Enrollment Success", description: `${values.name} has been registered.` });
             onStudentAdded();
             form.reset();
-            setPreviewUrl(null);
         } else {
             toast({ variant: "destructive", title: "Enrollment Failed", description: result.error });
         }
@@ -90,46 +83,15 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
           description: e.message || "An unexpected error occurred." 
         });
     } finally {
-        // ALWAYS reset state to prevent button hang
         setIsSubmitting(false);
-    }
-  }
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-          toast({ variant: 'destructive', title: 'File Too Large', description: 'Maximum 10MB allowed.' });
-          return;
-      }
-      form.setValue('photo', file, { shouldValidate: true });
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
     }
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[75vh]">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[65vh]">
         <ScrollArea className="flex-1 pr-6">
-          <div className="space-y-6">
-            <div className="flex items-center gap-6 py-4">
-                <Avatar className="h-20 w-20 border shadow-sm">
-                    <AvatarImage src={previewUrl || ""} className="object-cover" />
-                    <AvatarFallback className="bg-muted">
-                        <User className="h-8 w-8 text-muted-foreground" />
-                    </AvatarFallback>
-                </Avatar>
-                <div className="space-y-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isSubmitting}>
-                        <Camera className="mr-2 h-4 w-4" />
-                        Select Photo
-                    </Button>
-                    <p className="text-[10px] text-muted-foreground">Standard 400px profile capture.</p>
-                </div>
-                <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} disabled={isSubmitting} />
-            </div>
-
+          <div className="space-y-6 pt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <FormField control={form.control} name="name" render={({ field }) => (
                     <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="e.g. John Doe" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>

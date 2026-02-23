@@ -4,8 +4,7 @@ import React, { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Loader2, Camera, User } from "lucide-react"
-import Image from 'next/image'
+import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -30,7 +29,6 @@ import { getSubjects, type Semester } from "@/lib/subjects"
 import { Separator } from "../ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -38,7 +36,6 @@ const formSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   position: z.enum(["Professor", "Associate Professor", "Assistant Professor", "HOD"]),
-  photo: z.instanceof(File, { message: "A profile photo is required." }),
   subjects: z.object({
       '1': z.array(z.string()).optional(),
       '2': z.array(z.string()).optional(),
@@ -61,8 +58,6 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const { toast } = useToast()
   const { addTeacher } = useTeachers();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -77,7 +72,6 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const department = form.watch('department');
 
   useEffect(() => {
-    // Reset subject selections when department changes
     form.resetField("subjects");
   }, [department, form]);
 
@@ -85,14 +79,12 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     setIsSubmitting(true);
     
     try {
-        const { photo, ...teacherDetails } = values;
-        const result = await addTeacher(teacherDetails, photo);
+        const result = await addTeacher(values);
         
         if (result.success) {
             toast({ title: 'Teacher Registered', description: `${values.name} has been added to the system.` });
             onTeacherAdded();
             form.reset();
-            setPreviewUrl(null);
         } else {
             toast({
                 variant: "destructive",
@@ -112,38 +104,11 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     }
   }
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-          toast({ variant: 'destructive', title: 'File Too Large', description: 'Maximum 5MB allowed.' });
-          return;
-      }
-      form.setValue('photo', file, { shouldValidate: true });
-      setPreviewUrl(URL.createObjectURL(file));
-    }
-  }
-  
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[70vh]">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[65vh]">
         <ScrollArea className="flex-1 pr-6">
-          <div className="space-y-6">
-            <div className="flex items-center gap-6 py-4">
-                <Avatar className="h-20 w-20 border">
-                    <AvatarImage src={previewUrl || ""} className="object-cover" />
-                    <AvatarFallback><User className="h-8 w-8 text-muted-foreground" /></AvatarFallback>
-                </Avatar>
-                <div className="space-y-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                        <Camera className="mr-2 h-4 w-4" />
-                        Select Photo
-                    </Button>
-                    <p className="text-[10px] text-muted-foreground">Standard profile photo upload.</p>
-                </div>
-                <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} />
-            </div>
-
+          <div className="space-y-6 pt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
@@ -152,7 +117,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         <FormItem>
                         <FormLabel>Teacher Name</FormLabel>
                         <FormControl>
-                            <Input placeholder="Jane Smith" {...field} />
+                            <Input placeholder="Jane Smith" {...field} disabled={isSubmitting} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -165,7 +130,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                            <Input type="email" placeholder="teacher@example.com" {...field} />
+                            <Input type="email" placeholder="teacher@example.com" {...field} disabled={isSubmitting} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -178,7 +143,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         <FormItem>
                         <FormLabel>Initial Password</FormLabel>
                         <FormControl>
-                            <Input type="password" placeholder="Min. 6 characters" {...field} />
+                            <Input type="password" placeholder="Min. 6 characters" {...field} disabled={isSubmitting} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -190,7 +155,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Department</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select department" />
@@ -215,7 +180,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                     render={({ field }) => (
                         <FormItem className="md:col-span-2">
                         <FormLabel>Position</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select position" />
@@ -262,6 +227,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                                                         <FormItem key={subject} className="flex flex-row items-center space-x-2 space-y-0">
                                                             <FormControl>
                                                                 <Checkbox
+                                                                    disabled={isSubmitting}
                                                                     checked={field.value?.includes(subject)}
                                                                     onCheckedChange={(checked) => {
                                                                         const currentSubjects = field.value || [];
