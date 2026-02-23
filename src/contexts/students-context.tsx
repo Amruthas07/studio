@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, {
@@ -8,7 +7,7 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, getDocs, updateDoc, serverTimestamp, getDoc, limit } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, updateDoc, serverTimestamp, limit } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'firebase/storage';
 import { useFirestore, useFirebaseApp } from '@/firebase/provider';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -104,7 +103,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         },
         (err) => {
            const permissionError = new FirestorePermissionError({
-            path: (studentsQuery as any)._query?.path?.canonicalString() || 'students',
+            path: 'students',
             operation: 'list'
           });
           errorEmitter.emit('permission-error', permissionError);
@@ -128,23 +127,21 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const details = studentData;
 
     try {
-        // PARALLEL PIPELINE: Optimize image and create Auth account simultaneously
-        const optimizationPromise = photoFile 
-            ? resizeAndCompressImage(photoFile, 400, 0.7)
-            : Promise.resolve(null);
+        // Step 1: Sequential Flow Reliability
+        // First, optimize the image locally
+        const optimizedImage = photoFile 
+            ? await resizeAndCompressImage(photoFile, 400, 0.7)
+            : null;
 
+        // Step 2: Create Auth account
         const tempAppName = `enroll-${Date.now()}`;
         tempApp = initializeApp(firebaseConfig, tempAppName);
         const tAuth = getAuth(tempApp);
         
-        const [userCredential, optimizedImage] = await Promise.all([
-            createUserWithEmailAndPassword(tAuth, details.email, details.registerNumber),
-            optimizationPromise
-        ]);
-
+        const userCredential = await createUserWithEmailAndPassword(tAuth, details.email, details.registerNumber);
         const uid = userCredential.user.uid;
 
-        // Step 4: Upload to Storage (Sequential after optimization is ready)
+        // Step 3: Upload to Storage
         let photoUrl = '';
         if (optimizedImage) {
             const storage = getStorage(firebaseApp);
@@ -153,7 +150,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             photoUrl = await getDownloadURL(photoRef);
         }
 
-        // Step 5: Save to Firestore
+        // Step 4: Save to Firestore
         const studentDocRef = doc(firestore, 'students', details.registerNumber);
         const newStudentData = {
             ...details,
@@ -202,7 +199,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         }
 
         await updateDoc(studentDocRef, updatesToApply);
-        toast({ title: "Student Updated", description: `Details saved.` });
+        toast({ title: "Student Updated", description: `Details saved successfully.` });
     } catch (error: any) {
         if (error.code === 'permission-denied') {
             errorEmitter.emit('permission-error', new FirestorePermissionError({ path: studentDocRef.path, operation: 'update', requestResourceData: updatesToApply }));
@@ -222,7 +219,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     
     deleteDoc(studentDocRef)
       .then(() => {
-        toast({ title: "Deleted", description: `${studentToDelete.name} removed.` });
+        toast({ title: "Deleted", description: `${studentToDelete.name} removed successfully.` });
         if (studentToDelete.profilePhotoUrl) {
             const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
             deleteObject(photoRef).catch(() => {});

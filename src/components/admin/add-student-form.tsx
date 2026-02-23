@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from "react"
@@ -78,19 +77,19 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     
     const { update, dismiss } = toast({
         title: "Enrolling Student",
-        description: "Step 1: Optimizing profile photo...",
+        description: "Starting secure enrollment process...",
     });
 
     try {
         const { photo, ...details } = values;
-        update({ title: "Enrolling Student", description: "Step 2: Creating secure account..." });
+        update({ title: "Enrolling Student", description: "Step 1: Optimizing photo & creating account..." });
         
         const result = await addStudent(details, photo);
         
         if (result.success) {
             toast({
                 title: "Enrollment Successful",
-                description: `${values.name} has been added to the system.`,
+                description: `${values.name} has been successfully added.`,
             });
             onStudentAdded();
             form.reset();
@@ -173,8 +172,8 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                     )}
                 />
                 <div className="text-center">
-                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Recommended: 400x400px Square</p>
-                    <p className="text-[10px] text-muted-foreground italic">Photos are optimized locally for fast enrollment.</p>
+                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Ideal: Square, 400x400px</p>
+                    <p className="text-[10px] text-muted-foreground italic leading-tight">Photos are auto-compressed for lightning speed.</p>
                 </div>
             </div>
 
@@ -200,7 +199,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                     <FormItem>
                       <FormLabel>Register Number</FormLabel>
                       <FormControl>
-                        <Input placeholder="Unique ID (e.g. 324CS21001)" {...field} />
+                        <Input placeholder="e.g. 324CS21001" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -243,7 +242,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a department" />
+                          <SelectValue placeholder="Select department" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -268,7 +267,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                     <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a semester" />
+                          <SelectValue placeholder="Select semester" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

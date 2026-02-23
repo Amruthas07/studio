@@ -1,4 +1,3 @@
-
 import {
   Table,
   TableBody,
@@ -13,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import type { Student } from "@/lib/types";
 import { Button } from "../ui/button";
-import { Pencil, Trash, Eye, MessageCircle } from "lucide-react";
+import { Pencil, Trash, Eye, Mail, Hash } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 interface StudentsTableProps {
@@ -47,12 +46,12 @@ export function StudentsTable({ students, title, description, onViewStudent, onE
             <CardContent className="p-0">
                 <TooltipProvider>
                  <Table>
-                    {students.length === 0 && <TableCaption className="py-16 text-muted-foreground italic">No students found in this category.</TableCaption>}
+                    {students.length === 0 && <TableCaption className="py-16 text-muted-foreground italic">No student records found.</TableCaption>}
                     <TableHeader className="bg-muted/30">
                         <TableRow className="hover:bg-transparent">
-                            <TableHead className="w-[100px] pl-6">Profile</TableHead>
-                            <TableHead>Student Info</TableHead>
-                            <TableHead className="hidden md:table-cell">Register No.</TableHead>
+                            <TableHead className="w-[100px] pl-6">Identity</TableHead>
+                            <TableHead>Student Details</TableHead>
+                            <TableHead className="hidden md:table-cell text-center">Department</TableHead>
                             <TableHead className="hidden md:table-cell text-center">Semester</TableHead>
                             <TableHead className="text-right pr-6">Actions</TableHead>
                         </TableRow>
@@ -70,17 +69,22 @@ export function StudentsTable({ students, title, description, onViewStudent, onE
                                 <div className="grid gap-1">
                                     <div className="font-bold text-lg text-foreground group-hover:text-primary transition-colors leading-tight">{student.name}</div>
                                     <div className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
-                                        <MessageCircle className="h-3 w-3" />
+                                        <Mail className="h-3 w-3" />
                                         {student.email}
                                     </div>
-                                    <div className="md:hidden mt-1.5 flex flex-wrap gap-2">
-                                        <Badge variant="outline" className="text-[10px] px-2 py-0 font-code">{student.registerNumber}</Badge>
-                                        <Badge variant="secondary" className="text-[10px] px-2 py-0 uppercase font-bold tracking-tighter">SEM {student.semester}</Badge>
+                                    <div className="flex flex-wrap gap-2 mt-1.5">
+                                        <Badge variant="outline" className="text-[10px] px-2 py-0 font-code font-bold">
+                                            <Hash className="h-2 w-2 mr-1" />
+                                            {student.registerNumber}
+                                        </Badge>
+                                        <Badge variant="secondary" className="md:hidden text-[10px] px-2 py-0 uppercase font-bold tracking-tighter">SEM {student.semester}</Badge>
                                     </div>
                                 </div>
                             </TableCell>
-                            <TableCell className="hidden md:table-cell font-code text-muted-foreground font-semibold">
-                                {student.registerNumber}
+                            <TableCell className="hidden md:table-cell text-center">
+                                <Badge variant="outline" className="uppercase font-bold">
+                                    {student.department}
+                                </Badge>
                             </TableCell>
                             <TableCell className="hidden md:table-cell text-center">
                                 <Badge variant="secondary" className="font-bold px-3">
@@ -93,7 +97,7 @@ export function StudentsTable({ students, title, description, onViewStudent, onE
                                         <TooltipTrigger asChild>
                                              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-primary/10 hover:text-primary transition-all" onClick={() => onViewStudent(student)}>
                                                 <Eye className="h-5 w-5" />
-                                                <span className="sr-only">View</span>
+                                                <span className="sr-only">View Profile</span>
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent><p>View Profile</p></TooltipContent>
@@ -103,7 +107,7 @@ export function StudentsTable({ students, title, description, onViewStudent, onE
                                         <TooltipTrigger asChild>
                                              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-all" onClick={() => onEditStudent(student)}>
                                                 <Pencil className="h-5 w-5" />
-                                                <span className="sr-only">Edit</span>
+                                                <span className="sr-only">Edit Details</span>
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent><p>Edit Student</p></TooltipContent>
@@ -114,10 +118,10 @@ export function StudentsTable({ students, title, description, onViewStudent, onE
                                         <TooltipTrigger asChild>
                                              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-destructive/10 hover:text-destructive transition-all" onClick={() => onDeleteStudent(student)}>
                                                 <Trash className="h-5 w-5" />
-                                                <span className="sr-only">Delete</span>
+                                                <span className="sr-only">Remove Student</span>
                                             </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent><p>Delete Student</p></TooltipContent>
+                                        <TooltipContent><p>Delete Record</p></TooltipContent>
                                     </Tooltip>
                                     )}
                                </div>

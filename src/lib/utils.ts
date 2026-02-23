@@ -16,7 +16,7 @@ export function fileToBase64(file: File): Promise<string> {
 
 /**
  * Resizes and compresses an image file on the client-side.
- * Standard: 400x400px at 70% quality for optimal speed/quality balance.
+ * Professional Standard: 400x400px at 70% quality for optimal speed/quality balance.
  */
 export function resizeAndCompressImage(file: File, maxSize: number = 400, quality: number = 0.7): Promise<File> {
   return new Promise((resolve, reject) => {
@@ -27,7 +27,7 @@ export function resizeAndCompressImage(file: File, maxSize: number = 400, qualit
       URL.revokeObjectURL(objectUrl);
       const canvas = document.createElement('canvas');
       
-      // Force square aspect ratio for avatars
+      // Force square aspect ratio for avatars (WhatsApp style)
       canvas.width = maxSize;
       canvas.height = maxSize;
       
@@ -58,7 +58,7 @@ export function resizeAndCompressImage(file: File, maxSize: number = 400, qualit
     
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error('Failed to load image.'));
+      reject(new Error('Failed to load image. Check file format.'));
     };
     
     img.src = objectUrl;

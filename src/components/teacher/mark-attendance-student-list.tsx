@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -89,16 +88,16 @@ const LeaveReasonButton = ({ student, onMarkAttendance, subject, disabled }: { s
       </AlertDialogTrigger>
       <AlertDialogContent>
           <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-headline">Leave Reason for {student.name}</AlertDialogTitle>
+              <AlertDialogTitle className="text-xl font-headline">Leave Reason: {student.name}</AlertDialogTitle>
               <AlertDialogDescription>
-                  Providing a reason marks the student as "On Leave". This counts as present for percentage calculations.
+                  Marking a student as "On Leave" counts them as present for overall percentage calculations.
               </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="grid gap-3 py-2">
               <Label htmlFor={`reason-${student.registerNumber}`} className="font-bold">Reason for Absence</Label>
               <Textarea 
                   id={`reason-${student.registerNumber}`}
-                  placeholder="e.g., Medical emergency, college event, etc." 
+                  placeholder="e.g., Medical emergency, personal emergency..." 
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   className="min-h-[100px]"
@@ -171,7 +170,7 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
                 <p className="text-xs font-code text-muted-foreground uppercase tracking-widest font-bold opacity-70 mb-2">{student.registerNumber}</p>
                 <div className="flex flex-col gap-1.5 max-w-[120px]">
                     <div className="flex items-center justify-between text-[10px] font-black text-muted-foreground uppercase">
-                        <span>Rate</span>
+                        <span>Attendance Rate</span>
                         <span className={cn("px-1 rounded", overallAttendancePercentage < 75 ? "text-red-500" : "text-green-600")}>{overallAttendancePercentage}%</span>
                     </div>
                     <Progress value={overallAttendancePercentage} className="h-2 rounded-full bg-muted shadow-inner" indicatorClassName={getIndicatorColor(overallAttendancePercentage)} />

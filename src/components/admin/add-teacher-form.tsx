@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useEffect } from "react"
@@ -84,7 +83,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     
-    const { update } = toast({
+    const { update, dismiss } = toast({
         title: "Registering Teacher",
         description: "Optimizing profile photo...",
     });
@@ -92,11 +91,11 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     const { photo, ...teacherDetails } = values;
 
     try {
-        update({ title: "Registering Teacher", description: "Creating teacher account..." });
+        update({ title: "Registering Teacher", description: "Step 1: Creating secure account & uploading photo..." });
         const result = await addTeacher(teacherDetails, photo);
         
         if (result.success) {
-            toast({ title: 'Teacher Registered', description: `${values.name} can now log in.` });
+            toast({ title: 'Teacher Registered', description: `${values.name} has been added to the system.` });
             onTeacherAdded();
             form.reset();
             setPreviewUrl(null);
@@ -116,6 +115,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
         });
     } finally {
         setIsSubmitting(false);
+        dismiss();
     }
   }
 
@@ -177,8 +177,8 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                     )}
                 />
                 <div className="text-center">
-                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Photo Size: Square, 200x200px or larger</p>
-                    <p className="text-[10px] text-muted-foreground italic leading-tight">Photos are optimized locally for speed.</p>
+                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Ideal: Square, 400x400px</p>
+                    <p className="text-[10px] text-muted-foreground italic leading-tight">Fast processing enabled: photos are auto-optimized.</p>
                 </div>
             </div>
 
@@ -214,9 +214,9 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                     name="password"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel>Initial Password</FormLabel>
                         <FormControl>
-                            <Input type="password" placeholder="Set initial password" {...field} />
+                            <Input type="password" placeholder="Min. 6 characters" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -231,7 +231,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select a department" />
+                                <SelectValue placeholder="Select department" />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -256,7 +256,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select a position" />
+                                <SelectValue placeholder="Select position" />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -275,7 +275,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
             <Separator />
             <div className="space-y-2">
                 <h3 className="text-lg font-medium">Subject Assignments</h3>
-                <p className="text-sm text-muted-foreground">Assign subjects for each semester based on the selected department.</p>
+                <p className="text-sm text-muted-foreground">Select the subjects this teacher will manage.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {semesters.map(sem => {
@@ -320,7 +320,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                                         ))
                                     ) : (
                                         <p className="text-sm text-muted-foreground italic">
-                                            {department ? 'No subjects' : 'Select a department'}
+                                            {department ? 'No subjects' : 'Select department'}
                                         </p>
                                     )}
                                     </div>
@@ -335,8 +335,12 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
         </ScrollArea>
         <div className="flex justify-end pt-4 mt-4 border-t">
             <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSubmitting ? "Registering..." : "Add Teacher"}
+                {isSubmitting ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Registering...
+                    </>
+                ) : "Add Teacher"}
             </Button>
         </div>
       </form>

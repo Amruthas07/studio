@@ -87,21 +87,20 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             throw new Error("This email is reserved for the administrator.");
         }
         
-        // SPEED PIPELINE: Parallelize optimization and Auth creation
-        const optimizationPromise = photoFile 
-            ? resizeAndCompressImage(photoFile, 200, 0.6)
-            : Promise.resolve(null);
+        // Step 1: Optimize locally
+        const processedImage = photoFile 
+            ? await resizeAndCompressImage(photoFile, 400, 0.7)
+            : null;
 
+        // Step 2: Create Auth account
         const tempAppName = `teacher-${Date.now()}`;
         tempApp = initializeApp(firebaseConfig, tempAppName);
         const tempAuth = getAuth(tempApp);
         
-        const [userCredential, processedImage] = await Promise.all([
-            createUserWithEmailAndPassword(tempAuth, email, password),
-            optimizationPromise
-        ]);
+        const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
+        const uid = userCredential.user.uid;
         
-        // 3. Storage upload
+        // Step 3: Storage upload
         let photoUrl = '';
         if (processedImage) {
             const storage = getStorage(firebaseApp);
@@ -110,7 +109,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             photoUrl = await getDownloadURL(photoRef);
         }
 
-        // 4. Firestore data save
+        // Step 4: Firestore data save
         const teacherDocRef = doc(firestore, 'teachers', email);
         const newTeacherData = {
             ...details,
@@ -154,7 +153,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
 
     try {
         if (newPhotoFile) {
-            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 200, 0.6);
+            const processedPhoto = await resizeAndCompressImage(newPhotoFile, 400, 0.7);
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `teachers/${teacherId}/profile.jpg`);
             await uploadBytes(photoRef, processedPhoto);
@@ -163,7 +162,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         }
         
         await updateDoc(teacherDocRef, updatesToApply);
-        toast({ title: 'Teacher Updated', description: `Details saved.` });
+        toast({ title: 'Teacher Updated', description: `Details saved successfully.` });
     } catch (error: any) {
         const isPermissionError = error.code === 'permission-denied';
         if (isPermissionError) {

@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import { Inter, Space_Grotesk, Source_Code_Pro } from 'next/font/google';
 import './globals.css';
@@ -27,8 +26,8 @@ const fontSourceCodePro = Source_Code_Pro({
 });
 
 export const metadata: Metadata = {
-  title: 'Smart Institute | AI-Powered Attendance Management',
-  description: 'A Smart Face Recognition Attendance System',
+  title: 'Smart Institute | Advanced Attendance Management',
+  description: 'AI-Powered secure student attendance and tracking system.',
 };
 
 export default function RootLayout({
@@ -40,7 +39,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
-          'min-h-screen bg-background font-body antialiased',
+          'min-h-screen bg-background font-body antialiased selection:bg-primary/20',
           fontInter.variable,
           fontSpaceGrotesk.variable,
           fontSourceCodePro.variable
