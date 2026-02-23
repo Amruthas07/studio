@@ -1,8 +1,9 @@
+
 'use client';
 
 import React from 'react';
 import type { Student, AttendanceRecord } from '@/lib/types';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, FileClock, Info } from 'lucide-react';
 import {
@@ -160,8 +161,7 @@ export function MarkAttendanceStudentList({ students, allDepartmentRecords, onMa
         return (
           <div key={student.registerNumber} className="flex items-center gap-4 p-3 rounded-lg border bg-card hover:bg-muted/10 transition-colors">
             <Avatar className="h-14 w-14 border flex-shrink-0">
-                <AvatarImage src={student.uid ? undefined : undefined} alt={student.name} className="object-cover" />
-                <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+                <AvatarFallback className="bg-muted text-foreground font-bold">{getInitials(student.name)}</AvatarFallback>
             </Avatar>
             
             <div className='flex-1 min-w-0'>

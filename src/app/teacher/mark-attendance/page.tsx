@@ -1,11 +1,11 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useStudents } from '@/hooks/use-students';
 import { useAttendance } from '@/hooks/use-attendance';
-import { Loader2, Search, CheckCheck, BookOpen } from 'lucide-react';
+import { Loader2, Search, CheckCheck, BookOpen, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -103,6 +103,15 @@ export default function MarkAttendancePage() {
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setCurrentTime(new Date());
+    const timer = setInterval(() => {
+        setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const loading = authLoading || studentsLoading || attendanceLoading;
 
@@ -179,9 +188,15 @@ export default function MarkAttendancePage() {
             <h1 className="text-3xl font-bold tracking-tight font-headline text-primary">
             Mark Daily Attendance
             </h1>
-            <p className="text-muted-foreground">
-            {format(new Date(), 'EEEE, do MMMM yyyy')}
-            </p>
+            <div className="text-muted-foreground flex items-center flex-wrap gap-x-2">
+                <span>{format(new Date(), 'EEEE, do MMMM yyyy')}</span>
+                {currentTime && (
+                    <span className="text-primary font-bold flex items-center gap-1.5 border-l pl-3 ml-1">
+                        <Clock className="h-4 w-4" />
+                        {format(currentTime, 'hh:mm:ss a')}
+                    </span>
+                )}
+            </div>
         </div>
         <div className="relative w-full max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
