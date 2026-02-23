@@ -10,8 +10,6 @@ import React, {
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, updateDoc, serverTimestamp, limit } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL, deleteObject, uploadBytes } from 'firebase/storage';
 import { useFirestore, useFirebaseApp } from '@/firebase/provider';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
@@ -113,8 +111,13 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
     let tempApp: any = null;
     try {
-        // Parallel Pipeline: 1. Auth, 2. Compression
-        const [userCredential, optimizedImage] = await Promise.all([
+        // ULTRA-FAST PARALLEL PIPELINE:
+        // 1. Auth Creation
+        // 2. Image Optimization & Storage Upload (Concurrent with Auth)
+        const storage = getStorage(firebaseApp);
+        const photoRef = ref(storage, `students/${studentData.registerNumber}/profile.jpg`);
+
+        const [userCredential, photoUrl] = await Promise.all([
             (async () => {
                 const tempAppName = `enroll-${Date.now()}`;
                 const tApp = initializeApp(firebaseConfig, tempAppName);
@@ -123,20 +126,17 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                 tempApp = tApp;
                 return cred;
             })(),
-            photoFile ? resizeAndCompressImage(photoFile) : Promise.resolve(null)
+            (async () => {
+                if (!photoFile) return '';
+                const optimized = await resizeAndCompressImage(photoFile);
+                await uploadBytes(photoRef, optimized);
+                return await getDownloadURL(photoRef);
+            })()
         ]);
 
         const uid = userCredential.user.uid;
-        let photoUrl = '';
-
-        if (optimizedImage) {
-            const storage = getStorage(firebaseApp);
-            const photoRef = ref(storage, `students/${studentData.registerNumber}/profile.jpg`);
-            await uploadBytes(photoRef, optimizedImage);
-            photoUrl = await getDownloadURL(photoRef);
-        }
-
         const studentDocRef = doc(firestore, 'students', studentData.registerNumber);
+        
         await setDoc(studentDocRef, {
             ...studentData,
             uid,

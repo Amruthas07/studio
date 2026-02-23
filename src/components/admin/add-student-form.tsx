@@ -4,8 +4,7 @@ import React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { format } from "date-fns"
-import { CalendarIcon, Loader2, Camera, User } from "lucide-react"
+import { Loader2, Camera, User } from "lucide-react"
 import Image from 'next/image'
 
 import { Button } from "@/components/ui/button"
@@ -26,9 +25,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
-import { cn } from "@/lib/utils"
 import { useStudents } from "@/hooks/use-students"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -58,10 +54,14 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
   })
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    // PREVENT DEFAULT is handled by form.handleSubmit
     setIsSubmitting(true);
+    
     try {
         const { photo, ...details } = values;
+        // The context addStudent now handles Auth and Storage in parallel for sub-2s speed
         const result = await addStudent(details, photo);
+        
         if (result.success) {
             toast({ title: "Enrollment Success", description: `${values.name} registered.` });
             onStudentAdded();
@@ -71,15 +71,21 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
             toast({ variant: "destructive", title: "Failed", description: result.error });
         }
     } catch (e: any) {
-        toast({ variant: "destructive", title: "Error", description: e.message });
+        console.error("Enrollment Exception:", e);
+        toast({ variant: "destructive", title: "System Error", description: e.message });
     } finally {
-        setIsSubmitting(false); // GUARANTEED RESET
+        // CRITICAL: Always reset button state
+        setIsSubmitting(false);
     }
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+          toast({ variant: 'destructive', title: 'File Too Large', description: 'Maximum 10MB allowed.' });
+          return;
+      }
       form.setValue('photo', file, { shouldValidate: true });
       setPreviewUrl(URL.createObjectURL(file));
     }
@@ -92,7 +98,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
           <div className="space-y-6">
             <div className="flex flex-col items-center gap-4 py-4">
                 <div 
-                    className="relative h-32 w-32 rounded-full overflow-hidden bg-secondary border-4 border-background shadow-xl cursor-pointer group"
+                    className="relative h-32 w-32 rounded-full overflow-hidden bg-secondary border-4 border-background shadow-xl cursor-pointer group ring-2 ring-primary/10 hover:ring-primary/30 transition-all"
                     onClick={() => fileInputRef.current?.click()}
                 >
                     {previewUrl ? (
@@ -109,14 +115,14 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                 </div>
                 <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} />
                 <div className="text-center">
-                    <p className="text-xs font-bold text-primary mb-1 uppercase">Ideal: Square, 400x400px</p>
-                    <p className="text-[10px] text-muted-foreground italic">System auto-compresses for fast upload.</p>
+                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Square, 400x400px Recommended</p>
+                    <p className="text-[10px] text-muted-foreground italic">Fast enrollment: photos are optimized automatically.</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <FormField control={form.control} name="name" render={({ field }) => (
-                    <FormItem><FormLabel>Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="registerNumber" render={({ field }) => (
                     <FormItem><FormLabel>Register Number</FormLabel><FormControl><Input placeholder="324CS..." {...field} /></FormControl><FormMessage /></FormItem>
@@ -127,9 +133,12 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
                       <SelectContent>
-                        <SelectItem value="cs">CS</SelectItem><SelectItem value="ce">CE</SelectItem>
-                        <SelectItem value="me">ME</SelectItem><SelectItem value="ee">EE</SelectItem>
-                        <SelectItem value="mce">MCE</SelectItem><SelectItem value="ec">EC</SelectItem>
+                        <SelectItem value="cs">Computer Science (CS)</SelectItem>
+                        <SelectItem value="ce">Civil Engineering (CE)</SelectItem>
+                        <SelectItem value="me">Mechanical Engineering (ME)</SelectItem>
+                        <SelectItem value="ee">Electrical Engineering (EE)</SelectItem>
+                        <SelectItem value="mce">Mechatronics (MCE)</SelectItem>
+                        <SelectItem value="ec">Electronics & Comm. (EC)</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -146,16 +155,16 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="email" render={({ field }) => (
-                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="student@example.com" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="contact" render={({ field }) => (
-                    <FormItem><FormLabel>Contact</FormLabel><FormControl><Input type="tel" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Contact No.</FormLabel><FormControl><Input type="tel" placeholder="10 digits" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
             </div>
           </div>
         </ScrollArea>
         <div className="flex justify-end pt-4 mt-4 border-t">
-          <Button type="submit" disabled={isSubmitting} size="lg">
+          <Button type="submit" disabled={isSubmitting} size="lg" className="min-w-[140px]">
             {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enrolling...</> : "Enroll Student"}
           </Button>
         </div>
