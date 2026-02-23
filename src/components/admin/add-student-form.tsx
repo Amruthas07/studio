@@ -34,7 +34,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name required."),
-  registerNumber: z.string().min(6, "Min. 6 chars required (used as password)."),
+  registerNumber: z.string().min(6, "Min. 6 chars required."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   semester: z.coerce.number().min(1).max(8),
   email: z.string().email("Valid email required."),
@@ -89,7 +89,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[65vh]">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[60vh]">
         <ScrollArea className="flex-1 pr-6">
           <div className="space-y-6 pt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
@@ -164,10 +164,10 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                 )} />
             </div>
             
-            <Alert className="bg-muted/50">
-                <Info className="h-4 w-4" />
+            <Alert className="bg-muted/50 border-primary/20">
+                <Info className="h-4 w-4 text-primary" />
                 <AlertDescription className="text-xs">
-                    Register number serves as the student's ID and initial password (min. 6 characters required).
+                    Enrollment is instant. Register number serves as the student's ID and initial password (min. 6 characters required).
                 </AlertDescription>
             </Alert>
           </div>

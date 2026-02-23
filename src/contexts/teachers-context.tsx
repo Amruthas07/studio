@@ -94,7 +94,6 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             ...details,
             email,
             teacherId: email,
-            profilePhotoUrl: '', // No photo feature
             subjects: subjects || {},
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),

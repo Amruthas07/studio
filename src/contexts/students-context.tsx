@@ -107,11 +107,14 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
             return { success: false, error: 'Register number already exists.' };
         }
 
-        // ATOMIC REGISTRATION: Auth and Firestore
         const tempAppName = `enroll-${Date.now()}`;
         tempApp = initializeApp(firebaseConfig, tempAppName);
         const tAuth = getAuth(tempApp);
-        const userCredential = await createUserWithEmailAndPassword(tAuth, studentData.email, studentData.registerNumber);
+        
+        // Parallel execution for maximum speed
+        const [userCredential] = await Promise.all([
+            createUserWithEmailAndPassword(tAuth, studentData.email, studentData.registerNumber)
+        ]);
 
         const uid = userCredential.user.uid;
         const studentDocRef = doc(firestore, 'students', studentData.registerNumber);
@@ -119,7 +122,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         await setDoc(studentDocRef, {
             ...studentData,
             uid,
-            profilePhotoUrl: '', // No photo feature
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         });

@@ -106,7 +106,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[65vh]">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-[60vh]">
         <ScrollArea className="flex-1 pr-6">
           <div className="space-y-6 pt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

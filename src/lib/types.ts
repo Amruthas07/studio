@@ -6,7 +6,7 @@ export interface Student {
   motherName: string;
   department: 'cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec';
   semester: number;
-  profilePhotoUrl: string;
+  profilePhotoUrl?: string; // Optional now
   email: string;
   contact: string;
   photoHash?: string;
@@ -19,12 +19,12 @@ export interface Student {
 export interface AttendanceRecord {
   id: string;
   studentRegister: string;
-  studentName?: string; // For easier display
+  studentName?: string; 
   studentUid?: string;
   date: string; // YYYY-MM-DD
   department: 'cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec';
   status: 'present' | 'absent';
-  timestamp: string; // Storing as ISO string for localStorage compatibility
+  timestamp: string; 
   method: 'face-scan' | 'manual' | 'live-photo';
   photoUrl?: string;
   reason?: string;
@@ -36,7 +36,7 @@ export interface Teacher {
   name: string;
   department: 'cs' | 'ce' | 'me' | 'ee' | 'mce' | 'ec';
   position?: 'Professor' | 'Associate Professor' | 'Assistant Professor' | 'HOD';
-  profilePhotoUrl: string;
+  profilePhotoUrl?: string; // Optional now
   email: string;
   createdAt: Date;
   updatedAt?: Date;
@@ -56,12 +56,11 @@ export interface StudentsContextType {
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   loading: boolean;
   addStudent: (
-    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt' | 'uid'>,
-    photoFile?: File
+    studentData: Omit<Student, 'profilePhotoUrl' | 'photoHash' | 'createdAt' | 'updatedAt' | 'uid'>
   ) => Promise<{ success: boolean; error?: string; }>;
   updateStudent: (
     registerNumber: string,
-    studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'profilePhotoUrl' | 'photoHash' | 'updatedAt'>> & { newPhotoFile?: File }
+    studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'profilePhotoUrl' | 'photoHash' | 'updatedAt'>>
   ) => Promise<void>;
   deleteStudent: (registerNumber: string) => void;
   promoteStudents: (department: string) => Promise<{ success: boolean; count: number; error?: string }>;
@@ -71,10 +70,9 @@ export interface TeachersContextType {
   teachers: Teacher[];
   loading: boolean;
   addTeacher: (
-    teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string },
-    photoFile?: File
+    teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt' | 'profilePhotoUrl'> & { password: string }
   ) => Promise<{ success: boolean; error?: string; }>;
-  updateTeacher: (teacherId: string, teacherUpdate: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>> & { newPhotoFile?: File }) => Promise<void>;
+  updateTeacher: (teacherId: string, teacherUpdate: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'profilePhotoUrl' | 'updatedAt'>>) => Promise<void>;
   deleteTeacher: (teacherId: string) => void;
 }
 

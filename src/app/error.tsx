@@ -17,7 +17,11 @@ export default function Error({
   }, [error]);
 
   // Specific detection for ChunkLoadError to trigger a hard reload
-  const isChunkError = error.message?.includes('ChunkLoadError') || error.name === 'ChunkLoadError' || error.message?.includes('Loading chunk');
+  const isChunkError = 
+    error.message?.includes('ChunkLoadError') || 
+    error.name === 'ChunkLoadError' || 
+    error.message?.includes('Loading chunk') ||
+    error.message?.includes('Failed to fetch');
 
   const handleReset = () => {
     if (isChunkError) {
@@ -40,7 +44,7 @@ export default function Error({
           </CardTitle>
           <CardDescription>
             {isChunkError 
-              ? 'The application failed to load some resources. This usually happens during a code update. A quick refresh should fix it.' 
+              ? 'The application failed to load some resources. This usually happens during a code update. A quick refresh will fix it.' 
               : 'The application encountered a temporary loading error. This is often caused by network instability.'}
           </CardDescription>
         </CardHeader>

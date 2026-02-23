@@ -1,5 +1,5 @@
 'use client';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Mail, Phone, GraduationCap, Briefcase, Hash, Cake, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -36,9 +36,8 @@ export function StudentProfileCard({ student }: StudentProfileCardProps) {
         <Card className="border-none shadow-none">
             <CardHeader>
                 <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-                    <Avatar className="h-24 w-24 border-2 border-primary">
-                        <AvatarImage src={student.profilePhotoUrl} alt={student.name} />
-                        <AvatarFallback className="text-3xl">{getInitials(student.name)}</AvatarFallback>
+                    <Avatar className="h-20 w-20 border-2 border-primary shadow-sm">
+                        <AvatarFallback className="text-2xl bg-muted">{getInitials(student.name)}</AvatarFallback>
                     </Avatar>
                     <div>
                         <CardTitle className="font-headline text-3xl">{student.name}</CardTitle>
