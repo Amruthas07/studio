@@ -13,15 +13,15 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
     console.error('Critical Runtime Error:', error);
   }, [error]);
 
-  const isChunkError = error.message?.includes('ChunkLoadError') || error.name === 'ChunkLoadError';
+  // Specific detection for ChunkLoadError to trigger a hard reload
+  const isChunkError = error.message?.includes('ChunkLoadError') || error.name === 'ChunkLoadError' || error.message?.includes('Loading chunk');
 
   const handleReset = () => {
     if (isChunkError) {
-      // For chunk errors, a hard reload is usually required to fetch new assets
+      // Hard reload is required to fetch new asset manifest and clear outdated chunks
       window.location.reload();
     } else {
       reset();
@@ -40,7 +40,7 @@ export default function Error({
           </CardTitle>
           <CardDescription>
             {isChunkError 
-              ? 'The application failed to load some resources. This often happens after an update or due to a temporary network blip.' 
+              ? 'The application failed to load some resources. This usually happens during a code update. A quick refresh should fix it.' 
               : 'The application encountered a temporary loading error. This is often caused by network instability.'}
           </CardDescription>
         </CardHeader>
@@ -54,7 +54,7 @@ export default function Error({
             variant="default"
           >
             <RefreshCcw className="h-5 w-5" />
-            {isChunkError ? 'Reload Application' : 'Retry Connection'}
+            {isChunkError ? 'Refresh & Reconnect' : 'Retry Connection'}
           </Button>
           <Button 
             onClick={() => window.location.href = '/'} 

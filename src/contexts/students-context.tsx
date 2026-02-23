@@ -65,9 +65,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
           }
           setLoading(false);
         },
-        (err) => {
-          setLoading(false);
-        }
+        () => setLoading(false)
       );
     } else {
       let studentsQuery;
@@ -94,9 +92,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
           setStudents(studentData);
           setLoading(false);
         },
-        (err) => {
-          setLoading(false);
-        }
+        () => setLoading(false)
       );
     }
 
@@ -111,30 +107,25 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
     let tempApp: any = null;
     try {
-        // FAST CHECK: Local validation
         if (students.some(s => s.registerNumber === studentData.registerNumber)) {
             return { success: false, error: 'Register number already exists.' };
         }
 
         const storage = getStorage(firebaseApp);
-        // Using registerNumber for path so we can start upload immediately without waiting for Auth UID
         const photoRef = ref(storage, `students/${studentData.registerNumber}/profile.jpg`);
 
-        // HIGH-SPEED PARALLEL PIPELINE
+        // HIGH-SPEED PARALLEL PIPELINE: Auth and Image processing run concurrently
         const [userCredential, photoUrl] = await Promise.all([
-            // Task 1: Auth User Creation
+            // Task 1: Create Auth Account (Password = Register Number)
             (async () => {
                 const tempAppName = `enroll-${Date.now()}-${Math.random().toString(36).substring(7)}`;
                 tempApp = initializeApp(firebaseConfig, tempAppName);
                 const tAuth = getAuth(tempApp);
-                // Register Number is used as initial password (validation ensures >= 6 chars)
-                const cred = await createUserWithEmailAndPassword(tAuth, studentData.email, studentData.registerNumber);
-                return cred;
+                return await createUserWithEmailAndPassword(tAuth, studentData.email, studentData.registerNumber);
             })(),
-            // Task 2: Image Processing & Storage Upload
+            // Task 2: Local Resize & Storage Upload
             (async () => {
                 if (!photoFile) return '';
-                // Pre-optimize locally (400px @ 70% quality is very fast and < 50KB)
                 const optimized = await resizeAndCompressImage(photoFile, 400, 0.7);
                 await uploadBytes(photoRef, optimized);
                 return await getDownloadURL(photoRef);
@@ -144,7 +135,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         const uid = userCredential.user.uid;
         const studentDocRef = doc(firestore, 'students', studentData.registerNumber);
         
-        // Final Task: Firestore Metadata Save
         await setDoc(studentDocRef, {
             ...studentData,
             uid,
@@ -156,7 +146,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         return { success: true };
     } catch (error: any) {
         console.error("Enrollment Exception:", error);
-        let message = 'Enrollment failed. Please check your connection.';
+        let message = error.message || 'Enrollment failed. Please try again.';
         if (error.code === 'auth/email-already-in-use') message = 'This email is already in use.';
         if (error.code === 'auth/weak-password') message = 'Register number must be at least 6 characters.';
         return { success: false, error: message };

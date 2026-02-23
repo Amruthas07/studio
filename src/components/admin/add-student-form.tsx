@@ -33,10 +33,10 @@ import { cn } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-// MIN 6 chars for registerNumber because it is used as the initial password
+// MIN 6 chars for registerNumber because Firebase Auth requires at least 6 characters for passwords
 const formSchema = z.object({
   name: z.string().min(2, "Name required."),
-  registerNumber: z.string().min(6, "Minimum 6 characters required (used as password)."),
+  registerNumber: z.string().min(6, "Min. 6 chars required (used as password)."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   semester: z.coerce.number().min(1).max(8),
   email: z.string().email("Valid email required."),
@@ -87,10 +87,10 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
         toast({ 
           variant: "destructive", 
           title: "System Error", 
-          description: e.message || "An unexpected error occurred during submission." 
+          description: e.message || "An unexpected error occurred." 
         });
     } finally {
-        // GUARANTEED UI RESET
+        // ALWAYS reset state to prevent button hang
         setIsSubmitting(false);
     }
   }
@@ -125,7 +125,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                         <Camera className="mr-2 h-4 w-4" />
                         Select Photo
                     </Button>
-                    <p className="text-[10px] text-muted-foreground">Photos are optimized to 400px for lightning-fast loads.</p>
+                    <p className="text-[10px] text-muted-foreground">Standard 400px profile capture.</p>
                 </div>
                 <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} disabled={isSubmitting} />
             </div>
@@ -205,7 +205,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
             <Alert className="bg-muted/50">
                 <Info className="h-4 w-4" />
                 <AlertDescription className="text-xs">
-                    Register number will be the student's initial password. It must be at least 6 characters.
+                    Register number serves as the student's ID and initial password (min. 6 characters required).
                 </AlertDescription>
             </Alert>
           </div>
