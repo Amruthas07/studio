@@ -112,24 +112,31 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
     let tempApp: any = null;
     try {
-        // ULTRA-FAST PARALLEL PIPELINE:
-        // 1. Auth Creation
-        // 2. Image Optimization & Storage Upload (Concurrent with Auth)
+        // Check for existing register number locally to save time
+        if (students.some(s => s.registerNumber === studentData.registerNumber)) {
+            return { success: false, error: 'Register number already exists.' };
+        }
+
         const storage = getStorage(firebaseApp);
         const photoRef = ref(storage, `students/${studentData.registerNumber}/profile.jpg`);
 
+        // ULTRA-FAST PARALLEL PIPELINE:
+        // 1. Auth Creation
+        // 2. Image Optimization & Storage Upload
+        // These run concurrently to hit the sub-2s target.
         const [userCredential, photoUrl] = await Promise.all([
             (async () => {
-                const tempAppName = `enroll-${Date.now()}`;
-                const tApp = initializeApp(firebaseConfig, tempAppName);
-                const tAuth = getAuth(tApp);
+                const tempAppName = `enroll-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+                tempApp = initializeApp(firebaseConfig, tempAppName);
+                const tAuth = getAuth(tempApp);
+                // We use registerNumber as password. Form validation now ensures >= 6 chars.
                 const cred = await createUserWithEmailAndPassword(tAuth, studentData.email, studentData.registerNumber);
-                tempApp = tApp;
                 return cred;
             })(),
             (async () => {
                 if (!photoFile) return '';
-                const optimized = await resizeAndCompressImage(photoFile);
+                // Fast local optimization (400px @ 70% quality ~40KB)
+                const optimized = await resizeAndCompressImage(photoFile, 400, 0.7);
                 await uploadBytes(photoRef, optimized);
                 return await getDownloadURL(photoRef);
             })()
@@ -149,11 +156,14 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         return { success: true };
     } catch (error: any) {
         console.error("Enrollment failed:", error);
-        return { success: false, error: error.message || 'Enrollment failed' };
+        let message = 'Enrollment failed. Please try again.';
+        if (error.code === 'auth/email-already-in-use') message = 'This email is already registered.';
+        if (error.code === 'auth/weak-password') message = 'The register number is too short to be used as a secure password.';
+        return { success: false, error: message };
     } finally {
         if (tempApp) deleteApp(tempApp).catch(() => {});
     }
-  }, [firestore, firebaseApp]);
+  }, [firestore, firebaseApp, students]);
 
   const updateStudent = useCallback(async (
     registerNumber: string,
@@ -167,16 +177,16 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     
     try {
         if (newPhotoFile) {
-            const processed = await resizeAndCompressImage(newPhotoFile);
+            const processed = await resizeAndCompressImage(newPhotoFile, 400, 0.7);
             const storage = getStorage(firebaseApp);
             const photoRef = ref(storage, `students/${registerNumber}/profile.jpg`);
             await uploadBytes(photoRef, processed);
             updates.profilePhotoUrl = await getDownloadURL(photoRef);
         }
         await updateDoc(studentDocRef, updates);
-        toast({ title: "Updated", description: "Student profile saved." });
+        toast({ title: "Profile Updated", description: "Changes saved successfully." });
     } catch (e: any) {
-        toast({ variant: "destructive", title: "Error", description: e.message });
+        toast({ variant: "destructive", title: "Update Error", description: e.message });
     }
   }, [firestore, firebaseApp, toast]);
   
@@ -187,7 +197,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
     deleteDoc(doc(firestore, 'students', registerNumber))
       .then(() => {
-        toast({ title: "Deleted", description: "Record removed." });
+        toast({ title: "Student Removed", description: "Record deleted successfully." });
         if (student.profilePhotoUrl) {
             const storage = getStorage(firebaseApp);
             deleteObject(ref(storage, `students/${registerNumber}/profile.jpg`)).catch(() => {});

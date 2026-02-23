@@ -1,3 +1,4 @@
+
 import {
   Table,
   TableBody,
@@ -46,53 +47,56 @@ export function StudentsTable({ students, title, description, onViewStudent, onE
             <CardContent className="p-0">
                 <TooltipProvider>
                  <Table>
-                    {students.length === 0 && <TableCaption className="py-16 text-muted-foreground italic">No student records found.</TableCaption>}
+                    {students.length === 0 && <TableCaption className="py-16 text-muted-foreground italic text-lg font-headline">No student records found in this category.</TableCaption>}
                     <TableHeader className="bg-muted/30">
                         <TableRow className="hover:bg-transparent">
-                            <TableHead className="w-[120px] pl-6">Identity</TableHead>
+                            <TableHead className="w-[140px] pl-8">Identity</TableHead>
                             <TableHead>Student Details</TableHead>
                             <TableHead className="hidden md:table-cell text-center">Department</TableHead>
                             <TableHead className="hidden md:table-cell text-center">Semester</TableHead>
-                            <TableHead className="text-right pr-6">Actions</TableHead>
+                            <TableHead className="text-right pr-8">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {students.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((student) => (
-                        <TableRow key={student.registerNumber} className="hover:bg-muted/20 transition-colors group">
-                            <TableCell className="pl-6 py-4">
-                                <Avatar className="h-20 w-20 border-4 border-background shadow-xl ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all">
-                                    <AvatarImage src={student.profilePhotoUrl} alt={student.name} className="object-cover" />
-                                    <AvatarFallback className="text-2xl bg-primary/5 text-primary font-black">{getInitials(student.name)}</AvatarFallback>
-                                </Avatar>
+                        <TableRow key={student.registerNumber} className="hover:bg-muted/20 transition-all group h-28">
+                            <TableCell className="pl-8 py-4">
+                                <div className="relative">
+                                    <Avatar className="h-20 w-20 border-4 border-background shadow-2xl ring-2 ring-primary/10 group-hover:ring-primary/40 transition-all duration-300">
+                                        <AvatarImage src={student.profilePhotoUrl} alt={student.name} className="object-cover" />
+                                        <AvatarFallback className="text-2xl bg-primary/5 text-primary font-black">{getInitials(student.name)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="absolute -bottom-1 -right-1 bg-green-500 h-5 w-5 rounded-full border-2 border-background shadow-sm ring-1 ring-black/5" />
+                                </div>
                             </TableCell>
                             <TableCell>
                                 <div className="grid gap-1">
                                     <div className="font-black text-xl text-foreground group-hover:text-primary transition-colors leading-tight">{student.name}</div>
-                                    <div className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium opacity-80">
+                                    <div className="text-xs text-muted-foreground flex items-center gap-1.5 font-bold opacity-80 uppercase tracking-tight">
                                         <Mail className="h-3 w-3" />
                                         {student.email}
                                     </div>
                                     <div className="flex flex-wrap gap-2 mt-1.5">
-                                        <Badge variant="outline" className="text-[10px] px-2 py-0 font-code font-black bg-background shadow-sm uppercase tracking-widest">
+                                        <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-code font-black bg-background/80 shadow-sm uppercase tracking-widest border-primary/20">
                                             <Hash className="h-2 w-2 mr-1" />
                                             {student.registerNumber}
                                         </Badge>
-                                        <Badge variant="secondary" className="md:hidden text-[10px] px-2 py-0 uppercase font-black tracking-tighter">SEM {student.semester}</Badge>
+                                        <Badge variant="secondary" className="md:hidden text-[10px] px-2 py-0.5 uppercase font-black tracking-tighter">SEM {student.semester}</Badge>
                                     </div>
                                 </div>
                             </TableCell>
                             <TableCell className="hidden md:table-cell text-center">
-                                <Badge variant="outline" className="uppercase font-black border-2 border-primary/20 text-primary">
+                                <Badge variant="outline" className="uppercase font-black border-2 border-primary/20 text-primary bg-primary/5 px-3 py-1">
                                     {student.department}
                                 </Badge>
                             </TableCell>
                             <TableCell className="hidden md:table-cell text-center">
-                                <Badge variant="secondary" className="font-black px-4 py-1 text-sm shadow-inner">
-                                    SEM {student.semester}
+                                <Badge variant="secondary" className="font-black px-4 py-1.5 text-sm shadow-inner uppercase">
+                                    Semester {student.semester}
                                 </Badge>
                             </TableCell>
-                            <TableCell className="text-right pr-6">
-                               <div className="flex justify-end gap-1">
+                            <TableCell className="text-right pr-8">
+                               <div className="flex justify-end gap-1.5">
                                      <Tooltip>
                                         <TooltipTrigger asChild>
                                              <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full hover:bg-primary/10 hover:text-primary transition-all shadow-sm hover:shadow-md" onClick={() => onViewStudent(student)}>

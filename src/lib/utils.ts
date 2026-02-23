@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -7,8 +8,8 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * High-performance client-side image compression.
- * Resizes to 400x400px @ 70% quality (Professional Standard).
- * Typically reduces a 5MB photo to <100KB in milliseconds.
+ * Resizes to 400x400px @ 70% quality (Professional WhatsApp Standard).
+ * Typically reduces a 5MB photo to <50KB in milliseconds.
  */
 export function resizeAndCompressImage(file: File, maxSize: number = 400, quality: number = 0.7): Promise<File> {
   return new Promise((resolve, reject) => {

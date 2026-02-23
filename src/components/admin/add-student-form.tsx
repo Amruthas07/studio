@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -5,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2, Camera, User } from "lucide-react"
+import { CalendarIcon, Loader2, Camera, User, Info } from "lucide-react"
 import Image from 'next/image'
 
 import { Button } from "@/components/ui/button"
@@ -31,10 +32,13 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
+// Firebase Auth requires 6 characters for passwords.
+// Since registerNumber is the initial password, we enforce min(6).
 const formSchema = z.object({
   name: z.string().min(2, "Name required."),
-  registerNumber: z.string().min(1, "ID required."),
+  registerNumber: z.string().min(6, "ID must be at least 6 characters (for security)."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   semester: z.coerce.number().min(1).max(8),
   email: z.string().email(),
@@ -62,20 +66,20 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
     
     try {
         const { photo, ...details } = values;
-        // The parallel pipeline in context handles Auth and Storage simultaneously
+        // High-speed parallel pipeline
         const result = await addStudent(details, photo);
         
         if (result.success) {
-            toast({ title: "Enrollment Success", description: `${values.name} registered.` });
+            toast({ title: "Enrollment Success", description: `${values.name} has been registered.` });
             onStudentAdded();
             form.reset();
             setPreviewUrl(null);
         } else {
-            toast({ variant: "destructive", title: "Failed", description: result.error });
+            toast({ variant: "destructive", title: "Enrollment Failed", description: result.error });
         }
     } catch (e: any) {
         console.error("Enrollment Exception:", e);
-        toast({ variant: "destructive", title: "System Error", description: e.message });
+        toast({ variant: "destructive", title: "System Error", description: e.message || "An unexpected error occurred." });
     } finally {
         setIsSubmitting(false);
     }
@@ -100,25 +104,25 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
           <div className="space-y-6">
             <div className="flex flex-col items-center gap-4 py-4">
                 <div 
-                    className="relative h-32 w-32 rounded-full overflow-hidden bg-secondary border-4 border-background shadow-xl cursor-pointer group ring-2 ring-primary/10 hover:ring-primary/30 transition-all"
+                    className="relative h-36 w-36 rounded-full overflow-hidden bg-secondary border-4 border-background shadow-2xl cursor-pointer group ring-4 ring-primary/10 hover:ring-primary/30 transition-all"
                     onClick={() => fileInputRef.current?.click()}
                 >
                     {previewUrl ? (
                         <Image src={previewUrl} alt="Preview" fill className="object-cover" />
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full text-muted-foreground group-hover:text-primary transition-colors">
-                            <User className="h-12 w-12 mb-1 opacity-20" />
+                            <User className="h-14 w-14 mb-1 opacity-20" />
                             <span className="text-[10px] uppercase font-bold tracking-wider">Add Photo</span>
                         </div>
                     )}
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Camera className="h-8 w-8 text-white" />
+                        <Camera className="h-10 w-10 text-white" />
                     </div>
                 </div>
                 <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} />
                 <div className="text-center">
-                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tighter">Square, 400x400px Recommended</p>
-                    <p className="text-[10px] text-muted-foreground italic">Fast enrollment: photos are optimized automatically.</p>
+                    <p className="text-xs font-black text-primary mb-1 uppercase tracking-tighter">WhatsApp-Style Square DP</p>
+                    <p className="text-[10px] text-muted-foreground italic">Fast enrollment: photos are optimized to 400px instantly.</p>
                 </div>
             </div>
 
@@ -127,8 +131,13 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                     <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="registerNumber" render={({ field }) => (
-                    <FormItem><FormLabel>Register Number</FormLabel><FormControl><Input placeholder="324CS..." {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem>
+                        <FormLabel>Register Number</FormLabel>
+                        <FormControl><Input placeholder="Min. 6 chars (e.g. 324CS210)" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
                 )} />
+                
                 <FormField control={form.control} name="department" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Department</FormLabel>
@@ -174,7 +183,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                         <Popover>
                             <PopoverTrigger asChild>
                                 <FormControl>
-                                    <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                    <Button variant="outline" className={cn("pl-3 text-left font-normal h-12", !field.value && "text-muted-foreground")}>
                                         {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
@@ -188,10 +197,17 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                     </FormItem>
                 )} />
             </div>
+            
+            <Alert className="bg-primary/5 border-primary/20">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-xs text-muted-foreground">
+                    Enrollment creates a secure account for the student using their Register Number as the initial password.
+                </AlertDescription>
+            </Alert>
           </div>
         </ScrollArea>
         <div className="flex justify-end pt-4 mt-4 border-t">
-          <Button type="submit" disabled={isSubmitting} size="lg" className="min-w-[140px]">
+          <Button type="submit" disabled={isSubmitting} size="lg" className="min-w-[160px] font-black uppercase tracking-widest shadow-lg">
             {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enrolling...</> : "Enroll Student"}
           </Button>
         </div>
