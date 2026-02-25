@@ -1,20 +1,10 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BrainCircuit, Shield, User, GraduationCap, Building2, Globe, MapPin, Phone, Mail } from 'lucide-react';
+import { BrainCircuit, Shield, User, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
-import { useInstitutionProfile } from '@/hooks/use-institution-profile';
 
 export default function Home() {
-  const { institutionProfile } = useInstitutionProfile();
-
-  const details = institutionProfile || {
-      name: "JSS Polytechnic Nanjangud",
-      address: "Nanjangud, Karnataka",
-      contact: "08221-226491",
-      email: "jsspn324@jsspn.org",
-  };
-  
   return (
     <main className="relative min-h-screen bg-background p-4 lg:p-8 flex flex-col items-center justify-center gap-12">
        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background"></div>
@@ -53,54 +43,6 @@ export default function Home() {
               </Link>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Institution Info Section matching the provided screenshot */}
-      <div className="relative w-full max-w-4xl z-10 px-4 md:px-8 border-t pt-12 pb-8 grid grid-cols-1 md:grid-cols-2 gap-12 text-left">
-          <div className="space-y-6">
-              <div className="flex items-center gap-3 text-primary border-b border-primary/10 pb-2">
-                  <Building2 className="h-5 w-5" />
-                  <h3 className="text-lg font-bold tracking-tight uppercase">Contact Details</h3>
-              </div>
-              <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                      <MapPin className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
-                      <div>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Address</p>
-                          <p className="font-bold text-foreground">{details.address}</p>
-                      </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                      <Phone className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
-                      <div>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Phone</p>
-                          <p className="font-bold text-foreground">{details.contact}</p>
-                      </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                      <Mail className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
-                      <div>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email Address</p>
-                          <p className="font-bold text-foreground">{details.email}</p>
-                      </div>
-                  </div>
-              </div>
-          </div>
-
-          <div className="space-y-6">
-              <div className="flex items-center gap-3 text-primary border-b border-primary/10 pb-2">
-                  <Globe className="h-5 w-5" />
-                  <h3 className="text-lg font-bold tracking-tight uppercase">Accreditation</h3>
-              </div>
-              <div className="space-y-4">
-                  <p className="text-foreground font-semibold leading-snug">
-                      Approved by Government of Karnataka and A.I.C.T.E. New Delhi
-                  </p>
-                  <p className="text-muted-foreground italic text-xs leading-relaxed">
-                      Official Smart Attendance Portal for JSS Polytechnic Nanjangud students and faculty.
-                  </p>
-              </div>
-          </div>
       </div>
 
        <footer className="relative text-center w-full text-xs text-muted-foreground z-10 px-4 mt-4 pb-8">
