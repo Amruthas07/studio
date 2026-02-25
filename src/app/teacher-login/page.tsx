@@ -11,13 +11,12 @@ export default function TeacherLoginPage() {
     <main className="relative min-h-screen bg-background p-4 lg:p-8 flex flex-col items-center justify-center">
        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background"></div>
 
-        <div className="flex items-center gap-4 mb-8 z-10 text-center flex-col md:flex-row">
+        <div className="flex items-center gap-4 mb-8 z-10 text-center flex-col">
              <div className="bg-primary p-3 rounded-lg">
                <BrainCircuit className="w-10 h-10 text-primary-foreground" />
              </div>
             <div>
-              <h1 className="text-3xl font-bold font-headline text-primary">JSS Polytechnic Nanjangud</h1>
-              <p className="text-xl text-foreground">Smart Attendance Portal</p>
+              <h1 className="text-3xl font-bold font-headline text-primary">Smart Attendance Portal</h1>
             </div>
         </div>
 

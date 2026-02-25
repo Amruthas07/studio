@@ -23,12 +23,7 @@ export default function Home() {
              <BrainCircuit className="w-12 h-12 text-primary-foreground" />
            </div>
           <div className="space-y-1">
-            <p className="text-lg font-bold text-primary tracking-widest uppercase">JSS Mahavidyapeetha</p>
-            <h1 className="text-4xl md:text-6xl font-bold font-headline text-foreground">{details.name}</h1>
-            <p className="text-xs md:text-sm text-muted-foreground font-medium uppercase tracking-tighter opacity-80">
-                Approved by Government of Karnataka and A.I.C.T.E. New Delhi
-            </p>
-            <p className="text-2xl md:text-3xl font-bold text-primary mt-6">Smart Attendance Portal</p>
+            <h1 className="text-4xl md:text-6xl font-bold font-headline text-primary">Smart Attendance Portal</h1>
           </div>
         </div>
         
