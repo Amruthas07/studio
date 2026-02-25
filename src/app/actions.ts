@@ -1,4 +1,3 @@
-
 "use server";
 
 import { z } from "zod";
@@ -18,15 +17,12 @@ const addStudentSchema = z.object({
   contact: z.string(),
   fatherName: z.string(),
   motherName: z.string(),
-  photoDataUri: z.string(),
   dateOfBirth: z.string(), // Received as ISO string
 });
 
 export type AddStudentInput = z.infer<typeof addStudentSchema>;
 
-const editStudentSchema = addStudentSchema.omit({ photoDataUri: true }).extend({
-    photoDataUri: z.string().optional(),
-});
+const editStudentSchema = addStudentSchema;
 
 
 export async function updateStudent(formData: FormData) {
@@ -34,13 +30,7 @@ export async function updateStudent(formData: FormData) {
     const data = Object.fromEntries(formData);
     const validatedData = editStudentSchema.parse(data);
     
-    // In a real app, you would handle the update in Firestore here.
-    // For now, we simulate success.
-    
-    // If a new photo is uploaded, you might want to re-generate a face ID.
-    if (validatedData.photoDataUri) {
-      // const result = await faceDataTool(...);
-    }
+    // Logic for updating student in Firestore would go here
     
     return { success: true };
   } catch (error) {
@@ -52,6 +42,15 @@ export async function updateStudent(formData: FormData) {
   }
 }
 
+// Helper to safely format dates that might have been serialized to strings
+const safeISOString = (date: any) => {
+    if (!date) return new Date().toISOString();
+    if (typeof date === 'string') return date;
+    if (date instanceof Date) return date.toISOString();
+    if (date?.toDate && typeof date.toDate === 'function') return date.toDate().toISOString();
+    return new Date(date).toISOString();
+};
+
 // This is the type the client-side component provides
 type GenerateDailyReportActionInput = {
     department: string;
@@ -61,17 +60,16 @@ type GenerateDailyReportActionInput = {
 
 export async function generateDailyReport(input: GenerateDailyReportActionInput) {
   try {
-    // Sanitize student data to match flow schema (convert dates to strings)
     const sanitizedStudents = input.students.map(s => ({
       ...s,
-      createdAt: s.createdAt.toISOString(),
-      dateOfBirth: s.dateOfBirth.toISOString(),
-      updatedAt: s.updatedAt?.toISOString() ?? s.createdAt.toISOString(),
+      createdAt: safeISOString(s.createdAt),
+      dateOfBirth: safeISOString(s.dateOfBirth),
+      updatedAt: s.updatedAt ? safeISOString(s.updatedAt) : safeISOString(s.createdAt),
     }));
 
     const sanitizedAttendance = input.attendanceRecords.map(r => ({
       ...r,
-      timestamp: new Date(r.timestamp).toISOString(),
+      timestamp: safeISOString(r.timestamp),
     }));
 
     const flowInput: DailyAttendanceReportInput = {
@@ -101,17 +99,16 @@ export async function generateReport(input: GenerateReportFormInput) {
     try {
         const dateStr = format(input.date, 'yyyy-MM-dd');
         
-        // Sanitize student data to match flow schema (convert dates to strings)
         const sanitizedStudents = input.students.map(s => ({
           ...s,
-          createdAt: s.createdAt.toISOString(),
-          dateOfBirth: s.dateOfBirth.toISOString(),
-          updatedAt: s.updatedAt?.toISOString() ?? s.createdAt.toISOString(),
+          createdAt: safeISOString(s.createdAt),
+          dateOfBirth: safeISOString(s.dateOfBirth),
+          updatedAt: s.updatedAt ? safeISOString(s.updatedAt) : safeISOString(s.createdAt),
         }));
         
         const sanitizedAttendance = input.attendanceRecords.map(r => ({
             ...r,
-            timestamp: new Date(r.timestamp).toISOString(),
+            timestamp: safeISOString(r.timestamp),
         }));
 
         const flowInput: AttendanceReportingWithFilteringInput = {
@@ -151,11 +148,10 @@ type GenerateTeacherReportFormInput = {
 
 export async function generateTeacherReport(input: GenerateTeacherReportFormInput) {
     try {
-        // Sanitize teacher data
         const sanitizedTeachers = input.teachers.map(t => ({
           ...t,
-          createdAt: t.createdAt.toISOString(),
-          updatedAt: t.updatedAt?.toISOString() ?? t.createdAt.toISOString(),
+          createdAt: safeISOString(t.createdAt),
+          updatedAt: t.updatedAt ? safeISOString(t.updatedAt) : safeISOString(t.createdAt),
         }));
 
         const flowInput: TeacherListReportInput = {

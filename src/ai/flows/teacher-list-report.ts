@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -17,7 +16,6 @@ const TeacherSchema = z.object({
   name: z.string(),
   email: z.string().email(),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
-  profilePhotoUrl: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string().optional(),
 });

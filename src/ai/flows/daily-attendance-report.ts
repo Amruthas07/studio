@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -18,10 +17,8 @@ const StudentSchema = z.object({
   fatherName: z.string(),
   motherName: z.string(),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
-  profilePhotoUrl: z.string(),
   email: z.string().email(),
   contact: z.string(),
-  photoHash: z.string().optional(),
   createdAt: z.string(),
   dateOfBirth: z.string(),
   updatedAt: z.string().optional(),
@@ -36,8 +33,8 @@ const AttendanceRecordSchema = z.object({
   status: z.enum(['present', 'absent']),
   timestamp: z.string(),
   reason: z.string().optional(),
-  method: z.enum(["face-scan", "manual"]),
-  photoUrl: z.string().optional(),
+  method: z.enum(["manual"]),
+  subject: z.string().optional(),
 });
 
 
