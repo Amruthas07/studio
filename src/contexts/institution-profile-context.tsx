@@ -14,10 +14,10 @@ export const InstitutionProfileContext = createContext<InstitutionProfileContext
 
 const defaultProfile: InstitutionProfile = {
     id: 'profile',
-    name: "JSS Polytechnic",
-    address: "Mysuru, Karnataka",
-    contact: "0821-2548231",
-    email: "info@jsspolytechnic.edu",
+    name: "JSS Polytechnic Nanjangud",
+    address: "Nanjangud, Karnataka",
+    contact: "08221-226491",
+    email: "jsspn324@jsspn.org",
     coverImageUrl: "https://picsum.photos/seed/jss-poly/1920/1080",
 };
 

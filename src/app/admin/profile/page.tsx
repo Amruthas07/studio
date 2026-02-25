@@ -10,14 +10,14 @@ export default function AdminProfilePage() {
     const { institutionProfile, loading: profileLoading } = useInstitutionProfile();
 
     const collegeDetails = institutionProfile || {
-        name: "JSS Polytechnic",
-        address: "Mysuru, Karnataka",
-        contact: "0821-2548231",
-        email: "info@jsspolytechnic.edu",
+        name: "JSS Polytechnic Nanjangud",
+        address: "Nanjangud, Karnataka",
+        contact: "08221-226491",
+        email: "jsspn324@jsspn.org",
         coverImageUrl: "https://picsum.photos/seed/jss-poly/1920/1080"
     };
 
-    const aboutInstitution = "JSS Polytechnic is a premier institution dedicated to fostering an environment of academic excellence and technical innovation. Our mission is to empower students with the practical skills and values needed to thrive in a rapidly changing industrial landscape. We offer a diverse range of diploma programs supported by experienced faculty and state-of-the-art laboratory facilities.";
+    const aboutInstitution = "JSS Polytechnic Nanjangud, established under JSS Mahavidyapeetha, is a premier technical institution approved by the Government of Karnataka and A.I.C.T.E., New Delhi. We are dedicated to providing high-quality technical education and training to empower students with skills that meet global industrial standards. Our state-of-the-art infrastructure and experienced faculty foster an environment of innovation and excellence.";
 
   const loading = authLoading || profileLoading;
 
@@ -51,7 +51,7 @@ export default function AdminProfilePage() {
         <CardHeader className="relative -mt-20 z-10 border-b-0 pb-4 px-6 md:px-8">
             <CardTitle className="font-headline text-4xl text-white drop-shadow-lg">{collegeDetails.name}</CardTitle>
             <CardDescription className="text-white/90 text-lg">
-                Excellence in Technical Education
+                JSS Mahavidyapeetha
             </CardDescription>
         </CardHeader>
         <CardContent className='pt-8 px-6 md:px-8 pb-8'>
@@ -62,6 +62,7 @@ export default function AdminProfilePage() {
                     </h3>
                     <div className="pt-2">
                         <p className="text-justify text-foreground/90 leading-relaxed">{aboutInstitution}</p>
+                        <p className="mt-4 font-semibold text-sm italic text-muted-foreground">Approved by Government of Karnataka and A.I.C.T.E. New Delhi</p>
                     </div>
                 </div>
 
@@ -80,7 +81,7 @@ export default function AdminProfilePage() {
                         <div className="flex items-start gap-4">
                             <Phone className="h-5 w-5 mt-1 text-primary flex-shrink-0" />
                             <div>
-                                <p className="text-sm font-medium text-muted-foreground">Contact Number</p>
+                                <p className="text-sm font-medium text-muted-foreground">Phone</p>
                                 <p className="font-semibold">{collegeDetails.contact}</p>
                             </div>
                         </div>

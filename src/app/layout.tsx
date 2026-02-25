@@ -26,8 +26,8 @@ const fontSourceCodePro = Source_Code_Pro({
 });
 
 export const metadata: Metadata = {
-  title: 'Smart Attendance | JSS Polytechnic',
-  description: 'AI-Powered secure student attendance and tracking system for JSS Polytechnic.',
+  title: 'Smart Attendance | JSS Polytechnic Nanjangud',
+  description: 'Secure student attendance and tracking system for JSS Polytechnic Nanjangud, Approved by Govt of Karnataka and A.I.C.T.E.',
 };
 
 export default function RootLayout({
