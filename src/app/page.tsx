@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BrainCircuit, Shield, User, GraduationCap } from 'lucide-react';
+import { BrainCircuit, Shield, User, GraduationCap, Building2, Globe, MapPin, Phone, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { useInstitutionProfile } from '@/hooks/use-institution-profile';
 
@@ -10,10 +10,13 @@ export default function Home() {
 
   const details = institutionProfile || {
       name: "JSS Polytechnic Nanjangud",
+      address: "Nanjangud, Karnataka",
+      contact: "08221-226491",
+      email: "jsspn324@jsspn.org",
   };
   
   return (
-    <main className="relative min-h-screen bg-background p-4 lg:p-8 flex items-center justify-center">
+    <main className="relative min-h-screen bg-background p-4 lg:p-8 flex flex-col items-center justify-center gap-12">
        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background"></div>
 
       <div className="relative w-full max-w-4xl flex flex-col items-center gap-8 z-10">
@@ -28,22 +31,22 @@ export default function Home() {
         </div>
         
         <Card className="w-full bg-card/80 backdrop-blur-sm border-primary/10 shadow-2xl mt-4">
-          <CardHeader className="text-center">
+          <CardHeader className="text-center border-b border-primary/5">
             <CardTitle className="text-2xl font-bold">Welcome to the Portal</CardTitle>
             <CardDescription className="text-base">Please select your role to sign in to the attendance system.</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Link href="/admin-login" className="group flex flex-col items-center justify-center p-8 bg-muted hover:bg-primary/5 rounded-xl text-center transition-all duration-300 ease-in-out border border-transparent hover:border-primary/20 shadow-sm hover:shadow-lg">
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8">
+              <Link href="/admin-login" className="group flex flex-col items-center justify-center p-8 bg-muted/50 hover:bg-primary/5 rounded-xl text-center transition-all duration-300 ease-in-out border border-transparent hover:border-primary/20 shadow-sm hover:shadow-lg">
                   <Shield className="h-14 w-14 text-primary mb-4 transition-transform group-hover:scale-110" />
                   <h3 className="text-lg font-bold">Admin Login</h3>
                   <p className="text-xs text-muted-foreground mt-2">Manage system and reports</p>
               </Link>
-              <Link href="/teacher-login" className="group flex flex-col items-center justify-center p-8 bg-muted hover:bg-primary/5 rounded-xl text-center transition-all duration-300 ease-in-out border border-transparent hover:border-primary/20 shadow-sm hover:shadow-lg">
+              <Link href="/teacher-login" className="group flex flex-col items-center justify-center p-8 bg-muted/50 hover:bg-primary/5 rounded-xl text-center transition-all duration-300 ease-in-out border border-transparent hover:border-primary/20 shadow-sm hover:shadow-lg">
                   <User className="h-14 w-14 text-primary mb-4 transition-transform group-hover:scale-110" />
                   <h3 className="text-lg font-bold">Teacher Login</h3>
                   <p className="text-xs text-muted-foreground mt-2">Mark and manage attendance</p>
               </Link>
-               <Link href="/student-login" className="group flex flex-col items-center justify-center p-8 bg-muted hover:bg-primary/5 rounded-xl text-center transition-all duration-300 ease-in-out border border-transparent hover:border-primary/20 shadow-sm hover:shadow-lg">
+               <Link href="/student-login" className="group flex flex-col items-center justify-center p-8 bg-muted/50 hover:bg-primary/5 rounded-xl text-center transition-all duration-300 ease-in-out border border-transparent hover:border-primary/20 shadow-sm hover:shadow-lg">
                   <GraduationCap className="h-14 w-14 text-primary mb-4 transition-transform group-hover:scale-110" />
                   <h3 className="text-lg font-bold">Student Login</h3>
                   <p className="text-xs text-muted-foreground mt-2">View profile and history</p>
@@ -52,7 +55,55 @@ export default function Home() {
         </Card>
       </div>
 
-       <footer className="absolute bottom-4 text-center w-full text-xs text-muted-foreground z-10 px-4">
+      {/* Institution Info Section matching the provided screenshot */}
+      <div className="relative w-full max-w-4xl z-10 px-4 md:px-8 border-t pt-12 pb-8 grid grid-cols-1 md:grid-cols-2 gap-12 text-left">
+          <div className="space-y-6">
+              <div className="flex items-center gap-3 text-primary border-b border-primary/10 pb-2">
+                  <Building2 className="h-5 w-5" />
+                  <h3 className="text-lg font-bold tracking-tight uppercase">Contact Details</h3>
+              </div>
+              <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                      <MapPin className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
+                      <div>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Address</p>
+                          <p className="font-bold text-foreground">{details.address}</p>
+                      </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                      <Phone className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
+                      <div>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Phone</p>
+                          <p className="font-bold text-foreground">{details.contact}</p>
+                      </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                      <Mail className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
+                      <div>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email Address</p>
+                          <p className="font-bold text-foreground">{details.email}</p>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+          <div className="space-y-6">
+              <div className="flex items-center gap-3 text-primary border-b border-primary/10 pb-2">
+                  <Globe className="h-5 w-5" />
+                  <h3 className="text-lg font-bold tracking-tight uppercase">Accreditation</h3>
+              </div>
+              <div className="space-y-4">
+                  <p className="text-foreground font-semibold leading-snug">
+                      Approved by Government of Karnataka and A.I.C.T.E. New Delhi
+                  </p>
+                  <p className="text-muted-foreground italic text-xs leading-relaxed">
+                      Official Smart Attendance Portal for JSS Polytechnic Nanjangud students and faculty.
+                  </p>
+              </div>
+          </div>
+      </div>
+
+       <footer className="relative text-center w-full text-xs text-muted-foreground z-10 px-4 mt-4 pb-8">
         <div className="flex justify-center items-center gap-4 mb-2">
             <Link href="/terms" className="hover:text-primary transition-colors">Terms & Conditions</Link>
             <span className="text-muted-foreground/30">|</span>

@@ -30,7 +30,7 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
 
   useEffect(() => {
     if (authLoading || !firestore) {
-        setLoading(!authLoading); 
+        if (!authLoading) setLoading(false); 
         return;
     }
 
@@ -43,11 +43,11 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
           const data = snapshot.data();
           const profileData: InstitutionProfile = { 
               id: snapshot.id, 
-              name: data.name,
-              address: data.address,
-              contact: data.contact,
-              email: data.email,
-              coverImageUrl: data.coverImageUrl
+              name: data.name || defaultProfile.name,
+              address: data.address || defaultProfile.address,
+              contact: data.contact || defaultProfile.contact,
+              email: data.email || defaultProfile.email,
+              coverImageUrl: data.coverImageUrl || defaultProfile.coverImageUrl
           };
           setInstitutionProfile(profileData);
         } else {
@@ -56,10 +56,7 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
         setLoading(false);
       },
       (err) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: profileDocRef.path,
-            operation: 'get'
-        }));
+        // Fallback to default if permissions are tight, but don't crash
         setInstitutionProfile(defaultProfile); 
         setLoading(false);
       }

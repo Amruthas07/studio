@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Mail, MapPin, Phone, Loader2, Building2, Globe } from 'lucide-react';
 import Image from 'next/image';
 import { useInstitutionProfile } from '@/hooks/use-institution-profile';
+import { Separator } from '@/components/ui/separator';
 
 export default function AdminProfilePage() {
     const { user, loading: authLoading } = useAuth();
@@ -52,46 +53,50 @@ export default function AdminProfilePage() {
                 JSS Mahavidyapeetha
             </CardDescription>
         </CardHeader>
-        <CardContent className='pt-8 px-6 md:px-8 pb-8'>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                    <h3 className="text-xl font-semibold tracking-tight text-primary border-b-2 border-primary/30 pb-2 flex items-center gap-3">
-                        <Building2 className="h-5 w-5" /> Contact Details
-                    </h3>
-                    <div className="space-y-5 pt-2">
+        <CardContent className='pt-8 px-6 md:px-8 pb-12'>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                {/* Contact Details Column */}
+                <div className="space-y-6">
+                    <div className="flex items-center gap-3 text-primary border-b-2 border-primary/10 pb-3">
+                        <Building2 className="h-6 w-6" />
+                        <h3 className="text-xl font-bold tracking-tight">Contact Details</h3>
+                    </div>
+                    <div className="space-y-5">
                         <div className="flex items-start gap-4">
                             <MapPin className="h-5 w-5 mt-1 text-primary flex-shrink-0" />
                             <div>
-                                <p className="text-sm font-medium text-muted-foreground">Address</p>
-                                <p className="font-semibold">{collegeDetails.address}</p>
+                                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Address</p>
+                                <p className="font-bold text-foreground text-lg leading-tight">{collegeDetails.address}</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-4">
                             <Phone className="h-5 w-5 mt-1 text-primary flex-shrink-0" />
                             <div>
-                                <p className="text-sm font-medium text-muted-foreground">Phone</p>
-                                <p className="font-semibold">{collegeDetails.contact}</p>
+                                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Phone</p>
+                                <p className="font-bold text-foreground text-lg leading-tight">{collegeDetails.contact}</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-4">
                             <Mail className="h-5 w-5 mt-1 text-primary flex-shrink-0" />
                             <div>
-                                <p className="text-sm font-medium text-muted-foreground">Email Address</p>
-                                <p className="font-semibold">{collegeDetails.email}</p>
+                                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Email Address</p>
+                                <p className="font-bold text-foreground text-lg leading-tight">{collegeDetails.email}</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="space-y-4">
-                    <h3 className="text-xl font-semibold tracking-tight text-primary border-b-2 border-primary/30 pb-2 flex items-center gap-3">
-                        <Globe className="h-5 w-5" /> Accreditation
-                    </h3>
-                    <div className="pt-2">
-                        <p className="text-foreground/90 leading-relaxed font-medium">
+                {/* Accreditation Column */}
+                <div className="space-y-6">
+                    <div className="flex items-center gap-3 text-primary border-b-2 border-primary/10 pb-3">
+                        <Globe className="h-6 w-6" />
+                        <h3 className="text-xl font-bold tracking-tight">Accreditation</h3>
+                    </div>
+                    <div className="space-y-4">
+                        <p className="text-foreground font-semibold text-lg leading-snug">
                             Approved by Government of Karnataka and A.I.C.T.E. New Delhi
                         </p>
-                        <p className="mt-4 text-sm text-muted-foreground italic">
+                        <p className="text-muted-foreground italic text-sm leading-relaxed">
                             Official Smart Attendance Portal for JSS Polytechnic Nanjangud students and faculty.
                         </p>
                     </div>
