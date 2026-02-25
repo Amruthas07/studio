@@ -14,11 +14,11 @@ export const InstitutionProfileContext = createContext<InstitutionProfileContext
 
 const defaultProfile: InstitutionProfile = {
     id: 'profile',
-    name: "Smart Institute",
-    address: "123 Innovation Drive, Electronic City, Bengaluru",
-    contact: "08221 - 226491 | Cell: +91 9886618231",
-    email: "info@smartinstitute.edu",
-    coverImageUrl: "https://picsum.photos/seed/college-campus/1920/1080",
+    name: "JSS Polytechnic",
+    address: "Mysuru, Karnataka",
+    contact: "0821-2548231",
+    email: "info@jsspolytechnic.edu",
+    coverImageUrl: "https://picsum.photos/seed/jss-poly/1920/1080",
 };
 
 export function InstitutionProfileProvider({ children }: { children: ReactNode }) {
@@ -30,7 +30,7 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
 
   useEffect(() => {
     if (authLoading || !firestore) {
-        setLoading(!authLoading); // If auth is still loading, we are loading. If not, we are done.
+        setLoading(!authLoading); 
         return;
     }
 
@@ -51,19 +51,16 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
           };
           setInstitutionProfile(profileData);
         } else {
-          // If doc doesn't exist, just use the local default profile.
-          // Do not attempt to create it. This should be done manually by an admin if needed.
           setInstitutionProfile(defaultProfile);
         }
         setLoading(false);
       },
       (err) => {
-        // Any error reading the public profile is unexpected and should be reported with context.
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: profileDocRef.path,
             operation: 'get'
         }));
-        setInstitutionProfile(defaultProfile); // Fallback to default
+        setInstitutionProfile(defaultProfile); 
         setLoading(false);
       }
     );

@@ -26,8 +26,8 @@ const fontSourceCodePro = Source_Code_Pro({
 });
 
 export const metadata: Metadata = {
-  title: 'Smart Institute | Advanced Attendance Management',
-  description: 'AI-Powered secure student attendance and tracking system.',
+  title: 'Smart Attendance | JSS Polytechnic',
+  description: 'AI-Powered secure student attendance and tracking system for JSS Polytechnic.',
 };
 
 export default function RootLayout({

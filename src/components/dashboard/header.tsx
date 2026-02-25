@@ -1,4 +1,3 @@
-
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Menu, BrainCircuit } from 'lucide-react';
@@ -12,7 +11,7 @@ function Logo() {
       <div className="bg-primary p-2 rounded-md">
         <BrainCircuit className="w-5 h-5 text-primary-foreground" />
       </div>
-      <span className="font-headline text-primary whitespace-nowrap">Smart Institute</span>
+      <span className="font-headline text-primary whitespace-nowrap">Smart Attendance</span>
     </div>
   )
 }

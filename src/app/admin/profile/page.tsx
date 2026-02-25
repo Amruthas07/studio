@@ -10,14 +10,14 @@ export default function AdminProfilePage() {
     const { institutionProfile, loading: profileLoading } = useInstitutionProfile();
 
     const collegeDetails = institutionProfile || {
-        name: "Smart Institute of Technology",
-        address: "123 Innovation Drive, Tech Park, Bengaluru, Karnataka 560100",
-        contact: "+91 80 1234 5678",
-        email: "admissions@smartinstitute.edu",
-        coverImageUrl: "https://picsum.photos/seed/modern-campus/1920/1080"
+        name: "JSS Polytechnic",
+        address: "Mysuru, Karnataka",
+        contact: "0821-2548231",
+        email: "info@jsspolytechnic.edu",
+        coverImageUrl: "https://picsum.photos/seed/jss-poly/1920/1080"
     };
 
-    const aboutInstitution = "Smart Institute of Technology is a premier institution dedicated to fostering an environment of academic excellence and cutting-edge innovation. Our mission is to empower students with the knowledge, skills, and values needed to thrive in a rapidly changing world. We offer a diverse range of programs supported by a world-class faculty and state-of-the-art facilities. Our commitment to research, hands-on learning, and community engagement prepares our graduates to become leaders and problem-solvers in their chosen fields, making a positive impact on society.";
+    const aboutInstitution = "JSS Polytechnic is a premier institution dedicated to fostering an environment of academic excellence and technical innovation. Our mission is to empower students with the practical skills and values needed to thrive in a rapidly changing industrial landscape. We offer a diverse range of diploma programs supported by experienced faculty and state-of-the-art laboratory facilities.";
 
   const loading = authLoading || profileLoading;
 
@@ -39,11 +39,11 @@ export default function AdminProfilePage() {
       <Card className='overflow-hidden shadow-lg border-border/50'>
         <div className='relative h-56 w-full'>
             <Image 
-                src={collegeDetails.coverImageUrl || "https://picsum.photos/seed/modern-campus/1920/1080"}
+                src={collegeDetails.coverImageUrl || "https://picsum.photos/seed/jss-poly/1920/1080"}
                 alt={`${collegeDetails.name} campus`}
                 fill
                 className='object-cover'
-                data-ai-hint="modern university campus"
+                data-ai-hint="university campus"
                 priority
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
@@ -51,12 +51,11 @@ export default function AdminProfilePage() {
         <CardHeader className="relative -mt-20 z-10 border-b-0 pb-4 px-6 md:px-8">
             <CardTitle className="font-headline text-4xl text-white drop-shadow-lg">{collegeDetails.name}</CardTitle>
             <CardDescription className="text-white/90 text-lg">
-                A Hub of Innovation and Academic Excellence
+                Excellence in Technical Education
             </CardDescription>
         </CardHeader>
         <CardContent className='pt-8 px-6 md:px-8 pb-8'>
             <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-12 gap-8">
-                {/* Left Column: About */}
                 <div className="lg:col-span-2 space-y-4">
                      <h3 className="text-xl font-semibold tracking-tight text-primary border-b-2 border-primary/30 pb-2 flex items-center gap-3">
                         <Info className="h-5 w-5" /> About the Institution
@@ -66,7 +65,6 @@ export default function AdminProfilePage() {
                     </div>
                 </div>
 
-                {/* Right Column: Contact */}
                 <div className="space-y-4">
                     <h3 className="text-xl font-semibold tracking-tight text-primary border-b-2 border-primary/30 pb-2 flex items-center gap-3">
                         <Building2 className="h-5 w-5" /> Contact Details

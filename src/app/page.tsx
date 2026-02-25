@@ -9,7 +9,7 @@ export default function Home() {
   const { institutionProfile } = useInstitutionProfile();
 
   const details = institutionProfile || {
-      name: "Smart Institute",
+      name: "JSS Polytechnic",
   };
   
   return (
@@ -24,7 +24,7 @@ export default function Home() {
            </div>
           <div>
             <h1 className="text-5xl font-bold font-headline text-primary">{details.name}</h1>
-            <p className="text-2xl text-foreground mt-2">Smart Attendance Management System</p>
+            <p className="text-2xl text-foreground mt-2">Smart Attendance Portal</p>
           </div>
         </div>
         
@@ -56,7 +56,7 @@ export default function Home() {
             <span className="text-muted-foreground">|</span>
             <Link href="/privacy" className="hover:text-primary">Privacy Policy</Link>
         </div>
-        <p>&copy; 2026 Smart Institute. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} JSS Polytechnic. All rights reserved.</p>
       </footer>
     </main>
   );

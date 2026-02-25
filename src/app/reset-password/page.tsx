@@ -243,8 +243,8 @@ export default function ResetPasswordPage() {
                     <BrainCircuit className="w-8 h-8 text-primary-foreground" />
                 </div>
                 <div>
-                    <h1 className="text-3xl font-bold font-headline text-primary">Smart Institute</h1>
-                    <p className="text-xl text-foreground">Attendance Management</p>
+                    <h1 className="text-3xl font-bold font-headline text-primary">JSS Polytechnic</h1>
+                    <p className="text-xl text-foreground">Smart Attendance</p>
                 </div>
             </div>
             <div className="flex-1 flex items-center justify-center w-full">
@@ -258,7 +258,7 @@ export default function ResetPasswordPage() {
                     <span className="text-muted-foreground">|</span>
                     <Link href="/privacy" className="hover:text-primary">Privacy</Link>
                 </div>
-                <p>&copy; {new Date().getFullYear()} Smart Institute. All rights reserved.</p>
+                <p>&copy; {new Date().getFullYear()} JSS Polytechnic. All rights reserved.</p>
             </footer>
           </div>
           <div className="relative hidden lg:block">
