@@ -1,7 +1,7 @@
 'use client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, MapPin, Phone, Info, Loader2, Building2 } from 'lucide-react';
+import { Mail, MapPin, Phone, Loader2, Building2, Globe } from 'lucide-react';
 import Image from 'next/image';
 import { useInstitutionProfile } from '@/hooks/use-institution-profile';
 
@@ -17,8 +17,6 @@ export default function AdminProfilePage() {
         coverImageUrl: "https://picsum.photos/seed/jss-poly/1920/1080"
     };
 
-    const aboutInstitution = "JSS Polytechnic Nanjangud, established under JSS Mahavidyapeetha, is a premier technical institution approved by the Government of Karnataka and A.I.C.T.E., New Delhi. We are dedicated to providing high-quality technical education and training to empower students with skills that meet global industrial standards. Our state-of-the-art infrastructure and experienced faculty foster an environment of innovation and excellence.";
-
   const loading = authLoading || profileLoading;
 
   if (loading || !user) {
@@ -33,7 +31,7 @@ export default function AdminProfilePage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline">Institution Profile</h1>
-        <p className="text-foreground">General information about the college.</p>
+        <p className="text-foreground">Official details and contact information.</p>
       </div>
 
       <Card className='overflow-hidden shadow-lg border-border/50'>
@@ -55,17 +53,7 @@ export default function AdminProfilePage() {
             </CardDescription>
         </CardHeader>
         <CardContent className='pt-8 px-6 md:px-8 pb-8'>
-            <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-12 gap-8">
-                <div className="lg:col-span-2 space-y-4">
-                     <h3 className="text-xl font-semibold tracking-tight text-primary border-b-2 border-primary/30 pb-2 flex items-center gap-3">
-                        <Info className="h-5 w-5" /> About the Institution
-                    </h3>
-                    <div className="pt-2">
-                        <p className="text-justify text-foreground/90 leading-relaxed">{aboutInstitution}</p>
-                        <p className="mt-4 font-semibold text-sm italic text-muted-foreground">Approved by Government of Karnataka and A.I.C.T.E. New Delhi</p>
-                    </div>
-                </div>
-
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-4">
                     <h3 className="text-xl font-semibold tracking-tight text-primary border-b-2 border-primary/30 pb-2 flex items-center gap-3">
                         <Building2 className="h-5 w-5" /> Contact Details
@@ -92,6 +80,20 @@ export default function AdminProfilePage() {
                                 <p className="font-semibold">{collegeDetails.email}</p>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <h3 className="text-xl font-semibold tracking-tight text-primary border-b-2 border-primary/30 pb-2 flex items-center gap-3">
+                        <Globe className="h-5 w-5" /> Accreditation
+                    </h3>
+                    <div className="pt-2">
+                        <p className="text-foreground/90 leading-relaxed font-medium">
+                            Approved by Government of Karnataka and A.I.C.T.E. New Delhi
+                        </p>
+                        <p className="mt-4 text-sm text-muted-foreground italic">
+                            Official Smart Attendance Portal for JSS Polytechnic Nanjangud students and faculty.
+                        </p>
                     </div>
                 </div>
             </div>

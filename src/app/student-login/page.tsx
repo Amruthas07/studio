@@ -11,13 +11,13 @@ export default function StudentLoginPage() {
     <main className="relative min-h-screen bg-background p-4 lg:p-8 flex flex-col items-center justify-center">
        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background"></div>
 
-        <div className="flex items-center gap-4 mb-8 z-10">
+        <div className="flex items-center gap-4 mb-8 z-10 text-center flex-col md:flex-row">
              <div className="bg-primary p-3 rounded-lg">
-               <BrainCircuit className="w-8 h-8 text-primary-foreground" />
+               <BrainCircuit className="w-10 h-10 text-primary-foreground" />
              </div>
             <div>
-              <h1 className="text-4xl font-bold font-headline text-primary">JSS Polytechnic</h1>
-              <p className="text-2xl text-foreground">Smart Attendance System</p>
+              <h1 className="text-3xl font-bold font-headline text-primary">JSS Polytechnic Nanjangud</h1>
+              <p className="text-xl text-foreground">Smart Attendance Portal</p>
             </div>
         </div>
 
@@ -40,13 +40,13 @@ export default function StudentLoginPage() {
             </CardFooter>
         </Card>
 
-       <footer className="absolute bottom-4 text-center w-full text-xs text-foreground z-10">
+       <footer className="absolute bottom-4 text-center w-full text-xs text-foreground z-10 px-4">
         <div className="flex justify-center items-center gap-4 mb-2">
             <Link href="/terms" className="hover:text-primary">Terms & Conditions</Link>
             <span className="text-muted-foreground">|</span>
             <Link href="/privacy" className="hover:text-primary">Privacy Policy</Link>
         </div>
-        <p>&copy; {new Date().getFullYear()} JSS Polytechnic. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} JSS Polytechnic Nanjangud. All rights reserved.</p>
       </footer>
     </main>
   );

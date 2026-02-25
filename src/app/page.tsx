@@ -19,20 +19,20 @@ export default function Home() {
       <div className="relative w-full max-w-4xl flex flex-col items-center gap-8 z-10">
         
         <div className="flex items-center gap-4 text-center flex-col">
-           <div className="bg-primary p-3 rounded-lg shadow-xl">
+           <div className="bg-primary p-3 rounded-lg shadow-xl mb-2">
              <BrainCircuit className="w-12 h-12 text-primary-foreground" />
            </div>
           <div className="space-y-1">
             <p className="text-lg font-bold text-primary tracking-widest uppercase">JSS Mahavidyapeetha</p>
             <h1 className="text-4xl md:text-6xl font-bold font-headline text-foreground">{details.name}</h1>
-            <p className="text-sm md:text-base text-muted-foreground font-medium uppercase tracking-tighter">
+            <p className="text-xs md:text-sm text-muted-foreground font-medium uppercase tracking-tighter opacity-80">
                 Approved by Government of Karnataka and A.I.C.T.E. New Delhi
             </p>
-            <p className="text-2xl font-semibold text-primary mt-4">Smart Attendance Portal</p>
+            <p className="text-2xl md:text-3xl font-bold text-primary mt-6">Smart Attendance Portal</p>
           </div>
         </div>
         
-        <Card className="w-full bg-card/80 backdrop-blur-sm border-primary/10 shadow-2xl">
+        <Card className="w-full bg-card/80 backdrop-blur-sm border-primary/10 shadow-2xl mt-4">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold">Welcome to the Portal</CardTitle>
             <CardDescription className="text-base">Please select your role to sign in to the attendance system.</CardDescription>
