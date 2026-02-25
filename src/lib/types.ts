@@ -79,6 +79,7 @@ export interface InstitutionProfile {
   contact: string;
   email: string;
   coverImageUrl?: string;
+  about?: string;
 }
 
 export interface InstitutionProfileContextType {

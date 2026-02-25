@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -19,6 +20,7 @@ const defaultProfile: InstitutionProfile = {
     contact: "08221-226491",
     email: "jsspn324@jsspn.org",
     coverImageUrl: "https://picsum.photos/seed/jss-poly/1920/1080",
+    about: "JSS Polytechnic, Nanjangud, established by the JSS Mahavidyapeetha, is a premier technical institution committed to providing quality education in various engineering disciplines. Approved by the Government of Karnataka and A.I.C.T.E., New Delhi, the polytechnic aims to empower students with technical skills and ethical values, preparing them for successful careers in the global industrial landscape."
 };
 
 export function InstitutionProfileProvider({ children }: { children: ReactNode }) {
@@ -47,7 +49,8 @@ export function InstitutionProfileProvider({ children }: { children: ReactNode }
               address: data.address || defaultProfile.address,
               contact: data.contact || defaultProfile.contact,
               email: data.email || defaultProfile.email,
-              coverImageUrl: data.coverImageUrl || defaultProfile.coverImageUrl
+              coverImageUrl: data.coverImageUrl || defaultProfile.coverImageUrl,
+              about: data.about || defaultProfile.about
           };
           setInstitutionProfile(profileData);
         } else {

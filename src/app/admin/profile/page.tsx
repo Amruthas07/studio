@@ -1,7 +1,8 @@
+
 'use client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, MapPin, Phone, Loader2, Building2, Globe } from 'lucide-react';
+import { Mail, MapPin, Phone, Loader2, Building2, Globe, Info } from 'lucide-react';
 import Image from 'next/image';
 import { useInstitutionProfile } from '@/hooks/use-institution-profile';
 import { Separator } from '@/components/ui/separator';
@@ -15,7 +16,8 @@ export default function AdminProfilePage() {
         address: "Nanjangud, Karnataka",
         contact: "08221-226491",
         email: "jsspn324@jsspn.org",
-        coverImageUrl: "https://picsum.photos/seed/jss-poly/1920/1080"
+        coverImageUrl: "https://picsum.photos/seed/jss-poly/1920/1080",
+        about: "JSS Polytechnic, Nanjangud, established by the JSS Mahavidyapeetha, is a premier technical institution committed to providing quality education."
     };
 
   const loading = authLoading || profileLoading;
@@ -55,6 +57,17 @@ export default function AdminProfilePage() {
         </CardHeader>
         <CardContent className='pt-8 px-6 md:px-8 pb-12'>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                {/* About Section - Full width on top */}
+                <div className="lg:col-span-2 space-y-4">
+                    <div className="flex items-center gap-3 text-primary border-b-2 border-primary/10 pb-3">
+                        <Info className="h-6 w-6" />
+                        <h3 className="text-xl font-bold tracking-tight">About the Institution</h3>
+                    </div>
+                    <p className="text-foreground text-lg leading-relaxed text-justify">
+                        {collegeDetails.about}
+                    </p>
+                </div>
+
                 {/* Contact Details Column */}
                 <div className="space-y-6">
                     <div className="flex items-center gap-3 text-primary border-b-2 border-primary/10 pb-3">
