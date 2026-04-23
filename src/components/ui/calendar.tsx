@@ -1,9 +1,8 @@
-
 "use client"
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker, useDayPicker, useNavigation } from "react-day-picker"
+import { DayPicker } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
@@ -26,7 +25,7 @@ function Calendar({
         month: "space-y-4",
         caption: "flex justify-center pt-1 relative items-center",
         caption_label: "text-sm font-medium hidden",
-        caption_dropdowns: "flex justify-center gap-2",
+        caption_dropdowns: "flex justify-center gap-2 px-8",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
@@ -75,14 +74,15 @@ function Calendar({
                 handleChange(value)
               }}
             >
-              <SelectTrigger className="w-[120px]">
+              <SelectTrigger className="h-8 w-fit px-2 py-0 text-xs focus:ring-0 focus:ring-offset-0">
                 <SelectValue>{selected?.props?.children}</SelectValue>
               </SelectTrigger>
-              <SelectContent className="max-h-60">
+              <SelectContent className="max-h-60 overflow-y-auto">
                 {options.map((option, id: number) => (
                   <SelectItem
                     key={`${option.props.value}-${id}`}
                     value={option.props.value?.toString() ?? ""}
+                    className="text-xs"
                   >
                     {option.props.children}
                   </SelectItem>
