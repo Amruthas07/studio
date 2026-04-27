@@ -9,7 +9,7 @@
       "properties": {
         "registerNumber": {
           "type": "string",
-          "description": "Unique identifier for the student (min 6 chars).",
+          "description": "Unique identifier for the student (exactly 10 chars).",
           "format": "string"
         },
         "name": {

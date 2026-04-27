@@ -111,23 +111,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     return age >= 18;
   };
 
-  /**
-   * Query to fetch only students who are 18 or older.
-   */
-  const fetchEligibleStudents = async () => {
-    if (!firestore) return [];
-    const cutOffDate = new Date();
-    cutOffDate.setFullYear(cutOffDate.getFullYear() - 18);
-    
-    const q = query(
-      collection(firestore, 'students'), 
-      where('dateOfBirth', '<=', Timestamp.fromDate(cutOffDate))
-    );
-    
-    const querySnap = await getDocs(q);
-    return querySnap.docs.map(doc => doc.data() as Student);
-  };
-
   const addStudent = useCallback(async (
     studentData: Omit<Student, 'createdAt' | 'updatedAt' | 'uid'>
   ): Promise<{ success: boolean; error?: string }> => {
@@ -136,6 +119,11 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     // 1. Validation Logic: Prevent adding if age < 18
     if (!validateAge(studentData.dateOfBirth)) {
       return { success: false, error: 'Student must be at least 18 years old for enrollment.' };
+    }
+
+    // 2. Validation Logic: Register number length
+    if (studentData.registerNumber.length !== 10) {
+      return { success: false, error: 'Register number must be exactly 10 characters.' };
     }
 
     let tempApp: any = null;
@@ -164,7 +152,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
         let message = error.message || 'Enrollment failed.';
         if (error.code === 'auth/email-already-in-use') message = 'This email is already in use.';
-        if (error.code === 'auth/weak-password') message = 'Register number must be at least 6 characters.';
+        if (error.code === 'auth/weak-password') message = 'Register number must be at least 10 characters for security.';
         return { success: false, error: message };
     } finally {
         if (tempApp) deleteApp(tempApp).catch(() => {});

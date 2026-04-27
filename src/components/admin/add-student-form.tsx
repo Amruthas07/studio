@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -34,7 +35,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name required."),
-  registerNumber: z.string().min(6, "Register number must be at least 6 characters."),
+  registerNumber: z.string().length(10, "Register number must be exactly 10 characters."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   semester: z.coerce.number().min(1).max(6),
   email: z.string().email("Valid email required."),
@@ -100,7 +101,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                 <FormField control={form.control} name="registerNumber" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Register Number</FormLabel>
-                        <FormControl><Input placeholder="Min. 6 characters" {...field} disabled={isSubmitting} /></FormControl>
+                        <FormControl><Input placeholder="Exactly 10 characters" {...field} disabled={isSubmitting} /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />
@@ -177,7 +178,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
             <Alert className="bg-muted/50 border-primary/20">
                 <Info className="h-4 w-4 text-primary" />
                 <AlertDescription className="text-xs">
-                    Students must be at least 18 years old for enrollment eligibility. Register number serves as the initial password.
+                    Students must be at least 18 years old for enrollment eligibility. Register number (10 characters) serves as the initial password.
                 </AlertDescription>
             </Alert>
           </div>

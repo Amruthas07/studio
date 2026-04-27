@@ -1,3 +1,4 @@
+
 "use server";
 
 import { z } from "zod";
@@ -11,7 +12,7 @@ import { teacherListReport, TeacherListReportInput } from "@/ai/flows/teacher-li
 
 const addStudentSchema = z.object({
   name: z.string(),
-  registerNumber: z.string(),
+  registerNumber: z.string().length(10, "Register number must be exactly 10 characters."),
   department: z.string(),
   email: z.string().email(),
   contact: z.string(),
