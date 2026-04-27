@@ -95,6 +95,7 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
   }
 
   const currentYear = new Date().getFullYear();
+  const maxBirthYear = currentYear - 16;
 
   return (
     <Form {...form}>
@@ -258,8 +259,11 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                                 }}
                                 captionLayout="dropdown-buttons"
                                 fromYear={1900}
-                                toYear={currentYear}
-                                disabled={(date) => date > new Date()}
+                                toYear={maxBirthYear}
+                                disabled={(date) => {
+                                  const age = differenceInYears(new Date(), date);
+                                  return age < 16 || date > new Date();
+                                }}
                                 initialFocus
                             />
                             </PopoverContent>

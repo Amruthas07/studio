@@ -93,6 +93,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
   }
 
   const currentYear = new Date().getFullYear();
+  const maxBirthYear = currentYear - 16;
 
   return (
     <Form {...form}>
@@ -170,10 +171,13 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                                       field.onChange(date);
                                       if (date) setIsCalendarOpen(false);
                                     }} 
-                                    disabled={(date) => date > new Date()} 
+                                    disabled={(date) => {
+                                      const age = differenceInYears(new Date(), date);
+                                      return age < 16 || date > new Date();
+                                    }}
                                     captionLayout="dropdown-buttons"
                                     fromYear={1900}
-                                    toYear={currentYear}
+                                    toYear={maxBirthYear}
                                     initialFocus 
                                 />
                             </PopoverContent>
