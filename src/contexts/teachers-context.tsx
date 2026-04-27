@@ -76,6 +76,14 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
         return { success: false, error: 'Database not initialized.' };
     }
 
+    // Rule: Only one HOD per department
+    if (teacherData.position === 'HOD') {
+        const hodExists = teachers.some(t => t.department === teacherData.department && t.position === 'HOD');
+        if (hodExists) {
+            return { success: false, error: `Validation Error: An HOD already exists for the ${teacherData.department.toUpperCase()} department.` };
+        }
+    }
+
     const emailNormalized = teacherData.email.toLowerCase();
     const { password, subjects, ...details } = teacherData;
     let tempApp: any = null;
@@ -116,7 +124,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             deleteApp(tempApp).catch(() => {});
         }
     }
-  }, [firestore]);
+  }, [firestore, teachers]);
   
   const updateTeacher = useCallback(async (
     teacherId: string, 
@@ -126,6 +134,30 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
       toast({ variant: 'destructive', title: 'Update Failed', description: 'Database not available.' });
       return;
     }
+
+    const currentTeacher = teachers.find(t => t.teacherId === teacherId);
+    if (!currentTeacher) return;
+
+    // Rule: Only one HOD per department
+    const targetDept = updates.department || currentTeacher.department;
+    const targetPosition = updates.position || currentTeacher.position;
+
+    if (targetPosition === 'HOD') {
+        const hodExists = teachers.some(t => 
+            t.department === targetDept && 
+            t.position === 'HOD' && 
+            t.teacherId !== teacherId
+        );
+        if (hodExists) {
+            toast({ 
+                variant: 'destructive', 
+                title: 'Update Blocked', 
+                description: `The ${targetDept.toUpperCase()} department already has an HOD assigned.` 
+            });
+            return;
+        }
+    }
+
     const { subjects, ...otherUpdates } = updates;
     const teacherDocRef = doc(firestore, 'teachers', teacherId.toLowerCase());
 
@@ -142,7 +174,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
         }
     }
-  }, [firestore, toast]);
+  }, [firestore, toast, teachers]);
   
   const deleteTeacher = useCallback((teacherId: string) => {
     if (!firestore) {
