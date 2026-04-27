@@ -10,17 +10,19 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && request.auth.token.email == "apdd46@gmail.com";
+      return isSignedIn() && 
+             request.auth.token.email != null && 
+             request.auth.token.email.lower() == "apdd46@gmail.com";
     }
 
     function isTeacher() {
-      let email = request.auth.token.email.lower();
-      return isSignedIn() && exists(/databases/$(database)/documents/teachers/$(email));
+      return isSignedIn() && 
+             request.auth.token.email != null && 
+             exists(/databases/$(database)/documents/teachers/$(request.auth.token.email.lower()));
     }
     
     function getTeacherDepartment() {
-        let email = request.auth.token.email.lower();
-        return get(/databases/$(database)/documents/teachers/$(email)).data.department;
+        return get(/databases/$(database)/documents/teachers/$(request.auth.token.email.lower())).data.department;
     }
 
     // Age validation: Check if DOB is at least 16 years ago (approx 5844 days)
@@ -36,7 +38,7 @@ service cloud.firestore {
     }
 
     match /teachers/{email} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.token.email.lower() == email.lower());
+      allow read, list: if isAdmin() || (isSignedIn() && request.auth.token.email != null && request.auth.token.email.lower() == email.lower());
       allow write: if isAdmin();
     }
     match /teachers {
@@ -44,7 +46,7 @@ service cloud.firestore {
     }
 
     match /students/{studentId} {
-      allow read: if isAdmin() || 
+      allow read, list: if isAdmin() || 
                    (isTeacher() && resource.data.department == getTeacherDepartment()) ||
                    (isSignedIn() && resource.data.uid == request.auth.uid);
 
@@ -53,7 +55,7 @@ service cloud.firestore {
     }
 
     match /attendance/{attendanceId} {
-      allow read: if isAdmin() ||
+      allow read, list: if isAdmin() ||
                    (isTeacher() && resource.data.department == getTeacherDepartment()) ||
                    (isSignedIn() && resource.data.studentUid == request.auth.uid);
 

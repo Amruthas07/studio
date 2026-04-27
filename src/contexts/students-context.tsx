@@ -118,18 +118,18 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
 
     // 1. Validation Logic: Prevent adding if age < 16
     if (!validateAge(studentData.dateOfBirth)) {
-      return { success: false, error: 'Student must be at least 16 years old for enrollment.' };
+      return { success: false, error: 'Eligibility Denied: Student must be at least 16 years old for enrollment.' };
     }
 
     // 2. Validation Logic: Register number length
     if (studentData.registerNumber.length !== 10) {
-      return { success: false, error: 'Register number must be exactly 10 characters.' };
+      return { success: false, error: 'Invalid Format: Register number must be exactly 10 characters.' };
     }
 
     let tempApp: any = null;
     try {
         if (students.some(s => s.registerNumber === studentData.registerNumber)) {
-            return { success: false, error: 'Register number already exists.' };
+            return { success: false, error: 'Record Exists: This register number is already assigned.' };
         }
 
         const tempAppName = `enroll-${Date.now()}`;
@@ -151,8 +151,8 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         return { success: true };
     } catch (error: any) {
         let message = error.message || 'Enrollment failed.';
-        if (error.code === 'auth/email-already-in-use') message = 'This email is already in use.';
-        if (error.code === 'auth/weak-password') message = 'Register number must be at least 10 characters for security.';
+        if (error.code === 'auth/email-already-in-use') message = 'Enrollment failed: This email is already registered.';
+        if (error.code === 'permission-denied') message = 'Permission Denied: You do not have authorization to enroll students or the student is under 16.';
         return { success: false, error: message };
     } finally {
         if (tempApp) deleteApp(tempApp).catch(() => {});
@@ -166,16 +166,20 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     if (!firestore) return;
 
     if (studentUpdate.dateOfBirth && !validateAge(studentUpdate.dateOfBirth)) {
-       toast({ variant: "destructive", title: "Update Failed", description: "Age must be 16 or older." });
+       toast({ variant: "destructive", title: "Update Failed", description: "Age eligibility mismatch: Student must be 16 or older." });
        return;
     }
 
     const studentDocRef = doc(firestore, 'students', registerNumber);
     try {
         await updateDoc(studentDocRef, { ...studentUpdate, updatedAt: serverTimestamp() });
-        toast({ title: "Profile Updated", description: "Changes saved." });
+        toast({ title: "Profile Updated", description: "Changes saved successfully." });
     } catch (e: any) {
-        toast({ variant: "destructive", title: "Update Error", description: e.message });
+        if (e.code === 'permission-denied') {
+            toast({ variant: "destructive", title: "Update Refused", description: "Database rules prevented this update. Ensure age is 16+." });
+        } else {
+            toast({ variant: "destructive", title: "Update Error", description: e.message });
+        }
     }
   }, [firestore, toast]);
   
@@ -183,7 +187,10 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     if (!firestore) return;
     deleteDoc(doc(firestore, 'students', registerNumber))
       .then(() => {
-        toast({ title: "Student Removed", description: "Record deleted." });
+        toast({ title: "Student Removed", description: "Record deleted successfully." });
+      })
+      .catch((e) => {
+          toast({ variant: "destructive", title: "Delete Failed", description: "Only administrators can remove student records." });
       });
   }, [firestore, toast]);
 
