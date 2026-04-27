@@ -189,8 +189,16 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       .then(() => {
         toast({ title: "Student Removed", description: "Record deleted successfully." });
       })
-      .catch((e) => {
-          toast({ variant: "destructive", title: "Delete Failed", description: "Only administrators can remove student records." });
+      .catch((e: any) => {
+          const message = e.code === 'permission-denied' 
+            ? "Access Denied: Only administrators can remove records." 
+            : (e.message || "An unexpected error occurred during removal.");
+          
+          toast({ 
+            variant: "destructive", 
+            title: "Delete Failed", 
+            description: message 
+          });
       });
   }, [firestore, toast]);
 
