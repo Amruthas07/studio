@@ -77,6 +77,16 @@ function convertToCSV(data: any[]): string {
   return csvRows.join('\r\n');
 }
 
+// Helper to format ISO string to Excel-friendly HH:mm:ss
+function formatTime(isoString: string): string {
+    try {
+        const date = new Date(isoString);
+        return date.toTimeString().split(' ')[0];
+    } catch (e) {
+        return "N/A";
+    }
+}
+
 
 const dailyAttendanceReportFlow = ai.defineFlow(
   {
@@ -113,8 +123,8 @@ const dailyAttendanceReportFlow = ai.defineFlow(
             return {
                 ...baseDetails,
                 "Status": "Absent",
-                "Method": "N/A",
-                "Timestamp": "N/A",
+                "Method": "System Default",
+                "Time Marked": "No Entry",
                 "Leave Reason": "N/A",
             };
         }
@@ -122,21 +132,22 @@ const dailyAttendanceReportFlow = ai.defineFlow(
         // Sort to find the most recent record
         recordsForStudent.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         const latestRecord = recordsForStudent[0];
+        const timeStr = formatTime(latestRecord.timestamp);
 
         if (latestRecord.status === 'present') {
             return {
                 ...baseDetails,
                 "Status": latestRecord.reason ? 'On Leave' : 'Present',
-                "Method": latestRecord.method,
-                "Timestamp": new Date(latestRecord.timestamp).toLocaleString(),
+                "Method": latestRecord.method.toUpperCase(),
+                "Time Marked": timeStr,
                 "Leave Reason": latestRecord.reason || 'N/A',
             };
         } else { // 'absent'
             return {
                 ...baseDetails,
-                "Status": 'Absent',
-                "Method": latestRecord.method,
-                "Timestamp": new Date(latestRecord.timestamp).toLocaleString(),
+                "Status": 'Absent (Manual)',
+                "Method": latestRecord.method.toUpperCase(),
+                "Time Marked": timeStr,
                 "Leave Reason": latestRecord.reason || 'Not specified',
             };
         }
@@ -144,7 +155,7 @@ const dailyAttendanceReportFlow = ai.defineFlow(
 
     // 5. Convert to CSV
     const csvData = convertToCSV(rollCall.length > 0 ? rollCall : [
-        { "Message": "No students found for this department." }
+        { "Message": "No students found for this department today." }
     ]);
     
     // 6. Create a data URI

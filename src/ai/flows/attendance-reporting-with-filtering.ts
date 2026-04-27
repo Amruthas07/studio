@@ -76,6 +76,16 @@ function convertToCSV(data: any[]): string {
   return csvRows.join('\r\n');
 }
 
+// Helper to format ISO string to Excel-friendly HH:mm:ss
+function formatTime(isoString: string): string {
+    try {
+        const date = new Date(isoString);
+        return date.toTimeString().split(' ')[0]; // Returns HH:mm:ss
+    } catch (e) {
+        return "Invalid Time";
+    }
+}
+
 export async function attendanceReportingWithFiltering(
   input: AttendanceReportingWithFilteringInput
 ): Promise<AttendanceReportingWithFilteringOutput> {
@@ -108,37 +118,40 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
             "Register Number": student.registerNumber,
             "Student Name": student.name,
             "Department": student.department.toUpperCase(),
-            "Date": reportDate,
+            "Attendance Date": reportDate,
         };
         
         if (recordsForStudent.length === 0) {
             return {
                 ...baseDetails,
                 "Status": "Absent",
-                "Method": "N/A",
-                "Timestamp": "N/A",
+                "Method": "None (System Default)",
+                "Time Marked": "No Record Found",
                 "Leave Reason": "N/A",
             };
         }
 
+        // Sort to find the most recent record if multiple exist for different subjects
         recordsForStudent.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         const latestRecord = recordsForStudent[0];
+        
+        const timestamp = formatTime(latestRecord.timestamp);
         
         if (latestRecord.status === 'present') {
             return {
                 ...baseDetails,
                 "Status": latestRecord.reason ? 'On Leave' : 'Present',
-                "Method": latestRecord.method,
-                "Timestamp": new Date(latestRecord.timestamp).toLocaleString(),
+                "Method": latestRecord.method.toUpperCase(),
+                "Time Marked": timestamp,
                 "Leave Reason": latestRecord.reason || 'N/A',
             };
         } else { // 'absent'
             return {
                 ...baseDetails,
-                "Status": 'Absent',
-                "Method": latestRecord.method,
-                "Timestamp": new Date(latestRecord.timestamp).toLocaleString(),
-                "Leave Reason": latestRecord.reason || 'Not specified',
+                "Status": 'Absent (Manual)',
+                "Method": latestRecord.method.toUpperCase(),
+                "Time Marked": timestamp,
+                "Leave Reason": latestRecord.reason || 'N/A',
             };
         }
     });
@@ -147,30 +160,30 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
     const filteredRollCall = rollCall.filter(entry => {
         if (input.statusFilter === 'all') return true;
         if (input.statusFilter === 'present') return entry.Status === 'Present';
-        if (input.statusFilter === 'absent') return entry.Status === 'Absent';
+        if (input.statusFilter === 'absent') return entry.Status.includes('Absent');
         if (input.statusFilter === 'on_leave') return entry.Status === 'On Leave';
         return true;
     });
 
     // 5. Calculate summary based on filtered data
     const summaryData = [
-      { metric: `Report for Date`, value: reportDate },
-      { metric: `Department`, value: input.department.toUpperCase() },
-      { metric: `Status Filter`, value: input.statusFilter.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
-      { metric: 'Total Students Shown', value: filteredRollCall.length },
-      { metric: 'Present', value: filteredRollCall.filter(s => s.Status === 'Present').length },
-      { metric: 'On Leave', value: filteredRollCall.filter(s => s.Status === 'On Leave').length },
-      { metric: 'Absent', value: filteredRollCall.filter(s => s.Status === 'Absent').length },
+      { "Report Statistic": `Generated For Date`, "Value": reportDate },
+      { "Report Statistic": `Target Department`, "Value": input.department.toUpperCase() },
+      { "Report Statistic": `Status Filter Applied`, "Value": input.statusFilter.toUpperCase() },
+      { "Report Statistic": 'Total Students in List', "Value": filteredRollCall.length },
+      { "Report Statistic": 'Total Present', "Value": filteredRollCall.filter(s => s.Status === 'Present').length },
+      { "Report Statistic": 'Total On Leave', "Value": filteredRollCall.filter(s => s.Status === 'On Leave').length },
+      { "Report Statistic": 'Total Absent', "Value": filteredRollCall.filter(s => s.Status.includes('Absent')).length },
     ];
     const summaryCsv = convertToCSV(summaryData);
     
     // 6. Convert main data to CSV
     const rollCallCsv = convertToCSV(filteredRollCall.length > 0 ? filteredRollCall : [
-        { "Message": "No students found matching the filters." }
+        { "Message": "No student records matched the current selection criteria." }
     ]);
 
     // 7. Combine summary and main data
-    const finalCsvData = `${summaryCsv}\r\n\r\n${rollCallCsv}`;
+    const finalCsvData = `ATTENDANCE SUMMARY REPORT\r\n${summaryCsv}\r\n\r\nDETAILED ROLL CALL LIST\r\n${rollCallCsv}`;
 
     // 8. Create a data URI
     const fileUrl = `data:text/csv;charset=utf-8,${encodeURIComponent(finalCsvData)}`;
