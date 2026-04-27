@@ -33,15 +33,18 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
+const nameRegex = /^[a-zA-Z\s]+$/;
+const nameError = "Only alphabetic characters and spaces are allowed.";
+
 const formSchema = z.object({
-  name: z.string().min(2, "Name required."),
+  name: z.string().min(2, "Name required.").regex(nameRegex, nameError),
   registerNumber: z.string().length(10, "Register number must be exactly 10 characters."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   semester: z.coerce.number().min(1).max(6),
   email: z.string().email("Valid email required."),
   contact: z.string().length(10, "10 digits required."),
-  fatherName: z.string().min(2, "Required."),
-  motherName: z.string().min(2, "Required."),
+  fatherName: z.string().min(2, "Required.").regex(nameRegex, nameError),
+  motherName: z.string().min(2, "Required.").regex(nameRegex, nameError),
   dateOfBirth: z.date({ required_error: "Required." }).refine((date) => {
     return differenceInYears(new Date(), date) >= 18;
   }, {

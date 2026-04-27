@@ -31,8 +31,11 @@ import { Separator } from "../ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
+const nameRegex = /^[a-zA-Z\s]+$/;
+const nameError = "Only alphabetic characters and spaces are allowed.";
+
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
+  name: z.string().min(2, "Name must be at least 2 characters.").regex(nameRegex, nameError),
   email: z.string().email(),
   password: z.string().min(6, "Password must be at least 6 characters."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),

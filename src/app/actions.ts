@@ -9,15 +9,17 @@ import { attendanceReportingWithFiltering, AttendanceReportingWithFilteringInput
 import { chat, ChatInput } from "@/ai/flows/chatbot-flow";
 import { teacherListReport, TeacherListReportInput } from "@/ai/flows/teacher-list-report";
 
+const nameRegex = /^[a-zA-Z\s]+$/;
+const nameError = "Only alphabetic characters and spaces are allowed.";
 
 const addStudentSchema = z.object({
-  name: z.string(),
+  name: z.string().min(2, "Name required.").regex(nameRegex, nameError),
   registerNumber: z.string().length(10, "Register number must be exactly 10 characters."),
   department: z.string(),
   email: z.string().email(),
   contact: z.string(),
-  fatherName: z.string(),
-  motherName: z.string(),
+  fatherName: z.string().min(2, "Required.").regex(nameRegex, nameError),
+  motherName: z.string().min(2, "Required.").regex(nameRegex, nameError),
   dateOfBirth: z.string(), // Received as ISO string
 });
 
