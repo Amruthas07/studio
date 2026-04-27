@@ -1,4 +1,3 @@
-
 "use server";
 
 import { z } from "zod";
@@ -17,7 +16,7 @@ const addStudentSchema = z.object({
   registerNumber: z.string().length(10, "Register number must be exactly 10 characters."),
   department: z.string(),
   email: z.string().email(),
-  contact: z.string(),
+  contact: z.string().length(10, "Contact number must be exactly 10 digits.").regex(/^[0-9]+$/, "Contact number must only contain digits."),
   fatherName: z.string().min(2, "Required.").regex(nameRegex, nameError),
   motherName: z.string().min(2, "Required.").regex(nameRegex, nameError),
   dateOfBirth: z.string(), // Received as ISO string

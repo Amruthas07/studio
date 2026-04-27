@@ -41,7 +41,7 @@ const formSchema = z.object({
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   semester: z.coerce.number().min(1).max(6),
   email: z.string().email("Valid email required."),
-  contact: z.string().length(10, "10 digits required."),
+  contact: z.string().length(10, "Contact number must be exactly 10 digits.").regex(/^[0-9]+$/, "Contact number must only contain digits."),
   fatherName: z.string().min(2, "Required.").regex(nameRegex, nameError),
   motherName: z.string().min(2, "Required.").regex(nameRegex, nameError),
   dateOfBirth: z.date({ required_error: "Required." }).refine((date) => {
