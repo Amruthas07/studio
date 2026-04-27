@@ -24,8 +24,8 @@ function Calendar({
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
         caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium hidden",
-        caption_dropdowns: "flex justify-center gap-2 px-8",
+        caption_label: "text-sm font-medium",
+        caption_dropdowns: "flex justify-center gap-1",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
@@ -57,9 +57,7 @@ function Calendar({
       }}
       components={{
         Dropdown: ({ value, onChange, children, ...props }) => {
-          const options = React.Children.toArray(
-            children
-          ) as React.ReactElement<React.HTMLProps<HTMLOptionElement>>[]
+          const options = React.Children.toArray(children) as React.ReactElement<React.HTMLProps<HTMLOptionElement>>[]
           const selected = options.find((child) => child.props.value === value)
           const handleChange = (value: string) => {
             const changeEvent = {
@@ -74,7 +72,7 @@ function Calendar({
                 handleChange(value)
               }}
             >
-              <SelectTrigger className="h-8 w-fit px-2 py-0 text-xs focus:ring-0 focus:ring-offset-0">
+              <SelectTrigger className="h-8 w-fit px-2 py-0 text-xs focus:ring-0 focus:ring-offset-0 border-none bg-transparent hover:bg-accent">
                 <SelectValue>{selected?.props?.children}</SelectValue>
               </SelectTrigger>
               <SelectContent className="max-h-60 overflow-y-auto">

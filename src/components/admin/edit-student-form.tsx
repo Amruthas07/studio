@@ -4,7 +4,7 @@ import React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { format } from "date-fns"
+import { format, differenceInYears } from "date-fns"
 import { CalendarIcon, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -43,6 +43,10 @@ const formSchema = z.object({
   motherName: z.string().min(2, "Mother's name is required."),
   dateOfBirth: z.date({
     required_error: "A date of birth is required.",
+  }).refine((date) => {
+    return differenceInYears(new Date(), date) >= 18;
+  }, {
+    message: "Student must be at least 18 years old.",
   }),
 })
 
