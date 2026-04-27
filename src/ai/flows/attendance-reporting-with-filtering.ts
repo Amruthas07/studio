@@ -82,7 +82,7 @@ function formatTime(isoString: string): string {
         const date = new Date(isoString);
         return date.toTimeString().split(' ')[0]; // Returns HH:mm:ss
     } catch (e) {
-        return "Invalid Time";
+        return "N/A";
     }
 }
 
@@ -125,8 +125,8 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
             return {
                 ...baseDetails,
                 "Status": "Absent",
-                "Method": "None (System Default)",
-                "Time Marked": "No Record Found",
+                "Method": "SYSTEM DEFAULT",
+                "Time Marked": "NO ENTRY",
                 "Leave Reason": "N/A",
             };
         }
@@ -140,7 +140,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
         if (latestRecord.status === 'present') {
             return {
                 ...baseDetails,
-                "Status": latestRecord.reason ? 'On Leave' : 'Present',
+                "Status": latestRecord.reason ? 'ON LEAVE' : 'PRESENT',
                 "Method": latestRecord.method.toUpperCase(),
                 "Time Marked": timestamp,
                 "Leave Reason": latestRecord.reason || 'N/A',
@@ -148,7 +148,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
         } else { // 'absent'
             return {
                 ...baseDetails,
-                "Status": 'Absent (Manual)',
+                "Status": 'ABSENT (MANUAL)',
                 "Method": latestRecord.method.toUpperCase(),
                 "Time Marked": timestamp,
                 "Leave Reason": latestRecord.reason || 'N/A',
@@ -159,9 +159,9 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
     // 4. Filter by status
     const filteredRollCall = rollCall.filter(entry => {
         if (input.statusFilter === 'all') return true;
-        if (input.statusFilter === 'present') return entry.Status === 'Present';
-        if (input.statusFilter === 'absent') return entry.Status.includes('Absent');
-        if (input.statusFilter === 'on_leave') return entry.Status === 'On Leave';
+        if (input.statusFilter === 'present') return entry.Status === 'PRESENT';
+        if (input.statusFilter === 'absent') return entry.Status.includes('ABSENT');
+        if (input.statusFilter === 'on_leave') return entry.Status === 'ON LEAVE';
         return true;
     });
 
@@ -171,9 +171,9 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
       { "Report Statistic": `Target Department`, "Value": input.department.toUpperCase() },
       { "Report Statistic": `Status Filter Applied`, "Value": input.statusFilter.toUpperCase() },
       { "Report Statistic": 'Total Students in List', "Value": filteredRollCall.length },
-      { "Report Statistic": 'Total Present', "Value": filteredRollCall.filter(s => s.Status === 'Present').length },
-      { "Report Statistic": 'Total On Leave', "Value": filteredRollCall.filter(s => s.Status === 'On Leave').length },
-      { "Report Statistic": 'Total Absent', "Value": filteredRollCall.filter(s => s.Status.includes('Absent')).length },
+      { "Report Statistic": 'Total Present', "Value": filteredRollCall.filter(s => s.Status === 'PRESENT').length },
+      { "Report Statistic": 'Total On Leave', "Value": filteredRollCall.filter(s => s.Status === 'ON LEAVE').length },
+      { "Report Statistic": 'Total Absent', "Value": filteredRollCall.filter(s => s.Status.includes('ABSENT')).length },
     ];
     const summaryCsv = convertToCSV(summaryData);
     

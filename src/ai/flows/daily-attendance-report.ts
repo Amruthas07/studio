@@ -122,9 +122,9 @@ const dailyAttendanceReportFlow = ai.defineFlow(
         if (recordsForStudent.length === 0) {
             return {
                 ...baseDetails,
-                "Status": "Absent",
-                "Method": "System Default",
-                "Time Marked": "No Entry",
+                "Status": "ABSENT",
+                "Method": "SYSTEM DEFAULT",
+                "Time Marked": "NO ENTRY",
                 "Leave Reason": "N/A",
             };
         }
@@ -137,7 +137,7 @@ const dailyAttendanceReportFlow = ai.defineFlow(
         if (latestRecord.status === 'present') {
             return {
                 ...baseDetails,
-                "Status": latestRecord.reason ? 'On Leave' : 'Present',
+                "Status": latestRecord.reason ? 'ON LEAVE' : 'PRESENT',
                 "Method": latestRecord.method.toUpperCase(),
                 "Time Marked": timeStr,
                 "Leave Reason": latestRecord.reason || 'N/A',
@@ -145,10 +145,10 @@ const dailyAttendanceReportFlow = ai.defineFlow(
         } else { // 'absent'
             return {
                 ...baseDetails,
-                "Status": 'Absent (Manual)',
+                "Status": 'ABSENT (MANUAL)',
                 "Method": latestRecord.method.toUpperCase(),
                 "Time Marked": timeStr,
-                "Leave Reason": latestRecord.reason || 'Not specified',
+                "Leave Reason": latestRecord.reason || 'N/A',
             };
         }
     });
