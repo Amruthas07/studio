@@ -14,7 +14,6 @@ service cloud.firestore {
     }
 
     function isTeacher() {
-      // Document IDs are normalized emails (lowercase)
       let email = request.auth.token.email.lower();
       return isSignedIn() && exists(/databases/$(database)/documents/teachers/$(email));
     }
@@ -24,17 +23,19 @@ service cloud.firestore {
         return get(/databases/$(database)/documents/teachers/$(email)).data.department;
     }
 
+    // Age validation: Check if DOB is at least 18 years ago (approx 6574 days)
+    function isEligibleAge() {
+      return request.resource.data.dateOfBirth <= request.time - duration.value(6574, 'd');
+    }
+
     // ======== Path Rules ========
     
-    // Publicly readable institution profile
     match /institution/{profileId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Teachers collection
     match /teachers/{email} {
-      // Normalize email for comparison
       allow read: if isAdmin() || (isSignedIn() && request.auth.token.email.lower() == email.lower());
       allow write: if isAdmin();
     }
@@ -42,24 +43,20 @@ service cloud.firestore {
         allow list: if isAdmin();
     }
 
-    // --- Students ---
     match /students/{studentId} {
       allow read: if isAdmin() || 
                    (isTeacher() && resource.data.department == getTeacherDepartment()) ||
                    (isSignedIn() && resource.data.uid == request.auth.uid);
 
-      allow write: if isAdmin();
+      // Enforce age limit on creation/update
+      allow write: if isAdmin() && isEligibleAge();
     }
 
-
-    // --- Attendance ---
     match /attendance/{attendanceId} {
-      // Define who can read attendance data (get and list)
       allow read: if isAdmin() ||
                    (isTeacher() && resource.data.department == getTeacherDepartment()) ||
                    (isSignedIn() && resource.data.studentUid == request.auth.uid);
 
-      // Create/Update checks
       allow create: if isAdmin() || 
                        (isTeacher() && request.resource.data.department == getTeacherDepartment());
 
@@ -69,7 +66,6 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
-    // Default deny all other paths.
     match /{document=**} {
       allow read, write: if false;
     }

@@ -8,7 +8,7 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, updateDoc, serverTimestamp, limit, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, where, updateDoc, serverTimestamp, limit, writeBatch, getDocs, Timestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { initializeApp, deleteApp } from 'firebase/app';
@@ -84,7 +84,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
                   registerNumber: doc.id,
                   createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
                   dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : new Date(data.dateOfBirth),
-                  updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : undefined,
+                  updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)),
               } as Student;
           });
           setStudents(studentData);
@@ -97,10 +97,46 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe?.();
   }, [firestore, user, authLoading]);
 
+  /**
+   * Helper function to check if a student is at least 18 years old.
+   */
+  const validateAge = (dob: Date) => {
+    const today = new Date();
+    const age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      return age - 1 >= 18;
+    }
+    return age >= 18;
+  };
+
+  /**
+   * Query to fetch only students who are 18 or older.
+   */
+  const fetchEligibleStudents = async () => {
+    if (!firestore) return [];
+    const cutOffDate = new Date();
+    cutOffDate.setFullYear(cutOffDate.getFullYear() - 18);
+    
+    const q = query(
+      collection(firestore, 'students'), 
+      where('dateOfBirth', '<=', Timestamp.fromDate(cutOffDate))
+    );
+    
+    const querySnap = await getDocs(q);
+    return querySnap.docs.map(doc => doc.data() as Student);
+  };
+
   const addStudent = useCallback(async (
     studentData: Omit<Student, 'createdAt' | 'updatedAt' | 'uid'>
   ): Promise<{ success: boolean; error?: string }> => {
     if (!firestore) return { success: false, error: 'Database not ready' };
+
+    // 1. Validation Logic: Prevent adding if age < 18
+    if (!validateAge(studentData.dateOfBirth)) {
+      return { success: false, error: 'Student must be at least 18 years old for enrollment.' };
+    }
 
     let tempApp: any = null;
     try {
@@ -112,7 +148,6 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         tempApp = initializeApp(firebaseConfig, tempAppName);
         const tAuth = getAuth(tempApp);
         
-        // Register number must be at least 6 characters for Firebase Auth password
         const userCredential = await createUserWithEmailAndPassword(tAuth, studentData.email, studentData.registerNumber);
 
         const uid = userCredential.user.uid;
@@ -141,6 +176,12 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     studentUpdate: Partial<Omit<Student, 'registerNumber' | 'email' | 'createdAt' | 'updatedAt'>>
   ): Promise<void> => {
     if (!firestore) return;
+
+    if (studentUpdate.dateOfBirth && !validateAge(studentUpdate.dateOfBirth)) {
+       toast({ variant: "destructive", title: "Update Failed", description: "Age must be 18 or older." });
+       return;
+    }
+
     const studentDocRef = doc(firestore, 'students', registerNumber);
     try {
         await updateDoc(studentDocRef, { ...studentUpdate, updatedAt: serverTimestamp() });
@@ -166,7 +207,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
         const batch = writeBatch(firestore);
         let count = 0;
         studentsToPromote.forEach(student => {
-            if (student.semester < 6) { // Max semester is 6
+            if (student.semester < 6) {
                 const studentRef = doc(firestore, 'students', student.registerNumber);
                 batch.update(studentRef, { semester: student.semester + 1, updatedAt: serverTimestamp() });
                 count++;

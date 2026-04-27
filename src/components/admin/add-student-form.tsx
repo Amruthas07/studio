@@ -1,10 +1,11 @@
+
 "use client"
 
 import React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { format } from "date-fns"
+import { format, differenceInYears } from "date-fns"
 import { CalendarIcon, Loader2, Info } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -41,7 +42,11 @@ const formSchema = z.object({
   contact: z.string().length(10, "10 digits required."),
   fatherName: z.string().min(2, "Required."),
   motherName: z.string().min(2, "Required."),
-  dateOfBirth: z.date({ required_error: "Required." }),
+  dateOfBirth: z.date({ required_error: "Required." }).refine((date) => {
+    return differenceInYears(new Date(), date) >= 18;
+  }, {
+    message: "Student must be at least 18 years old.",
+  }),
 })
 
 export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void }) {
@@ -173,7 +178,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
             <Alert className="bg-muted/50 border-primary/20">
                 <Info className="h-4 w-4 text-primary" />
                 <AlertDescription className="text-xs">
-                    Enrollment is instant. Register number serves as the student's initial password (min. 6 characters required).
+                    Students must be at least 18 years old for enrollment eligibility. Register number serves as the initial password.
                 </AlertDescription>
             </Alert>
           </div>
