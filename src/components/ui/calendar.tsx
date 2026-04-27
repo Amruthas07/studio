@@ -2,11 +2,12 @@
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import { DayPicker, DropdownProps } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ScrollArea } from "./scroll-area"
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>
 
@@ -24,7 +25,7 @@ function Calendar({
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
         caption: "flex justify-center pt-1 relative items-center",
-        caption_label: cn("text-sm font-medium", props.captionLayout === "dropdown" || props.captionLayout === "dropdown-buttons" ? "hidden" : "block"),
+        caption_label: cn("text-sm font-medium", props.captionLayout?.includes("dropdown") ? "hidden" : "block"),
         caption_dropdowns: "flex justify-center gap-1",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
@@ -56,7 +57,7 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Dropdown: ({ value, onChange, children, ...props }) => {
+        Dropdown: ({ value, onChange, children, ...props }: DropdownProps) => {
           const options = React.Children.toArray(children) as React.ReactElement<React.HTMLProps<HTMLOptionElement>>[]
           const selected = options.find((child) => child.props.value === value)
           const handleChange = (value: string) => {
@@ -75,25 +76,27 @@ function Calendar({
               <SelectTrigger className="h-8 w-fit px-2 py-0 text-xs focus:ring-0 focus:ring-offset-0 border-none bg-muted/50 hover:bg-muted font-bold">
                 <SelectValue>{selected?.props?.children}</SelectValue>
               </SelectTrigger>
-              <SelectContent className="max-h-60 overflow-y-auto">
-                {options.map((option, id: number) => (
-                  <SelectItem
-                    key={`${option.props.value}-${id}`}
-                    value={option.props.value?.toString() ?? ""}
-                    className="text-xs"
-                  >
-                    {option.props.children}
-                  </SelectItem>
-                ))}
+              <SelectContent className="max-h-60 overflow-y-auto z-[101]">
+                <ScrollArea className="h-48">
+                  {options.map((option, id: number) => (
+                    <SelectItem
+                      key={`${option.props.value}-${id}`}
+                      value={option.props.value?.toString() ?? ""}
+                      className="text-xs"
+                    >
+                      {option.props.children}
+                    </SelectItem>
+                  ))}
+                </ScrollArea>
               </SelectContent>
             </Select>
           )
         },
-        IconLeft: ({ className, ...props }) => (
-          <ChevronLeft className={cn("h-4 w-4", className)} {...props} />
+        IconLeft: ({ ...props }) => (
+          <ChevronLeft className="h-4 w-4" />
         ),
-        IconRight: ({ className, ...props }) => (
-          <ChevronRight className={cn("h-4 w-4", className)} {...props} />
+        IconRight: ({ ...props }) => (
+          <ChevronRight className="h-4 w-4" />
         ),
       }}
       {...props}

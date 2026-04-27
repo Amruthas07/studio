@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from "react"
@@ -62,6 +61,7 @@ type EditStudentFormProps = {
 export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormProps) {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
   const { updateStudent } = useStudents();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -228,14 +228,14 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                     render={({ field }) => (
                         <FormItem className="flex flex-col pt-2 md:col-span-2">
                         <FormLabel>Date of birth</FormLabel>
-                        <Popover>
+                        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                             <PopoverTrigger asChild>
                             <FormControl>
                                 <Button
                                 variant={"outline"}
                                 disabled={isSubmitting}
                                 className={cn(
-                                    "w-full pl-3 text-left font-normal",
+                                    "w-full pl-3 text-left font-normal h-12",
                                     !field.value && "text-muted-foreground"
                                 )}
                                 >
@@ -252,15 +252,14 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                             <Calendar
                                 mode="single"
                                 selected={field.value}
-                                onSelect={field.onChange}
+                                onSelect={(date) => {
+                                  field.onChange(date);
+                                  if (date) setIsCalendarOpen(false);
+                                }}
                                 captionLayout="dropdown-buttons"
                                 fromYear={1900}
-                                toYear={currentYear - 16}
-                                disabled={(date) =>
-                                  date > new Date() || 
-                                  date < new Date("1900-01-01") ||
-                                  differenceInYears(new Date(), date) < 16
-                                }
+                                toYear={currentYear}
+                                disabled={(date) => date > new Date()}
                                 initialFocus
                             />
                             </PopoverContent>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from "react"
@@ -56,6 +55,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
   const { toast } = useToast()
   const { addStudent } = useStudents();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -153,10 +153,10 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                 <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
                     <FormItem className="flex flex-col md:col-span-2">
                         <FormLabel>Date of Birth</FormLabel>
-                        <Popover>
+                        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                             <PopoverTrigger asChild>
                                 <FormControl>
-                                    <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={isSubmitting}>
+                                    <Button variant="outline" className={cn("pl-3 text-left font-normal h-12", !field.value && "text-muted-foreground")} disabled={isSubmitting}>
                                         {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
@@ -166,11 +166,14 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                                 <Calendar 
                                     mode="single" 
                                     selected={field.value} 
-                                    onSelect={field.onChange} 
-                                    disabled={(date) => date > new Date() || differenceInYears(new Date(), date) < 16} 
+                                    onSelect={(date) => {
+                                      field.onChange(date);
+                                      if (date) setIsCalendarOpen(false);
+                                    }} 
+                                    disabled={(date) => date > new Date()} 
                                     captionLayout="dropdown-buttons"
                                     fromYear={1900}
-                                    toYear={currentYear - 16}
+                                    toYear={currentYear}
                                     initialFocus 
                                 />
                             </PopoverContent>
