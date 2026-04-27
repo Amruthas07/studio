@@ -98,7 +98,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   }, [firestore, user, authLoading]);
 
   /**
-   * Helper function to check if a student is at least 18 years old.
+   * Helper function to check if a student is at least 16 years old.
    */
   const validateAge = (dob: Date) => {
     const today = new Date();
@@ -106,9 +106,9 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     const monthDiff = today.getMonth() - dob.getMonth();
     
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-      return age - 1 >= 18;
+      return age - 1 >= 16;
     }
-    return age >= 18;
+    return age >= 16;
   };
 
   const addStudent = useCallback(async (
@@ -116,9 +116,9 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
   ): Promise<{ success: boolean; error?: string }> => {
     if (!firestore) return { success: false, error: 'Database not ready' };
 
-    // 1. Validation Logic: Prevent adding if age < 18
+    // 1. Validation Logic: Prevent adding if age < 16
     if (!validateAge(studentData.dateOfBirth)) {
-      return { success: false, error: 'Student must be at least 18 years old for enrollment.' };
+      return { success: false, error: 'Student must be at least 16 years old for enrollment.' };
     }
 
     // 2. Validation Logic: Register number length
@@ -166,7 +166,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     if (!firestore) return;
 
     if (studentUpdate.dateOfBirth && !validateAge(studentUpdate.dateOfBirth)) {
-       toast({ variant: "destructive", title: "Update Failed", description: "Age must be 18 or older." });
+       toast({ variant: "destructive", title: "Update Failed", description: "Age must be 16 or older." });
        return;
     }
 

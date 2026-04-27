@@ -23,9 +23,9 @@ service cloud.firestore {
         return get(/databases/$(database)/documents/teachers/$(email)).data.department;
     }
 
-    // Age validation: Check if DOB is at least 18 years ago (approx 6574 days)
+    // Age validation: Check if DOB is at least 16 years ago (approx 5844 days)
     function isEligibleAge() {
-      return request.resource.data.dateOfBirth <= request.time - duration.value(6574, 'd');
+      return request.resource.data.dateOfBirth <= request.time - duration.value(5844, 'd');
     }
 
     // ======== Path Rules ========
@@ -48,7 +48,7 @@ service cloud.firestore {
                    (isTeacher() && resource.data.department == getTeacherDepartment()) ||
                    (isSignedIn() && resource.data.uid == request.auth.uid);
 
-      // Enforce age limit on creation/update
+      // Enforce 16+ age limit on creation/update
       allow write: if isAdmin() && isEligibleAge();
     }
 

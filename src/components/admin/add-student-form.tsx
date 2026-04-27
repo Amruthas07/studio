@@ -46,9 +46,9 @@ const formSchema = z.object({
   fatherName: z.string().min(2, "Required.").regex(nameRegex, nameError),
   motherName: z.string().min(2, "Required.").regex(nameRegex, nameError),
   dateOfBirth: z.date({ required_error: "Required." }).refine((date) => {
-    return differenceInYears(new Date(), date) >= 18;
+    return differenceInYears(new Date(), date) >= 16;
   }, {
-    message: "Student must be at least 18 years old.",
+    message: "Student must be at least 16 years old.",
   }),
 })
 
@@ -91,6 +91,8 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
         setIsSubmitting(false);
     }
   }
+
+  const currentYear = new Date().getFullYear();
 
   return (
     <Form {...form}>
@@ -165,10 +167,10 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
                                     mode="single" 
                                     selected={field.value} 
                                     onSelect={field.onChange} 
-                                    disabled={(date) => date > new Date()} 
+                                    disabled={(date) => date > new Date() || differenceInYears(new Date(), date) < 16} 
                                     captionLayout="dropdown-buttons"
                                     fromYear={1900}
-                                    toYear={new Date().getFullYear()}
+                                    toYear={currentYear - 16}
                                     initialFocus 
                                 />
                             </PopoverContent>
@@ -181,7 +183,7 @@ export function AddStudentForm({ onStudentAdded }: { onStudentAdded: () => void 
             <Alert className="bg-muted/50 border-primary/20">
                 <Info className="h-4 w-4 text-primary" />
                 <AlertDescription className="text-xs">
-                    Students must be at least 18 years old for enrollment eligibility. Register number (10 characters) serves as the initial password.
+                    Students must be at least 16 years old for enrollment eligibility. Register number (10 characters) serves as the initial password.
                 </AlertDescription>
             </Alert>
           </div>

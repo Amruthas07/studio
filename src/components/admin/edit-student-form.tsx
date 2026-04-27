@@ -48,9 +48,9 @@ const formSchema = z.object({
   dateOfBirth: z.date({
     required_error: "A date of birth is required.",
   }).refine((date) => {
-    return differenceInYears(new Date(), date) >= 18;
+    return differenceInYears(new Date(), date) >= 16;
   }, {
-    message: "Student must be at least 18 years old.",
+    message: "Student must be at least 16 years old.",
   }),
 })
 
@@ -93,6 +93,8 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
         setIsSubmitting(false);
     }
   }
+
+  const currentYear = new Date().getFullYear();
 
   return (
     <Form {...form}>
@@ -253,9 +255,11 @@ export function EditStudentForm({ student, onStudentUpdated }: EditStudentFormPr
                                 onSelect={field.onChange}
                                 captionLayout="dropdown-buttons"
                                 fromYear={1900}
-                                toYear={new Date().getFullYear()}
+                                toYear={currentYear - 16}
                                 disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
+                                  date > new Date() || 
+                                  date < new Date("1900-01-01") ||
+                                  differenceInYears(new Date(), date) < 16
                                 }
                                 initialFocus
                             />
