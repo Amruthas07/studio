@@ -37,7 +37,7 @@ const nameError = "Only alphabetic characters and spaces are allowed.";
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters.").regex(nameRegex, nameError),
   email: z.string().email(),
-  password: z.string().min(6, "Password must be at least 6 characters."),
+  password: z.string().length(6, "Password must be exactly 6 characters."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   position: z.enum(["Professor", "Associate Professor", "Assistant Professor", "HOD"]),
   subjects: z.object({
@@ -134,7 +134,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         <FormItem>
                         <FormLabel>Initial Password</FormLabel>
                         <FormControl>
-                            <Input type="password" placeholder="Min. 6 characters" {...field} disabled={isSubmitting} />
+                            <Input type="password" placeholder="Exactly 6 characters" {...field} disabled={isSubmitting} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
