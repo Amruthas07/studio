@@ -34,9 +34,12 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 const nameRegex = /^[a-zA-Z\s]+$/;
 const nameError = "Only alphabetic characters and spaces are allowed.";
 
+const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+const gmailError = "Email must end strictly with @gmail.com";
+
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters.").regex(nameRegex, nameError),
-  email: z.string().email(),
+  email: z.string().email("Invalid email format").regex(gmailRegex, gmailError),
   password: z.string().length(6, "Password must be exactly 6 characters."),
   department: z.enum(["cs", "ce", "me", "ee", "mce", "ec"]),
   position: z.enum(["Professor", "Associate Professor", "Assistant Professor", "HOD"]),
@@ -121,7 +124,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                            <Input type="email" placeholder="teacher@example.com" {...field} disabled={isSubmitting} />
+                            <Input type="email" placeholder="teacher@gmail.com" {...field} disabled={isSubmitting} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
