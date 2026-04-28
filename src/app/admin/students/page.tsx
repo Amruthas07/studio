@@ -83,7 +83,7 @@ export default function AdminStudentsPage() {
         toast({
             variant: "destructive",
             title: "Promotion Failed",
-            description: result.error || "An unexpected error occurred."
+            description: result.error || "Missing or insufficient permissions.",
         });
     }
   };
@@ -142,7 +142,7 @@ export default function AdminStudentsPage() {
                     </DialogHeader>
                     <div className="bg-muted/50 p-4 rounded-lg text-sm space-y-2 my-4 border">
                         <p>• Students in Semester 1 will move to Semester 2.</p>
-                        <p>• Students already in Semester 8 will <strong>not</strong> be modified.</p>
+                        <p>• Students already in Semester 6 will <strong>not</strong> be modified.</p>
                         <p>• This action is permanent and affects the database immediately.</p>
                     </div>
                     <DialogFooter className="gap-2">

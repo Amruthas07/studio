@@ -50,9 +50,13 @@ service cloud.firestore {
                    (isTeacher() && resource.data.department == getTeacherDepartment()) ||
                    (isSignedIn() && resource.data.uid == request.auth.uid);
 
-      // We split create/update from delete because deletion does not have 
-      // request.resource.data, which is required for age validation.
-      allow create, update: if isAdmin() && isEligibleAge();
+      // Admins can create students but they must meet age criteria
+      allow create: if isAdmin() && isEligibleAge();
+      
+      // Admins can update existing students (e.g., semester promotion) 
+      // without being blocked by legacy data that might lack DOB fields.
+      allow update: if isAdmin();
+      
       allow delete: if isAdmin();
     }
 
