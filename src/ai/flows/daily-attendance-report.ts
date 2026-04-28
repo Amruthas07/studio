@@ -83,7 +83,7 @@ function formatTime(isoString: string): string {
         const date = new Date(isoString);
         return date.toTimeString().split(' ')[0];
     } catch (e) {
-        return "N/A";
+        return "NO RECORD";
     }
 }
 

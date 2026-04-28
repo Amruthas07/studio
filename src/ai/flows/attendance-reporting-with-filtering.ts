@@ -82,7 +82,7 @@ function formatTime(isoString: string): string {
         const date = new Date(isoString);
         return date.toTimeString().split(' ')[0]; // Returns HH:mm:ss
     } catch (e) {
-        return "N/A";
+        return "NO RECORD";
     }
 }
 
@@ -124,7 +124,7 @@ const attendanceReportingWithFilteringFlow = ai.defineFlow(
         if (recordsForStudent.length === 0) {
             return {
                 ...baseDetails,
-                "Status": "Absent",
+                "Status": "ABSENT",
                 "Method": "SYSTEM DEFAULT",
                 "Time Marked": "NO ENTRY",
                 "Leave Reason": "N/A",
