@@ -51,7 +51,13 @@ const formSchema = z.object({
       '5': z.array(z.string()).optional(),
       '6': z.array(z.string()).optional(),
   }).optional(),
-})
+}).refine(data => {
+    const subjects = data.subjects || {};
+    return Object.values(subjects).some(val => Array.isArray(val) && val.length > 0);
+}, {
+    message: "At least one subject must be assigned to the teacher.",
+    path: ["subjects"]
+});
 
 type AddTeacherFormProps = {
     onTeacherAdded: () => void;
@@ -196,6 +202,11 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
             <div className="space-y-2">
                 <h3 className="text-lg font-medium">Subject Assignments</h3>
                 <p className="text-sm text-muted-foreground">Select the subjects this teacher will manage (Sem 1-6).</p>
+                {form.formState.errors.subjects && (
+                    <p className="text-sm font-medium text-destructive bg-destructive/10 p-2 rounded border border-destructive/20">
+                        {form.formState.errors.subjects.message}
+                    </p>
+                )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {semesters.map(sem => {
