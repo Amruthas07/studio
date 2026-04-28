@@ -123,7 +123,6 @@ const dailyAttendanceReportFlow = ai.defineFlow(
             return {
                 ...baseDetails,
                 "Status": "ABSENT",
-                "Method": "SYSTEM DEFAULT",
                 "Time Marked": "NO ENTRY",
                 "Leave Reason": "N/A",
             };
@@ -138,7 +137,6 @@ const dailyAttendanceReportFlow = ai.defineFlow(
             return {
                 ...baseDetails,
                 "Status": latestRecord.reason ? 'ON LEAVE' : 'PRESENT',
-                "Method": latestRecord.method.toUpperCase(),
                 "Time Marked": timeStr,
                 "Leave Reason": latestRecord.reason || 'N/A',
             };
@@ -146,7 +144,6 @@ const dailyAttendanceReportFlow = ai.defineFlow(
             return {
                 ...baseDetails,
                 "Status": 'ABSENT (MANUAL)',
-                "Method": latestRecord.method.toUpperCase(),
                 "Time Marked": timeStr,
                 "Leave Reason": latestRecord.reason || 'N/A',
             };
