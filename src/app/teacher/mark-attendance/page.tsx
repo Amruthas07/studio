@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useStudents } from '@/hooks/use-students';
 import { useAttendance } from '@/hooks/use-attendance';
-import { Loader2, Search, CheckCheck, BookOpen, Clock } from 'lucide-react';
+import { Loader2, Search, CheckCheck, BookOpen, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Student } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const SemesterTabContent = ({ sem, students, allRecords, user, onMarkAttendance, onMarkAllPresent }: {
     sem: number;
@@ -26,12 +27,26 @@ const SemesterTabContent = ({ sem, students, allRecords, user, onMarkAttendance,
 }) => {
     const subjectsForSemester = user.subjects?.[sem] || [];
     const [selectedSubject, setSelectedSubject] = React.useState(subjectsForSemester[0] || '');
+    const today = React.useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
 
     React.useEffect(() => {
         if (subjectsForSemester.length > 0 && !subjectsForSemester.includes(selectedSubject)) {
             setSelectedSubject(subjectsForSemester[0]);
         }
     }, [subjectsForSemester, selectedSubject]);
+
+    // Calculate unmarked students for notification
+    const unmarkedCount = React.useMemo(() => {
+        if (!selectedSubject) return 0;
+        return students.filter(student => {
+            const hasRecord = allRecords.some(r => 
+                r.studentRegister === student.registerNumber && 
+                r.date === today && 
+                r.subject === selectedSubject
+            );
+            return !hasRecord;
+        }).length;
+    }, [students, allRecords, today, selectedSubject]);
 
     if (subjectsForSemester.length === 0) {
         return (
@@ -61,6 +76,29 @@ const SemesterTabContent = ({ sem, students, allRecords, user, onMarkAttendance,
                     </Button>
                 ))}
             </div>
+
+            {/* Notification Alert for incomplete attendance */}
+            {selectedSubject && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                    {unmarkedCount > 0 ? (
+                        <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle className="font-bold">Attendance Incomplete</AlertTitle>
+                            <AlertDescription>
+                                There are still <strong>{unmarkedCount}</strong> student(s) without a recorded status for {selectedSubject} today. Please ensure all students are marked.
+                            </AlertDescription>
+                        </Alert>
+                    ) : students.length > 0 ? (
+                        <Alert className="bg-green-500/10 text-green-600 border-green-500/20">
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            <AlertTitle className="font-bold">Attendance Complete</AlertTitle>
+                            <AlertDescription>
+                                All students in Semester {sem} have been marked for {selectedSubject}.
+                            </AlertDescription>
+                        </Alert>
+                    ) : null}
+                </div>
+            )}
 
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
