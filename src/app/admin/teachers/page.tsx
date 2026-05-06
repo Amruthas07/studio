@@ -53,21 +53,34 @@ export default function AdminTeachersPage() {
   const handleUpdated = () => setIsEditDialogOpen(false);
   
   const handleDeleted = async () => {
-    if (teacherToDelete) {
-      setIsDeleting(true);
-      const result = await deleteTeacher(teacherToDelete.teacherId);
-      setIsDeleting(false);
-      
-      if (result.success) {
-        setIsDeleteDialogOpen(false);
-        setTeacherToDelete(null);
-      } else {
+    if (!teacherToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+        const result = await deleteTeacher(teacherToDelete.teacherId);
+        
+        if (result.success) {
+            toast({
+                title: "Teacher Removed",
+                description: `The account for ${teacherToDelete.name} has been deleted.`,
+            });
+            setIsDeleteDialogOpen(false);
+            setTeacherToDelete(null);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Deletion Failed",
+                description: result.error || "An unexpected error occurred.",
+            });
+        }
+    } catch (error: any) {
         toast({
-          variant: "destructive",
-          title: "Deletion Failed",
-          description: result.error,
+            variant: "destructive",
+            title: "System Error",
+            description: error.message || "Failed to process request.",
         });
-      }
+    } finally {
+        setIsDeleting(false);
     }
   };
 
@@ -167,7 +180,7 @@ export default function AdminTeachersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-                This will permanently delete the record for <span className='font-bold'>{teacherToDelete?.name}</span>.
+                This will permanently delete the record for <span className='font-bold text-foreground'>{teacherToDelete?.name}</span>. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

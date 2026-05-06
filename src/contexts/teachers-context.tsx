@@ -180,24 +180,28 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     if (!firestore) {
       return { success: false, error: 'Database not available.' };
     }
+    
+    // The teacherId is the lowercase email (document ID)
     const teacherDocRef = doc(firestore, 'teachers', teacherId.toLowerCase());
 
     try {
         await deleteDoc(teacherDocRef);
-        toast({ title: 'Teacher Deleted', description: `Successfully removed teacher record.` });
+        // Note: The UI will update automatically via the onSnapshot listener
         return { success: true };
     } catch (error: any) {
+        console.error("Deletion failed:", error);
         if (error.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+            const permissionError = new FirestorePermissionError({ 
               path: teacherDocRef.path, 
               operation: 'delete' 
-            }));
+            });
+            errorEmitter.emit('permission-error', permissionError);
             return { success: false, error: 'Insufficient permissions to delete.' };
         } else {
             return { success: false, error: error.message || 'Failed to delete teacher record.' };
         }
     }
-  }, [firestore, toast]);
+  }, [firestore]);
 
   const value = { teachers, loading, addTeacher, updateTeacher, deleteTeacher };
 
