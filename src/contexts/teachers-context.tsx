@@ -48,7 +48,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
             const data = doc.data();
             return {
                 ...data,
-                teacherId: doc.id,
+                teacherId: doc.id, // This is the lowercase email used as document key
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
                 updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)),
             } as Teacher;
@@ -159,7 +159,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     }
 
     const { subjects, ...otherUpdates } = updates;
-    const teacherDocRef = doc(firestore, 'teachers', teacherId.toLowerCase());
+    const teacherDocRef = doc(firestore, 'teachers', teacherId); // Use exact ID as stored
 
     const updatesToApply: { [key: string]: any } = { ...otherUpdates, subjects, updatedAt: serverTimestamp() };
 
@@ -181,12 +181,13 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
       return { success: false, error: 'Database not available.' };
     }
     
-    // The teacherId is the lowercase email (document ID)
-    const teacherDocRef = doc(firestore, 'teachers', teacherId.toLowerCase());
+    // CRITICAL: Targeting document by the EXACT ID returned from Firestore snapshot.
+    // Document IDs are case-sensitive.
+    const teacherDocRef = doc(firestore, 'teachers', teacherId);
 
     try {
         await deleteDoc(teacherDocRef);
-        // Note: The UI will update automatically via the onSnapshot listener
+        // The UI will update automatically via the onSnapshot listener in useEffect
         return { success: true };
     } catch (error: any) {
         console.error("Deletion failed:", error);
@@ -196,7 +197,7 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
               operation: 'delete' 
             });
             errorEmitter.emit('permission-error', permissionError);
-            return { success: false, error: 'Insufficient permissions to delete.' };
+            return { success: false, error: 'Access Denied: Insufficient permissions to delete records.' };
         } else {
             return { success: false, error: error.message || 'Failed to delete teacher record.' };
         }
