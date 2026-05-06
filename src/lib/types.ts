@@ -69,7 +69,7 @@ export interface TeachersContextType {
     teacherData: Omit<Teacher, 'teacherId' | 'createdAt' | 'updatedAt'> & { password: string }
   ) => Promise<{ success: boolean; error?: string; }>;
   updateTeacher: (teacherId: string, teacherUpdate: Partial<Omit<Teacher, 'teacherId' | 'createdAt' | 'email' | 'updatedAt'>>) => Promise<void>;
-  deleteTeacher: (teacherId: string) => void;
+  deleteTeacher: (teacherId: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export interface InstitutionProfile {

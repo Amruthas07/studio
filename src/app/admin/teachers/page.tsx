@@ -29,16 +29,20 @@ import { TeachersTable } from "@/components/admin/teachers-table";
 import { TeacherProfileCard } from '@/components/shared/teacher-profile-card';
 import type { Teacher } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminTeachersPage() {
   const { user, loading: authLoading } = useAuth();
   const { teachers, loading: teachersLoading, deleteTeacher } = useTeachers();
+  const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = React.useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  
   const [teacherToEdit, setTeacherToEdit] = React.useState<Teacher | null>(null);
   const [teacherToDelete, setTeacherToDelete] = React.useState<Teacher | null>(null);
   const [teacherToView, setTeacherToView] = React.useState<Teacher | null>(null);
@@ -47,13 +51,26 @@ export default function AdminTeachersPage() {
 
   const handleAdded = () => setIsAddDialogOpen(false);
   const handleUpdated = () => setIsEditDialogOpen(false);
+  
   const handleDeleted = async () => {
     if (teacherToDelete) {
-      await deleteTeacher(teacherToDelete.teacherId);
-      setIsDeleteDialogOpen(false);
-      setTeacherToDelete(null);
+      setIsDeleting(true);
+      const result = await deleteTeacher(teacherToDelete.teacherId);
+      setIsDeleting(false);
+      
+      if (result.success) {
+        setIsDeleteDialogOpen(false);
+        setTeacherToDelete(null);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Deletion Failed",
+          description: result.error,
+        });
+      }
     }
   };
+
   const openViewDialog = (teacher: Teacher) => {
     setTeacherToView(teacher);
     setIsViewDialogOpen(true);
@@ -154,8 +171,21 @@ export default function AdminTeachersPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleted} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleted} 
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Teacher"
+              )}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

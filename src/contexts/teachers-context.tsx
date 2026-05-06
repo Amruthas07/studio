@@ -176,24 +176,27 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     }
   }, [firestore, toast, teachers]);
   
-  const deleteTeacher = useCallback((teacherId: string) => {
+  const deleteTeacher = useCallback(async (teacherId: string): Promise<{ success: boolean; error?: string }> => {
     if (!firestore) {
-      toast({ variant: 'destructive', title: 'Delete Failed', description: 'Database not available.' });
-      return;
+      return { success: false, error: 'Database not available.' };
     }
     const teacherDocRef = doc(firestore, 'teachers', teacherId.toLowerCase());
 
-    deleteDoc(teacherDocRef)
-      .then(() => {
-        toast({ title: 'Teacher Deleted', description: `Successfully removed teacher ${teacherId}.` });
-      })
-      .catch((error: any) => {
+    try {
+        await deleteDoc(teacherDocRef);
+        toast({ title: 'Teacher Deleted', description: `Successfully removed teacher record.` });
+        return { success: true };
+    } catch (error: any) {
         if (error.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: teacherDocRef.path, operation: 'delete' }));
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+              path: teacherDocRef.path, 
+              operation: 'delete' 
+            }));
+            return { success: false, error: 'Insufficient permissions to delete.' };
         } else {
-             toast({ variant: 'destructive', title: 'Delete Failed', description: error.message });
+            return { success: false, error: error.message || 'Failed to delete teacher record.' };
         }
-    });
+    }
   }, [firestore, toast]);
 
   const value = { teachers, loading, addTeacher, updateTeacher, deleteTeacher };
