@@ -1,11 +1,11 @@
 
 "use client"
 
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Loader2 } from "lucide-react"
+import { Loader2, Eye, EyeOff } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -69,6 +69,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const { toast } = useToast()
   const { addTeacher } = useTeachers();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -143,7 +144,32 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         <FormItem>
                         <FormLabel>Initial Password</FormLabel>
                         <FormControl>
-                            <Input type="password" placeholder="Exactly 6 characters" {...field} disabled={isSubmitting} />
+                            <div className="relative">
+                                <Input 
+                                    type={showPassword ? "text" : "password"} 
+                                    placeholder="Exactly 6 characters" 
+                                    {...field} 
+                                    disabled={isSubmitting} 
+                                    className="pr-10"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    tabIndex={-1}
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                    ) : (
+                                        <Eye className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                    <span className="sr-only">
+                                        {showPassword ? "Hide password" : "Show password"}
+                                    </span>
+                                </Button>
+                            </div>
                         </FormControl>
                         <FormMessage />
                         </FormItem>
