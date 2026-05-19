@@ -77,11 +77,14 @@ export function EditTeacherForm({ teacher, onTeacherUpdated }: EditTeacherFormPr
   
   const department = form.watch('department');
 
+  // Reset subjects if department changes, but don't reset if switching back to original dept
   useEffect(() => {
     if (department !== teacher.department) {
-      form.resetField("subjects");
+      form.setValue("subjects", {});
+    } else {
+      form.setValue("subjects", teacher.subjects || {});
     }
-  }, [department, form, teacher.department]);
+  }, [department, form, teacher.department, teacher.subjects]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);

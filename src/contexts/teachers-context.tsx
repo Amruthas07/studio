@@ -182,12 +182,10 @@ export function TeachersProvider({ children }: { children: ReactNode }) {
     }
     
     // CRITICAL: Targeting document by the EXACT ID returned from Firestore snapshot.
-    // Document IDs are case-sensitive.
     const teacherDocRef = doc(firestore, 'teachers', teacherId);
 
     try {
         await deleteDoc(teacherDocRef);
-        // The UI will update automatically via the onSnapshot listener in useEffect
         return { success: true };
     } catch (error: any) {
         console.error("Deletion failed:", error);
